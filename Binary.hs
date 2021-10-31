@@ -75,26 +75,55 @@ data FinOf m n b where
   RHS :: !(Fin n) -> FinOf m n b
   CarryBit :: FinOf m n 'I
 
+type Binary :: Bits -> Constraint
+class Binary m where
+  snoc :: Fin (HighBits m) -> Bit -> Fin m
+  top :: Dict (LowBit m ~ 'I) -> Fin m
+
+instance Binary '[] where
+  snoc = \case
+  top = \case
+
+instance Binary ('O ': bs) where
+  snoc = (:!)
+  top = \case
+
+instance Binary ('I ': bs) where
+  snoc = (:!)
+  top Dict = Top
+
+type Dict :: Constraint -> *
+data Dict c where
+  Dict :: c => Dict c
+
+binaryVec :: Vec m a -> Dict (Binary m)
+binaryVec Nil = Dict
+binaryVec (_ :& Some _) = Dict
+binaryVec (_ :& None) = Dict
+
 combine :: Vec m a -> Vec n a -> Combined m n 'O a
 combine v v' = combineCarry v v' None
 
 combineCarry :: Vec m a -> Vec n a -> Opt b a -> Combined m n b a
-combineCarry Nil Nil None = Combined
+combineCarry v@(binaryVec -> Dict) v'@(binaryVec -> Dict) o = combineCarry' v v' o
+
+combineCarry' :: (Binary m, Binary n) => Vec m a -> Vec n a -> Opt b a -> Combined m n b a
+combineCarry' Nil Nil None = Combined
   do Nil 
   do \case
   do \case
-combineCarry Nil Nil opt@(Some _) = Combined 
+combineCarry' Nil Nil opt@(Some _) = Combined 
   do Nil :& opt
   do \case CarryBit -> Top
   do \case Top -> CarryBit
-combineCarry Nil (rvec :& ropt) bopt = combineCarryR Nil None rvec ropt bopt
-combineCarry (lvec :& lopt) Nil bopt = combineCarryR lvec lopt Nil None bopt
-combineCarry (lvec :& lopt) (rvec :& ropt) bopt = combineCarryR lvec lopt rvec ropt bopt
+combineCarry' Nil (rvec :& ropt) bopt = combineCarryR Nil None rvec ropt bopt
+combineCarry' (lvec :& lopt) Nil bopt = combineCarryR lvec lopt Nil None bopt
+combineCarry' (lvec :& lopt) (rvec :& ropt) bopt = combineCarryR lvec lopt rvec ropt bopt
 
 combineCarryR :: 
   ( Add m n b ~ (Xor (LowBit m) (LowBit n) b ': Add (HighBits m) (HighBits n) (Carry (LowBit m) (LowBit n) b))
-  , Snoc m
-  , Snoc n
+  , Binary m
+  , Binary n
   ) =>
   Vec (HighBits m) (Pair a) -> Opt (LowBit m) a -> 
   Vec (HighBits n) (Pair a) -> Opt (LowBit n) a -> 
@@ -107,16 +136,24 @@ combineCarryR lvec lopt rvec ropt bopt = withCombined
   where 
     (copt, xopt) = carry lopt ropt bopt
 
-type Dict :: Constraint -> *
-data Dict c where
-  Dict :: c => Dict c
+carry :: Opt x a -> Opt y a -> Opt z a -> (Opt (Carry x y z) (Pair a), Opt (Xor x y z) a)
+carry None None opt = (None, opt)
+carry None opt@(Some _) None = (None, opt)
+carry opt@(Some _) None None = (None, opt)
+carry (Some la) (Some ra) opt = (Some (la :* ra), opt)
+carry (Some la) None (Some ba) = (Some (la :* ba), None)
+carry None (Some ra) (Some ba) = (Some (ra :* ba), None)
 
 froFor :: 
   ( Add m n b ~ (Xor (LowBit m) (LowBit n) b ': Add (HighBits m) (HighBits n) (Carry (LowBit m) (LowBit n) b))
-  , Snoc m
-  , Snoc n
+  , Binary m
+  , Binary n
   ) =>
-  Opt (LowBit m) i -> Opt (LowBit n) j -> Opt b k -> Fro (HighBits m) (HighBits n) (Carry (LowBit m) (LowBit n) b) -> Fro m n b
+  Opt (LowBit m) i -> 
+  Opt (LowBit n) j -> 
+  Opt b k -> 
+  Fro (HighBits m) (HighBits n) (Carry (LowBit m) (LowBit n) b) -> 
+  Fro m n b
 froFor None None _ fro = \case
   bs :! b -> case fro bs of
     LHS bs -> LHS (snoc bs b)
@@ -126,31 +163,34 @@ froFor None (Some _) None fro = \case
   bs :! b -> case fro bs of
     LHS bs -> LHS (snoc bs b)
     RHS bs -> RHS (snoc bs b)
-  Top -> RHS top
-froFor _ _ _ _ = undefined
-
-type Snoc :: Bits -> Constraint
-class Snoc m where
-  snoc :: Fin (HighBits m) -> Bit -> Fin m
-
-instance Snoc '[] where
-  snoc = \case
-
-instance Snoc (b ': bs) where
-  snoc = (:!)
-  --
-
-top :: (LowBit m ~ 'I) => Fin m
-top = Top
-
-type Uncons :: Bits -> (Bits, Bit)
-type family Uncons bs = btb | btb -> bs where
-  Uncons '[] = '( '[] , 'O )
-  Uncons ('O ': b ': bs) = '( b ': bs , 'O )
-  Uncons ('I ': bs) = '( bs , 'I )
-  
-
-
+  Top -> RHS (top Dict)
+froFor (Some _) None None fro = \case
+  bs :! b -> case fro bs of
+    LHS bs -> LHS (snoc bs b)
+    RHS bs -> RHS (snoc bs b)
+  Top -> LHS (top Dict)
+froFor (Some _) (Some _) _ fro = \case
+  bs :! b -> case fro bs of
+    LHS bs -> LHS (snoc bs b)
+    RHS bs -> RHS (snoc bs b)
+    CarryBit -> case b of
+      O -> LHS (top Dict)
+      I -> RHS (top Dict)
+  Top -> CarryBit
+froFor (Some _) None (Some _) fro = \case
+  bs :! b -> case fro bs of
+    LHS bs -> LHS (snoc bs b)
+    RHS bs -> RHS (snoc bs b)
+    CarryBit -> case b of
+      O -> LHS (top Dict)
+      I -> CarryBit
+froFor None (Some _) (Some _) fro = \case
+  bs :! b -> case fro bs of
+    LHS bs -> LHS (snoc bs b)
+    RHS bs -> RHS (snoc bs b)
+    CarryBit -> case b of
+      O -> RHS (top Dict)
+      I -> CarryBit
 
 toFor :: 
   (Add m n b ~ (Xor (LowBit m) (LowBit n) b ': Add (HighBits m) (HighBits n) (Carry (LowBit m) (LowBit n) b))) =>
@@ -184,18 +224,6 @@ toFor None (Some _) (Some _) to = \case
   RHS Top -> to CarryBit :! O
   CarryBit -> to CarryBit :! I
 
-carry :: Opt x a -> Opt y a -> Opt z a -> (Opt (Carry x y z) (Pair a), Opt (Xor x y z) a)
-carry None None opt = (None, opt)
-carry None opt@(Some _) None = (None, opt)
-carry opt@(Some _) None None = (None, opt)
-carry (Some la) (Some ra) opt = (Some (la :* ra), opt)
-carry (Some la) None (Some ba) = (Some (la :* ba), None)
-carry None (Some ra) (Some ba) = (Some (ra :* ba), None)
-
-uncons :: Vec m a -> (Vec (HighBits m) (Pair a), Opt (LowBit m) a)
-uncons Nil = (Nil, None)
-uncons (vec :& opt) = (vec, opt)
-  
 withCombined :: 
   (Vec (Add m' n' b') a' -> Vec (Add m n b) a) ->
   (To m' n' b' -> To m n b) ->
