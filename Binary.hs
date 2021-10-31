@@ -1,7 +1,7 @@
 {-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE BlockArguments #-}
 {-# LANGUAGE DataKinds #-}
-{-# LANGUAGE DeriveFunctor #-}
+{-# LANGUAGE DeriveTraversable #-}
 {-# LANGUAGE EmptyCase #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE GADTs #-}
@@ -24,6 +24,8 @@
 module Binary where
 
 import GHC.Types (Constraint)
+import Control.Monad (ap)
+import Prelude hiding ((!!), reverse)
 
 -- see Bin.hs for more strongly typed alternative
 
@@ -36,28 +38,130 @@ data Bit = O | I deriving (Eq, Ord, Show)
 -- leading zeroes are legal, but non-canonical
 type Bits = [Bit]
 
+infixr 8 :*
+
 type Pair :: * -> *
 data Pair a = !a :* !a
+  deriving (Eq, Ord, Show, Functor, Foldable, Traversable)
 
-infixr 8 :*
+instance Applicative Pair where
+  pure a = a :* a
+  (<*>) = ap
+
+instance Monad Pair where
+  (a0 :* a1) >>= f = f a0 `diag` f a1
+
+infixl 4 :&
+
+type Opt :: Bit -> * -> *
+data Opt (length :: Bit) a where
+  None :: Opt 'O a
+  Some :: { getSome :: !a } -> Opt 'I a
+
+deriving instance Show a => Show (Opt m a)
+deriving instance Eq a => Eq (Opt m a)
+deriving instance Ord a => Ord (Opt m a)
+deriving instance Functor (Opt m)
+deriving instance Foldable (Opt m)
+deriving instance Traversable (Opt m)
+
+class KnownBit b where
+  toOpt :: (b ~ 'I => a) -> Opt b a
+
+instance KnownBit 'O where
+  toOpt _ = None
+
+instance KnownBit 'I where
+  toOpt = Some
+
+mapOpt :: (b ~ 'I => x -> y) -> Opt b x -> Opt b y
+mapOpt _ None = None
+mapOpt f (Some x) = Some (f x)
+
+zipOpt :: (b ~ 'I => x -> y -> z) -> Opt b x -> Opt b y -> Opt b z
+zipOpt _ None None = None
+zipOpt f (Some x) (Some y) = Some (f x y)
+
+bindOpt :: Opt b x -> (b ~ 'I => x -> Opt b y) -> Opt b y
+bindOpt None _ = None
+bindOpt (Some a) f = f a
+
+seqOpt :: Opt b a -> (KnownBit b => r) -> r
+seqOpt None r = r
+seqOpt (Some _) r = r
+
+instance KnownBit b => Applicative (Opt b) where
+  pure = toOpt
+  (<*>) = ap
+
+instance KnownBit b => Monad (Opt b) where
+  None >>= _ = None
+  Some a >>= f = f a
 
 type Vec :: Bits -> * -> *
 data Vec (length :: Bits) a where
   Nil :: Vec '[] a
-  (:&) :: !(Vec bs (Pair a)) -> !(Opt b a) -> Vec (b ': bs) a
+  (:&) :: { getForest :: !(Vec bs (Pair a)), getSubtree :: !(Opt b a) } -> Vec (b ': bs) a
 
-infixl 4 :&
+deriving instance Show a => Show (Vec m a)
+deriving instance Eq a => Eq (Vec m a)
+deriving instance Ord a => Ord (Vec m a)
+deriving instance Functor (Vec m)
+deriving instance Foldable (Vec m)
+deriving instance Traversable (Vec m)
+
+instance KnownBits m => Applicative (Vec m) where
+  pure = toVec . const
+  (<*>) = ap
+
+instance KnownBits m => Monad (Vec m) where
+  v >>= f = v `bindWithIndex` const f
+
+mapWithIndex :: (Fin m -> a -> b) -> Vec m a -> Vec m b
+mapWithIndex _ Nil = Nil
+mapWithIndex f (vec :& opt) = (:&)
+  do mapWithIndex (\ix (a0 :* aI) -> f (ix :! O) a0 :* f (ix :! I) aI) vec 
+  do mapOpt (f Top) opt
+
+zipWithIndex :: (Fin m -> a -> b -> c) -> Vec m a -> Vec m b -> Vec m c
+zipWithIndex _ Nil Nil = Nil
+zipWithIndex f (veca :& opta) (vecb :& optb) = (:&)
+  do zipWithIndex (\ix a b -> (f (ix :! O) :* f (ix :! I)) <*> a <*> b) veca vecb
+  do zipOpt (f Top) opta optb
+
+bindWithIndex :: Vec m a -> (Fin m -> a -> Vec m b) -> Vec m b
+bindWithIndex Nil _ = Nil
+bindWithIndex (veca :& opta) f = (:&)
+  do veca `bindWithIndex` \ix (a0 :* a1) -> 
+        zipWithIndex (const diag)
+          do getForest (f (ix :! O) a0) 
+          do getForest (f (ix :! I) a1)
+  do opta `bindOpt` (getSubtree . f Top)
+
+diag :: Pair a -> Pair a -> Pair a
+diag (a0 :* _) (_ :* a1) = a0 :* a1
+
+(!!) :: Vec m a -> Fin m -> a
+(_ :& Some a) !! Top = a
+(!!) _ _ = undefined
+
+class KnownBits m where
+  toVec :: (Fin m -> a) -> Vec m a
+
+instance KnownBits '[] where
+  toVec _ = Nil
+  
+instance (KnownBits bs, KnownBit b) => KnownBits (b ': bs) where
+  toVec f = toVec (\ix -> f (ix :! O) :* f (ix :! I)) :& toOpt (f Top)
+
+indexes :: KnownBits m => Vec m (Fin m)
+indexes = toVec id
 
 data Fin (cardinality :: Bits) where
   (:!) :: !(Fin bs) -> !Bit -> Fin (b ': bs)
   Top :: Fin ('I ': bs)
 
 infixl 4 :!
-
-type Opt :: Bit -> * -> *
-data Opt (length :: Bit) a where
-  None :: Opt 'O a
-  Some :: !a -> Opt 'I a
 
 type Combined :: Bits -> Bits -> Bit -> * -> *
 data Combined m n b a = Combined
@@ -92,10 +196,23 @@ instance Binary ('I ': bs) where
   snoc = (:!)
   top Dict = Top
 
+{-
+type KnownBin :: Bits -> Constraint
+class KnownBin m where
+  index :: Vec m (Fin m)
+
+instance KnownBin '[] where
+  index = Nil
+
+instance KnownBin bs => KnownBin (b ': bs) where
+  index = 
+  -}
+
 type Dict :: Constraint -> *
 data Dict c where
   Dict :: c => Dict c
 
+-- would be O(1), except for strictness
 binaryVec :: Vec m a -> Dict (Binary m)
 binaryVec Nil = Dict
 binaryVec (_ :& Some _) = Dict
