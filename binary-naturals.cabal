@@ -1,0 +1,26 @@
+cabal-version:       >=1.10
+name:                binary-naturals
+version:             1.0.0.0
+synopsis:            Binary encoding of natural numbers for the type-level
+homepage:            github.com/rampion/binary-naturals
+license:             PublicDomain
+author:              Noah Luck Easterly
+maintainer:          noah.easterly@gmail.com
+-- category:
+build-type:          Simple
+extra-source-files:  CHANGELOG.md, README.md
+
+library
+  exposed-modules:     Data.Natural.Binary
+  -- other-modules:
+  other-extensions:    AllowAmbiguousTypes, BlockArguments, DataKinds, DeriveTraversable, EmptyCase, FlexibleInstances, GADTs, KindSignatures, LambdaCase, NamedFieldPuns, PolyKinds, Rank2Types, StandaloneDeriving, StandaloneKindSignatures, TypeFamilies, TypeFamilyDependencies, TypeOperators, UndecidableInstances, ViewPatterns, ConstraintKinds, ConstrainedClassMethods
+  build-depends:       base >=4.14 && <4.15, ghc-prim >=0.6 && <0.7
+  hs-source-dirs:      src
+  default-language:    Haskell2010
+
+test-suite binary-naturals-test
+  default-language:    Haskell2010
+  type:                exitcode-stdio-1.0
+  hs-source-dirs:      test
+  main-is:             Main.hs
+  build-depends:       base >=4.14 && <4.15, ghc-prim >=0.6 && <0.7

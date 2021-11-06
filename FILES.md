@@ -4,9 +4,6 @@ A brief description of each file in this repository.
 # README.md
 An user's introduction to the **binary-naturals** package.
 
-# binary-naturals.cabal
-Instructions for the Cabal on how to turn the files in the repository into a package.
-
 # src/Data/Natural/Binary.hs
 Umbrella module reexporting the contents of the modules in the `src/Data/Natural/Binary/` directory.
 
@@ -33,3 +30,14 @@ Definition of `combine`, an `O(log(m + n))` algorithm for shuffling a `Vec m` an
 
 # src/Data/Natural/Binary/Append.hs
 Definition of `(++)`, an `O(m + n)` algorithm for concatenating a `Vec m` and a `Vec n` into a `Vec (m + n)`.
+
+# test/Main.hs
+
+# binary-naturals.cabal
+A description of the **binary-naturals** package, used by `cabal`.
+
+# Setup.hs
+A program to perform setup tasks when building the package.
+
+# CHANGELOG.md
+A list of changes introduced at each version of the package.

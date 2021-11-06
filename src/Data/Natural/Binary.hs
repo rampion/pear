@@ -21,7 +21,7 @@
 {-# LANGUAGE ConstrainedClassMethods #-}
 {-# OPTIONS_GHC -Wall -Werror -Wextra -Wno-name-shadowing #-}
 
-module Binary where
+module Data.Natural.Binary where
 
 import Data.Functor.Const
 import Data.Functor.Identity
