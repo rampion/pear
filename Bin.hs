@@ -1,25 +1,29 @@
-{-# LANGUAGE AllowAmbiguousTypes      #-}
-{-# LANGUAGE BlockArguments                #-}
-{-# LANGUAGE MultiParamTypeClasses                #-}
-{-# LANGUAGE DataKinds                #-}
-{-# LANGUAGE DeriveFunctor            #-}
-{-# LANGUAGE EmptyCase                #-}
-{-# LANGUAGE FlexibleInstances        #-}
-{-# LANGUAGE GADTs                    #-}
-{-# LANGUAGE KindSignatures           #-}
-{-# LANGUAGE LambdaCase               #-}
-{-# LANGUAGE NamedFieldPuns           #-}
-{-# LANGUAGE PatternSynonyms          #-}
-{-# LANGUAGE PolyKinds                #-}
-{-# LANGUAGE Rank2Types               #-}
-{-# LANGUAGE StandaloneDeriving       #-}
+{-# LANGUAGE AllowAmbiguousTypes #-}
+{-# LANGUAGE BlockArguments #-}
+{-# LANGUAGE DataKinds #-}
+{-# LANGUAGE DeriveFunctor #-}
+{-# LANGUAGE EmptyCase #-}
+{-# LANGUAGE ExplicitNamespaces #-}
+{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE GADTs #-}
+{-# LANGUAGE KindSignatures #-}
+{-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE NamedFieldPuns #-}
+{-# LANGUAGE PatternSynonyms #-}
+{-# LANGUAGE PolyKinds #-}
+{-# LANGUAGE Rank2Types #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE StandaloneKindSignatures #-}
-{-# LANGUAGE TypeFamilies             #-}
-{-# LANGUAGE TypeFamilyDependencies   #-}
-{-# LANGUAGE TypeOperators            #-}
-{-# LANGUAGE UndecidableInstances     #-}
-{-# LANGUAGE ExplicitNamespaces       #-}
-{-# LANGUAGE ViewPatterns       #-}
+{-# LANGUAGE TypeApplications #-}
+{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE TypeFamilyDependencies #-}
+{-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE ViewPatterns #-}
+{-# LANGUAGE ViewPatterns #-}
 {-# OPTIONS_GHC -Wall -Wextra -Werror -Wno-name-shadowing -Wno-unused-matches #-}
 
 module Bin 
@@ -40,7 +44,6 @@ module Bin
   -- , mapWithIndex :: (Fin m -> a -> b) -> Vec m a -> Vec m b
   -- , withList :: (forall bs. Vec ('Binary bs) a -> r) -> [a] -> r
   -- , instance Show
-  , type (<->)(..)
   , (+)
   , AddToZero
   , AddParity
@@ -130,7 +133,7 @@ deriving instance Show (Fin cardinality)
 
 data Opt (length :: SomeBit) a where
   None :: Opt ('SomeBit 'O) a
-  Some :: !a -> Opt ('SomeBit 'I) a
+  Some :: { getSome :: !a } -> Opt ('SomeBit 'I) a
 
 deriving instance Functor (Opt length)
 
@@ -244,9 +247,6 @@ instance (Traversable (Vec ('Binary bs)), Traversable (Opt ('SomeBit b))) => Tra
     at :: Bit parity -> Two a -> a
     at O (a :* _) = a
     at I (_ :* a) = a
-data a <-> b = Bijection {to :: a -> b, fro :: b -> a}
-
-infix 0 <->
 
 type Vec' m = Vec ('Binary m)
 type Fin' m = Fin ('Binary m)
@@ -259,74 +259,133 @@ data FinCarry m n b where
 
 type FinCarry' m n b = FinCarry ('Binary m) ('Binary n) ('SomeBit b)
 
--- O(min(log(m),log(n)))
-combine :: (m ~ 'Binary m', n ~ 'Binary n') => Vec m a -> Vec n a -> (Vec (m + n) a, Either (Fin m) (Fin n) <-> Fin (m + n))
-combine = \lhs rhs -> simplify <$> combineCarry lhs rhs None
-  where
-    simplify :: (FinCarry' m n 'O <-> p) -> (Either (Fin' m) (Fin' n) <-> p)
-    simplify Bijection {to, fro} =
-      Bijection
-      { to = either (to . mkLHS) (to . mkRHS)
-      , fro = fro >>> \case
-          LHS ix -> Left ix
-          RHS ix -> Right ix
-      }
-
-mkLHS :: Fin' m -> FinCarry ('Binary m) n b
+mkLHS :: Fin' m -> FinCarry' m n b
 mkLHS = \case
   ix@(_ :! _) -> LHS ix
   ix@Top -> LHS ix
 
-mkRHS :: Fin' n -> FinCarry m ('Binary n) b
+mkRHS :: Fin' n -> FinCarry' m n b
 mkRHS = \case
   ix@(_ :! _) -> RHS ix
   ix@Top -> RHS ix
 
-combineCarry 
-  :: Vec' m a -> Vec' n a -> Opt' b a
-  -> (Vec' (AddCarry m n b) a, FinCarry' m n b <-> Fin' (AddCarry m n b))
+-- O(min(log(m),log(n)))
+combine :: (m ~ 'Binary m', n ~ 'Binary n') => Vec m a -> Vec n a -> Combined m n a
+combine = \lhs rhs -> combineCarry lhs rhs None
+
+type family Combined m n where
+  Combined ('Binary m) ('Binary n) = CombinedCarry m n 'O
+
+type (+) :: Binary -> Binary -> Binary
+type family (+) lhs rhs where
+  'Binary lhs + 'Binary rhs = 'Binary (AddCarry lhs rhs 'O)
+
+type AddToZero :: Parity -> IsZero -> IsZero -> IsZero
+type family AddToZero carry lhs rhs where
+  AddToZero 'Even 'Zero p = p
+  AddToZero 'Even p 'Zero = p
+  AddToZero 'Odd _ _ = 'NonZero
+  AddToZero _ 'NonZero _ = 'NonZero
+  AddToZero _ _ 'NonZero = 'NonZero
+  -- AddToZero _ _ _ = 'Zero
+
+type AddParity :: Parity -> Parity -> Parity -> Parity
+type family AddParity carry lhs rhs where
+  AddParity 'Even 'Even p = p
+  AddParity 'Even p 'Even = p
+  AddParity p 'Even 'Even = p
+  AddParity p 'Odd 'Odd = p
+  AddParity 'Odd 'Odd p = p
+  AddParity 'Odd p 'Odd = p
+
+type AddCarry :: Bits isZero parity -> Bits isZero' parity' -> Bit carry -> Bits (AddToZero carry isZero isZero') (AddParity carry parity parity')
+type family AddCarry lhs rhs carry = tot where
+  -- ≥2 zeroes, empty
+  AddCarry 'ObO xs 'O = xs
+  AddCarry xs 'ObO 'O = xs
+  AddCarry 'ObO 'ObO 'I = 'ObI
+  -- ≥2 zeroes, branch and branch
+  AddCarry (xs ':. 'O) (ys ':.  b) 'O = AddCarry xs ys 'O ':. b
+  AddCarry (xs ':.  b) (ys ':. 'O) 'O = AddCarry xs ys 'O ':. b
+  AddCarry (xs ':. 'O) (ys ':. 'O)  b = AddCarry xs ys 'O ':. b
+  -- ≥2 zeroes, branch and leaf
+  AddCarry (xs ':. 'O) 'ObI 'O = xs ':. 'I
+  AddCarry 'ObI (xs ':. 'O) 'O = xs ':. 'I
+  -- ≥2 zeroes, branch and empty
+  AddCarry (xs ':. 'O) 'ObO  b = xs ':.  b
+  AddCarry 'ObO (xs ':. 'O)  b = xs ':.  b
+  -- ≥2 ones, branch and branch
+  AddCarry (xs ':. 'I) (ys ':. 'I)  b = AddCarry xs ys 'I ':.  b
+  AddCarry (xs ':. 'I) (ys ':. 'O) 'I = AddCarry xs ys 'I ':. 'O
+  AddCarry (xs ':. 'O) (ys ':. 'I) 'I = AddCarry xs ys 'I ':. 'O
+  -- ≥2 ones, branch and leaf
+  AddCarry (xs ':. 'I) 'ObI  b = AddCarry xs 'ObO 'I ':.  b
+  AddCarry 'ObI (xs ':. 'I)  b = AddCarry 'ObO xs 'I ':.  b
+  AddCarry (xs ':. 'O) 'ObI 'I = AddCarry xs 'ObO 'I ':. 'O
+  AddCarry 'ObI (xs ':. 'O) 'I = AddCarry 'ObO xs 'I ':. 'O
+  -- ≥2 ones, branch and empty
+  AddCarry (xs ':. 'I) 'ObO 'I = AddCarry xs 'ObO 'I ':. 'O
+  AddCarry 'ObO (xs ':. 'I) 'I = AddCarry 'ObO xs 'I ':. 'O
+  -- ≥2 ones, leaf and empty
+  AddCarry 'ObI 'ObI  b = 'ObI ':.  b
+  AddCarry 'ObI 'ObO 'I = 'ObI ':. 'O
+  AddCarry 'ObO 'ObI 'I = 'ObI ':. 'O
+
+type To m n b = FinCarry' m n b -> Fin' (AddCarry m n b)
+type Fro m n b = Fin' (AddCarry m n b) -> FinCarry' m n b
+
+data CombinedCarry m n b a = CombinedCarry
+  { vector :: Vec' (AddCarry m n b) a
+  , to :: To m n b
+  , fro :: Fro m n b
+  }
+
+withCombinedCarry
+  :: (Vec' (AddCarry m' n' b') a' -> Vec' (AddCarry m n b) a)
+  -> (To m' n' b' -> To m n b)
+  -> (Fro m' n' b' -> Fro m n b)
+  -> CombinedCarry m' n' b' a' -> CombinedCarry m n b a
+withCombinedCarry withVector withTo withFro CombinedCarry { vector, to, fro } = CombinedCarry
+  { vector = withVector vector
+  , to = withTo to
+  , fro = withFro fro
+  }
+
+combineCarry :: Vec' m a -> Vec' n a -> Opt' b a -> CombinedCarry m n b a
+combineCarry Empty Empty None = CombinedCarry 
+  { vector = Empty
+  , to = \case
+  , fro = \case
+  }
 -- ≥2 zeroes, empty
-combineCarry Empty Empty None = ( Empty, Bijection { to = \case, fro = \case } )
-combineCarry Empty vec None = ( vec, Bijection { to = \case RHS ix -> ix, fro = mkRHS })
-combineCarry vec Empty None = ( vec, Bijection { to = \case LHS ix -> ix, fro = mkLHS })
-combineCarry Empty Empty (Some a) =
-  ( Leaf a
-  , Bijection
-    { to =  \case CarryBit -> Top
-    , fro = \case Top -> CarryBit
-    }
-  )
+combineCarry Empty vector None = CombinedCarry
+  { vector
+  , to = \case RHS ix -> ix
+  , fro = mkRHS
+  }
+combineCarry vector Empty None = CombinedCarry
+  { vector
+  , to = \case LHS ix -> ix
+  , fro = mkLHS
+  }
+combineCarry Empty Empty (Some a) = CombinedCarry
+  { vector = Leaf a
+  , to = \case CarryBit -> Top
+  , fro = \case Top -> CarryBit
+  }
 -- ≥2 zeroes, branch and branch
-combineCarry (lhs :& None) (rhs :& opt) None =
-  let (vec, Bijection {to, fro}) = combineCarry lhs rhs None
-   in ( vec :& opt
-      , Bijection
-        { to = \case 
-            LHS (ix :! b) -> to (LHS ix) :! b
-            RHS (ix :! b) -> to (RHS ix) :! b
-            RHS Top -> Top
-        , fro = \case
-            ix :! b -> case fro ix of
-              LHS ix -> LHS (ix :! b)
-              RHS ix -> RHS (ix :! b)
-            Top -> RHS Top
-        }
-      )
-combineCarry (lhs :& opt) (rhs :& None) None =
-  let (vec, Bijection {to, fro}) = combineCarry lhs rhs None
-   in ( vec :& opt
-      , Bijection
-        { to = \case
-            LHS (ix :! b) -> to (LHS ix) :! b
-            LHS Top -> Top
-            RHS (ix :! b) -> to (RHS ix) :! b
-        , fro = \case
-            ix :! b -> case fro ix of
-              LHS ix -> LHS (ix :! b)
-              RHS ix -> RHS (ix :! b)
-            Top -> LHS Top
-        }
-      )
+combineCarry (lhs :& None) (rhs :& opt) None = withCombinedCarry
+  do (:& opt)
+  do to_mO_nb_O
+  do fro_mO_nb_O
+  do combineCarry lhs rhs None
+combineCarry (lhs :& opt) (rhs :& None) None = withCombinedCarry
+  do (:& opt)
+  do to_mb_nO_O
+  do fro_mb_nO_O
+  do combineCarry lhs rhs None
+combineCarry _ _ _ = undefined
+{-
 combineCarry (lhs :& None) (rhs :& None) opt@(Some _) =
   let (vec, Bijection {to, fro}) = combineCarry lhs rhs None
    in ( vec :& opt
@@ -584,59 +643,171 @@ combineCarry Empty (Leaf a) (Some a') =
     }
   )
 
--- after
+-}
 
-type (+) :: Binary -> Binary -> Binary
-type family (+) lhs rhs where
-  'Binary lhs + 'Binary rhs = 'Binary (AddCarry lhs rhs 'O)
+to_mO_nb_O :: To m n 'O -> To (m ':. 'O) (n ':. b) 'O
+to_mO_nb_O to_m_n_O = \case 
+  LHS (ix :! b) -> to_m_n_O (LHS ix) :! b
+  RHS (ix :! b) -> to_m_n_O (RHS ix) :! b
+  RHS Top -> Top
 
-type AddToZero :: Parity -> IsZero -> IsZero -> IsZero
-type family AddToZero carry lhs rhs where
-  AddToZero 'Even 'Zero p = p
-  AddToZero 'Even p 'Zero = p
-  AddToZero 'Odd _ _ = 'NonZero
-  AddToZero _ 'NonZero _ = 'NonZero
-  AddToZero _ _ 'NonZero = 'NonZero
-  -- AddToZero _ _ _ = 'Zero
+fro_mO_nb_O :: Fro m n 'O -> Fro (m ':. 'O) (n ':. b) 'O
+fro_mO_nb_O fro_m_n_O = \case
+  ix :! b -> case fro_m_n_O ix of
+    LHS ix -> LHS (ix :! b)
+    RHS ix -> RHS (ix :! b)
+  Top -> RHS Top
 
-type AddParity :: Parity -> Parity -> Parity -> Parity
-type family AddParity carry lhs rhs where
-  AddParity 'Even 'Even p = p
-  AddParity 'Even p 'Even = p
-  AddParity p 'Even 'Even = p
-  AddParity p 'Odd 'Odd = p
-  AddParity 'Odd 'Odd p = p
-  AddParity 'Odd p 'Odd = p
+push :: forall b m n. (Fin' m -> Fin' n) -> Fin' (m ':. b) -> Fin' (n ':. b)
+push f = \case
+  (ix :! b) -> f ix :! b
+  Top -> Top
 
-type AddCarry :: Bits isZero parity -> Bits isZero' parity' -> Bit carry -> Bits (AddToZero carry isZero isZero') (AddParity carry parity parity')
-type family AddCarry lhs rhs carry = tot where
-  -- ≥2 zeroes, empty
-  AddCarry 'ObO xs 'O = xs
-  AddCarry xs 'ObO 'O = xs
-  AddCarry 'ObO 'ObO 'I = 'ObI
-  -- ≥2 zeroes, branch and branch
-  AddCarry (xs ':. 'O) (ys ':.  b) 'O = AddCarry xs ys 'O ':. b
-  AddCarry (xs ':.  b) (ys ':. 'O) 'O = AddCarry xs ys 'O ':. b
-  AddCarry (xs ':. 'O) (ys ':. 'O)  b = AddCarry xs ys 'O ':. b
-  -- ≥2 zeroes, branch and leaf
-  AddCarry (xs ':. 'O) 'ObI 'O = xs ':. 'I
-  AddCarry 'ObI (xs ':. 'O) 'O = xs ':. 'I
-  -- ≥2 zeroes, branch and empty
-  AddCarry (xs ':. 'O) 'ObO  b = xs ':.  b
-  AddCarry 'ObO (xs ':. 'O)  b = xs ':.  b
-  -- ≥2 ones, branch and branch
-  AddCarry (xs ':. 'I) (ys ':. 'I)  b = AddCarry xs ys 'I ':.  b
-  AddCarry (xs ':. 'I) (ys ':. 'O) 'I = AddCarry xs ys 'I ':. 'O
-  AddCarry (xs ':. 'O) (ys ':. 'I) 'I = AddCarry xs ys 'I ':. 'O
-  -- ≥2 ones, branch and leaf
-  AddCarry (xs ':. 'I) 'ObI  b = AddCarry xs 'ObO 'I ':.  b
-  AddCarry 'ObI (xs ':. 'I)  b = AddCarry 'ObO xs 'I ':.  b
-  AddCarry (xs ':. 'O) 'ObI 'I = AddCarry xs 'ObO 'I ':. 'O
-  AddCarry 'ObI (xs ':. 'O) 'I = AddCarry 'ObO xs 'I ':. 'O
-  -- ≥2 ones, branch and empty
-  AddCarry (xs ':. 'I) 'ObO 'I = AddCarry xs 'ObO 'I ':. 'O
-  AddCarry 'ObO (xs ':. 'I) 'I = AddCarry 'ObO xs 'I ':. 'O
-  -- ≥2 ones, leaf and empty
-  AddCarry 'ObI 'ObI  b = 'ObI ':.  b
-  AddCarry 'ObI 'ObO 'I = 'ObI ':. 'O
-  AddCarry 'ObO 'ObI 'I = 'ObI ':. 'O
+push' :: forall b m n. (Fin' m -> Fin' n) -> Fin' (m ':. 'O) -> Fin' (n ':. b)
+push' f = \case
+  (ix :! b) -> f ix :! b
+
+to_mb_nO_O :: To m n 'O -> To (m ':. b) (n ':. 'O) 'O
+to_mb_nO_O = undefined
+
+ex :: forall b (m :: Bits 'NonZero 'Odd).  Applicative (Opt' b) => Opt' b (Fin' m)
+ex = pure Top
+
+type Toward m n b t = FinCarry m n b -> Fin t
+type Toward' m n b t = Toward ('Binary m) ('Binary n) ('SomeBit b) ('Binary t) 
+type TowardInit' m n bc t = Toward' (Init m) (Init n) bc t
+
+type Init :: Bits isZero parity -> Bits isZero' parity'
+type family Init m where
+  Init 'ObO = 'ObO
+  Init 'ObI = 'ObO
+  Init (bs ':. b) = bs
+
+type Last :: Bits isZero parity -> Bit parity
+type family Last m where
+  Last 'ObO = 'O
+  Last 'ObI = 'I
+  Last (bs ':. b) = b
+
+type Carry :: Parity -> Parity -> Parity -> Parity
+type family Carry (bM :: Parity) (bN :: Parity) (b :: Parity) :: Parity where
+  Carry 'Even 'Odd 'Odd = 'Odd
+  Carry 'Odd 'Even 'Odd = 'Odd
+  Carry 'Odd 'Odd 'Odd = 'Odd
+  Carry 'Odd 'Odd 'Even = 'Odd
+  Carry _ _ _ = 'Even
+
+type Xor :: Parity -> Parity -> Parity -> Parity
+type family Xor (bM :: Parity) (bN :: Parity) (b :: Parity) :: Parity where
+  Xor p q q = p
+  Xor q p q = p
+  Xor q q p = p
+
+converge
+  :: forall 
+     zm pm zn pn pb pt
+     (m :: Bits zm pm)
+     (n :: Bits zn pn)
+     (b :: Bit pb)
+     (t :: Bits 'NonZero pt)
+     (bx :: Bit (Xor pm pn pb)) 
+     (bc :: Bit (Carry pm pn pb))
+  .  (TowardInit' m n bc t -> Opt' (Last m) (Fin' (t ':. bx)))
+  -> (TowardInit' m n bc t -> Opt' (Last n) (Fin' (t ':. bx)))
+  -> (TowardInit' m n bc t -> Opt' b (Fin' (t ':. bx)))
+  -> TowardInit' m n b t 
+  -> Toward' m n b (t ':. bx)
+converge lset rset bset to = \case
+  LHS (ix :! b) -> to (LHS ix) :! b
+  LHS Top -> getSome (lset to)
+  RHS (ix :! b) -> to (RHS ix) :! b
+  RHS Top -> getSome (rset to)
+  CarryBit -> getSome (bset to)
+{-
+to_mb_nO_O' :: forall m n b. To m n 'O -> FinCarry' (m ':. b) (n ':. 'O) 'O -> Fin' (AddCarry m n 'O ':. b)
+-- to_mb_nO_O' = converge (const Top) (\case) (\case)
+to_mb_nO_O' = converge @m @n undefined undefined undefined
+
+converge
+  :: forall 
+    m n
+    parityM parityN parityB
+    (bM :: Bit parityM)
+    (bN :: Bit parityN)
+    (b :: Bit parityB)
+    (bC :: Bit (Carry parityM parityN parityB))
+    (bX :: Bit (Xor parityM parityN parityB))
+  .  ((bM ~ 'I) => To m n bC -> Opt (Last' (m ':. bM)) (Fin' (AddCarry m n bC)))
+  -> ((bN ~ 'I) => To m n bC -> Opt (Last' (n ':. bN)) (Fin' (AddCarry m n bC)))
+  -> ((b ~ 'I) => To m n bC -> Opt' b (Fin' (AddCarry m n bC)))
+  -> To m n bC -> FinCarry' (m ':. bM) (n ':. bN) b -> Fin' (AddCarry m n bC ':. bX)
+converge lset rset bset to = \case
+  LHS (ix :! b) -> to (LHS ix) :! b
+  LHS Top -> getSome (lset to)
+  RHS (ix :! b) -> to (RHS ix) :! b
+  RHS Top -> getSome (rset to)
+  CarryBit -> getSome (bset to)
+  --mtry with m and n not ObO or ObI and then ramp up
+-}
+  {-
+  :: forall 
+            isZeroM parityM
+            isZeroN parityN
+            parityB
+            (m :: Bits isZeroM parityM)
+            (n :: Bits isZeroN parityN)
+            (b :: Bit parityB)
+            m' n' b' bT t
+  .  ( 'Binary m' ~ Init' m
+     , 'Binary n' ~ Init' n
+     , 'SomeBit b' ~ Carry parityM parityN parityB
+     , 'SomeBit bT ~ Xor parityM parityN parityB
+     , t ~ (AddCarry m' n' b' ':. bT)
+     ) 
+  => (To m' n' b' -> Opt (Last' m) (Fin' t))
+  -> (To m' n' b' -> Opt (Last' n) (Fin' t))
+  -> (To m' n' b' -> Opt' b (Fin' t))
+  -> To m' n' b' -> FinCarry' m n b -> Fin' t
+  -}
+{-
+to_mb_nO_O = converge (push . (. LHS)) (push' . (. RHS)) (const None)
+
+converge :: (x -> Fin' m -> Fin' t) -> (x -> Fin' n -> Fin' t) -> (x -> Opt' b (Fin' t)) -> x -> FinCarry' m n b -> Fin' t
+converge f g t x = \case
+  LHS ix -> f x ix
+  RHS ix -> g x ix
+  CarryBit -> getSome (t x)
+-}
+
+fro_mb_nO_O :: Fro m n 'O -> Fro (m ':. b) (n ':. 'O) 'O
+fro_mb_nO_O fro_m_n_O = \case
+  ix :! b -> case fro_m_n_O ix of
+    LHS ix -> LHS (ix :! b)
+    RHS ix -> RHS (ix :! b)
+  Top -> LHS Top
+
+-- we always do
+--   to = \case
+--      RHS (ix :! b) -> to' (RHS ix) :! b
+--      LHS (ix :! b) -> to' (LHS ix) :! b
+--
+--   and
+--
+--   fro =case
+--     ix :! b -> case fro' ix of
+--       RHS ix -> RHS (ix :! b)
+--       LHS ix -> LHS (ix :! b)
+--
+-- The only cases we need to paramtererize are 
+--  to (RHS Top), to (LHS Top), to CarryBit
+--  fro CarryBit, fro Top
+
+{-
+diverge :: Fro m n b -> _ -> _ -> Fro (m ':. b) (n ':. 'O) 'O
+diverge f g t = \case
+  ix :! b -> case f ix of
+    LHS ix -> LHS (ix :! b)
+    RHS ix -> RHS (ix :! b)
+    CarryBit -> g b
+  Top -> getSome t
+  -}

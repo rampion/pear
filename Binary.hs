@@ -23,9 +23,12 @@
 
 module Binary where
 
+import Data.Functor.Const
+import Data.Functor.Identity
 import GHC.Types (Constraint)
 import Control.Monad (ap)
 import Prelude hiding ((!!), reverse)
+import Control.Applicative (liftA2)
 
 -- see Bin.hs for more strongly typed alternative
 
@@ -40,15 +43,15 @@ type Bits = [Bit]
 
 infixr 8 :*
 
-type Pair :: * -> *
-data Pair a = !a :* !a
+type Two :: * -> *
+data Two a = !a :* !a
   deriving (Eq, Ord, Show, Functor, Foldable, Traversable)
 
-instance Applicative Pair where
+instance Applicative Two where
   pure a = a :* a
   (<*>) = ap
 
-instance Monad Pair where
+instance Monad Two where
   (a0 :* a1) >>= f = f a0 `diag` f a1
 
 infixl 4 :&
@@ -86,6 +89,14 @@ bindOpt :: Opt b x -> (b ~ 'I => x -> Opt b y) -> Opt b y
 bindOpt None _ = None
 bindOpt (Some a) f = f a
 
+foldOpt :: Monoid m => (b ~ 'I => a -> m) -> Opt b a -> m
+foldOpt _ None = mempty
+foldOpt f (Some a) = f a
+
+traverseOpt :: Applicative f => (b ~ 'I => x -> f y) -> Opt b x -> f (Opt b y)
+traverseOpt _ None = pure None
+traverseOpt f (Some a) = Some <$> f a
+
 seqOpt :: Opt b a -> (KnownBit b => r) -> r
 seqOpt None r = r
 seqOpt (Some _) r = r
@@ -101,7 +112,7 @@ instance KnownBit b => Monad (Opt b) where
 type Vec :: Bits -> * -> *
 data Vec (length :: Bits) a where
   Nil :: Vec '[] a
-  (:&) :: { getForest :: !(Vec bs (Pair a)), getSubtree :: !(Opt b a) } -> Vec (b ': bs) a
+  (:&) :: { getForest :: !(Vec bs (Two a)), getSubtree :: !(Opt b a) } -> Vec (b ': bs) a
 
 deriving instance Show a => Show (Vec m a)
 deriving instance Eq a => Eq (Vec m a)
@@ -118,10 +129,16 @@ instance KnownBits m => Monad (Vec m) where
   v >>= f = v `bindWithIndex` const f
 
 mapWithIndex :: (Fin m -> a -> b) -> Vec m a -> Vec m b
-mapWithIndex _ Nil = Nil
-mapWithIndex f (vec :& opt) = (:&)
-  do mapWithIndex (\ix (a0 :* aI) -> f (ix :! O) a0 :* f (ix :! I) aI) vec 
-  do mapOpt (f Top) opt
+mapWithIndex f = runIdentity . traverseWithIndex (\ix -> Identity . f ix)
+
+foldWithIndex :: Monoid n => (Fin m -> a -> n) -> Vec m a -> n
+foldWithIndex f = getConst . traverseWithIndex (\ix -> Const . f ix)
+
+traverseWithIndex :: Applicative f => (Fin m -> x -> f y) -> Vec m x -> f (Vec m y)
+traverseWithIndex _ Nil = pure Nil
+traverseWithIndex f (veca :& opta) = liftA2 (:&) 
+  do traverseWithIndex (\ix (aO :* aI) -> (:*) <$> f (ix :! O) aO <*> f (ix :! I) aI) veca
+  do traverseOpt (f Top) opta
 
 zipWithIndex :: (Fin m -> a -> b -> c) -> Vec m a -> Vec m b -> Vec m c
 zipWithIndex _ Nil Nil = Nil
@@ -130,20 +147,20 @@ zipWithIndex f (veca :& opta) (vecb :& optb) = (:&)
   do zipOpt (f Top) opta optb
 
 bindWithIndex :: Vec m a -> (Fin m -> a -> Vec m b) -> Vec m b
-bindWithIndex Nil _ = Nil
-bindWithIndex (veca :& opta) f = (:&)
-  do veca `bindWithIndex` \ix (a0 :* a1) -> 
-        zipWithIndex (const diag)
-          do getForest (f (ix :! O) a0) 
-          do getForest (f (ix :! I) a1)
-  do opta `bindOpt` (getSubtree . f Top)
+bindWithIndex vec f = mapWithIndex (\ix a -> f ix a !! ix) vec
 
-diag :: Pair a -> Pair a -> Pair a
+diag :: Two a -> Two a -> Two a
 diag (a0 :* _) (_ :* a1) = a0 :* a1
 
 (!!) :: Vec m a -> Fin m -> a
-(_ :& Some a) !! Top = a
-(!!) _ _ = undefined
+(!!) = go id where
+  go :: (a -> b) -> Vec n a -> Fin n -> b
+  go f (_ :& Some a) Top = f a
+  go f (vec :& _) (ix :! b) = go (f . at b) vec ix
+  
+  at :: Bit -> Two a -> a
+  at O (a :* _) = a
+  at I (_ :* a) = a
 
 class KnownBits m where
   toVec :: (Fin m -> a) -> Vec m a
@@ -242,8 +259,8 @@ combineCarryR ::
   , Binary m
   , Binary n
   ) =>
-  Vec (HighBits m) (Pair a) -> Opt (LowBit m) a -> 
-  Vec (HighBits n) (Pair a) -> Opt (LowBit n) a -> 
+  Vec (HighBits m) (Two a) -> Opt (LowBit m) a -> 
+  Vec (HighBits n) (Two a) -> Opt (LowBit n) a -> 
   Opt b a -> Combined m n b a
 combineCarryR lvec lopt rvec ropt bopt = withCombined
   do (:& xopt)
@@ -253,7 +270,7 @@ combineCarryR lvec lopt rvec ropt bopt = withCombined
   where 
     (copt, xopt) = carry lopt ropt bopt
 
-carry :: Opt x a -> Opt y a -> Opt z a -> (Opt (Carry x y z) (Pair a), Opt (Xor x y z) a)
+carry :: Opt x a -> Opt y a -> Opt z a -> (Opt (Carry x y z) (Two a), Opt (Xor x y z) a)
 carry None None opt = (None, opt)
 carry None opt@(Some _) None = (None, opt)
 carry opt@(Some _) None None = (None, opt)
@@ -441,19 +458,19 @@ instance Traversable (Opt b) where
   traverse _ None = pure None
   traverse f (Some a) = Some <$> f a
 
-deriving instance Functor Pair
+deriving instance Functor Two
 
-instance Applicative Pair where
+instance Applicative Two where
   pure a = a :* a
   (f :* g) <*> (a :* b) = f a :* g b
 
-instance Foldable Pair where
+instance Foldable Two where
   foldMap f (a :* b) = f a <> f b
 
-instance Traversable Pair where
+instance Traversable Two where
   traverse f (a :* b) = (:*) <$> f a <*> f b
 
-(*!) :: Pair a -> Bit -> a
+(*!) :: Two a -> Bit -> a
 (a :* _) *! O = a
 (_ :* a) *! I = a
 
