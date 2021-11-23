@@ -5,23 +5,24 @@
 {-# LANGUAGE EmptyCase #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE GADTs #-}
-{-# LANGUAGE KindSignatures #-}
+-- {-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE PolyKinds #-}
 {-# LANGUAGE Rank2Types #-}
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE StandaloneKindSignatures #-}
-{-# LANGUAGE TypeFamilies #-}
+-- {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE TypeFamilyDependencies #-}
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE ViewPatterns #-}
 {-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE ConstrainedClassMethods #-}
-{-# OPTIONS_GHC -Wall -Werror -Wextra -Wno-name-shadowing #-}
-
 module Data.Natural.Binary where
+
+import Data.Natural.Binary.Two
+import Data.Natural.Binary.Type
 
 import Data.Functor.Const
 import Data.Functor.Identity
@@ -29,30 +30,6 @@ import GHC.Types (Constraint)
 import Control.Monad (ap)
 import Prelude hiding ((!!), reverse)
 import Control.Applicative (liftA2)
-
--- see Bin.hs for more strongly typed alternative
-
--- import Data.Monoid (Endo (..))
--- import qualified GHC.Natural as Base
-
-data Bit = O | I deriving (Eq, Ord, Show)
-
--- '[I,O,I,I] => 0b1101
--- leading zeroes are legal, but non-canonical
-type Bits = [Bit]
-
-infixr 8 :*
-
-type Two :: * -> *
-data Two a = !a :* !a
-  deriving (Eq, Ord, Show, Functor, Foldable, Traversable)
-
-instance Applicative Two where
-  pure a = a :* a
-  (<*>) = ap
-
-instance Monad Two where
-  (a0 :* a1) >>= f = f a0 `diag` f a1
 
 infixl 4 :&
 
@@ -109,10 +86,10 @@ instance KnownBit b => Monad (Opt b) where
   None >>= _ = None
   Some a >>= f = f a
 
-type Vec :: Bits -> * -> *
-data Vec (length :: Bits) a where
-  Nil :: Vec '[] a
-  (:&) :: { getForest :: !(Vec bs (Two a)), getSubtree :: !(Opt b a) } -> Vec (b ': bs) a
+type Vec :: Binary -> * -> *
+data Vec (length :: Binary) a where
+  Nil :: Vec 'Ob a
+  (:&) :: { getForest :: !(Vec bs (Two a)), getSubtree :: !(Opt b a) } -> Vec (bs ':. b) a
 
 deriving instance Show a => Show (Vec m a)
 deriving instance Eq a => Eq (Vec m a)
@@ -149,9 +126,6 @@ zipWithIndex f (veca :& opta) (vecb :& optb) = (:&)
 bindWithIndex :: Vec m a -> (Fin m -> a -> Vec m b) -> Vec m b
 bindWithIndex vec f = mapWithIndex (\ix a -> f ix a !! ix) vec
 
-diag :: Two a -> Two a -> Two a
-diag (a0 :* _) (_ :* a1) = a0 :* a1
-
 (!!) :: Vec m a -> Fin m -> a
 (!!) = go id where
   go :: (a -> b) -> Vec n a -> Fin n -> b
@@ -165,22 +139,22 @@ diag (a0 :* _) (_ :* a1) = a0 :* a1
 class KnownBits m where
   toVec :: (Fin m -> a) -> Vec m a
 
-instance KnownBits '[] where
+instance KnownBits 'Ob where
   toVec _ = Nil
   
-instance (KnownBits bs, KnownBit b) => KnownBits (b ': bs) where
+instance (KnownBits bs, KnownBit b) => KnownBits (bs ':. b) where
   toVec f = toVec (\ix -> f (ix :! O) :* f (ix :! I)) :& toOpt (f Top)
 
 indexes :: KnownBits m => Vec m (Fin m)
 indexes = toVec id
 
-data Fin (cardinality :: Bits) where
-  (:!) :: !(Fin bs) -> !Bit -> Fin (b ': bs)
-  Top :: Fin ('I ': bs)
+data Fin (cardinality :: Binary) where
+  (:!) :: !(Fin bs) -> !Bit -> Fin (bs ':. b)
+  Top :: Fin (bs ':. 'I)
 
 infixl 4 :!
 
-type Combined :: Bits -> Bits -> Bit -> * -> *
+type Combined :: Binary -> Binary -> Bit -> * -> *
 data Combined m n b a = Combined
   { vector :: Vec (Add m n b) a
   , to :: To m n b 
@@ -190,38 +164,38 @@ data Combined m n b a = Combined
 type To m n b = FinOf m n b -> Fin (Add m n b)
 type Fro m n b = Fin (Add m n b) -> FinOf m n b
 
-type FinOf :: Bits -> Bits -> Bit -> *
+type FinOf :: Binary -> Binary -> Bit -> *
 data FinOf m n b where
   LHS :: !(Fin m) -> FinOf m n b
   RHS :: !(Fin n) -> FinOf m n b
   CarryBit :: FinOf m n 'I
 
-type Binary :: Bits -> Constraint
-class Binary m where
+type HeadBin :: Binary -> Constraint
+class HeadBin m where
   snoc :: Fin (HighBits m) -> Bit -> Fin m
   top :: Dict (LowBit m ~ 'I) -> Fin m
 
-instance Binary '[] where
+instance HeadBin 'Ob where
   snoc = \case
   top = \case
 
-instance Binary ('O ': bs) where
+instance HeadBin (bs ':. 'O) where
   snoc = (:!)
   top = \case
 
-instance Binary ('I ': bs) where
+instance HeadBin (bs ':. 'I) where
   snoc = (:!)
   top Dict = Top
 
 {-
-type KnownBin :: Bits -> Constraint
+type KnownBin :: Binary -> Constraint
 class KnownBin m where
   index :: Vec m (Fin m)
 
-instance KnownBin '[] where
+instance KnownBin 'Ob where
   index = Nil
 
-instance KnownBin bs => KnownBin (b ': bs) where
+instance KnownBin bs => KnownBin (bs ':. b) where
   index = 
   -}
 
@@ -230,7 +204,7 @@ data Dict c where
   Dict :: c => Dict c
 
 -- would be O(1), except for strictness
-binaryVec :: Vec m a -> Dict (Binary m)
+binaryVec :: Vec m a -> Dict (HeadBin m)
 binaryVec Nil = Dict
 binaryVec (_ :& Some _) = Dict
 binaryVec (_ :& None) = Dict
@@ -239,9 +213,9 @@ combine :: Vec m a -> Vec n a -> Combined m n 'O a
 combine v v' = combineCarry v v' None
 
 combineCarry :: Vec m a -> Vec n a -> Opt b a -> Combined m n b a
-combineCarry v@(binaryVec -> Dict) v'@(binaryVec -> Dict) o = combineCarry' v v' o
+combineCarry v@(binaryVec -> Dict) v'@(binaryVec -> Dict) = combineCarry' v v'
 
-combineCarry' :: (Binary m, Binary n) => Vec m a -> Vec n a -> Opt b a -> Combined m n b a
+combineCarry' :: (HeadBin m, HeadBin n) => Vec m a -> Vec n a -> Opt b a -> Combined m n b a
 combineCarry' Nil Nil None = Combined
   do Nil 
   do \case
@@ -255,9 +229,9 @@ combineCarry' (lvec :& lopt) Nil bopt = combineCarryR lvec lopt Nil None bopt
 combineCarry' (lvec :& lopt) (rvec :& ropt) bopt = combineCarryR lvec lopt rvec ropt bopt
 
 combineCarryR :: 
-  ( Add m n b ~ (Xor (LowBit m) (LowBit n) b ': Add (HighBits m) (HighBits n) (Carry (LowBit m) (LowBit n) b))
-  , Binary m
-  , Binary n
+  ( Add m n b ~ (Add (HighBits m) (HighBits n) (Carry (LowBit m) (LowBit n) b)':. Xor (LowBit m) (LowBit n) b )
+  , HeadBin m
+  , HeadBin n
   ) =>
   Vec (HighBits m) (Two a) -> Opt (LowBit m) a -> 
   Vec (HighBits n) (Two a) -> Opt (LowBit n) a -> 
@@ -279,9 +253,9 @@ carry (Some la) None (Some ba) = (Some (la :* ba), None)
 carry None (Some ra) (Some ba) = (Some (ra :* ba), None)
 
 froFor :: 
-  ( Add m n b ~ (Xor (LowBit m) (LowBit n) b ': Add (HighBits m) (HighBits n) (Carry (LowBit m) (LowBit n) b))
-  , Binary m
-  , Binary n
+  ( Add m n b ~ (Add (HighBits m) (HighBits n) (Carry (LowBit m) (LowBit n) b) ':. Xor (LowBit m) (LowBit n) b)
+  , HeadBin m
+  , HeadBin n
   ) =>
   Opt (LowBit m) i -> 
   Opt (LowBit n) j -> 
@@ -327,7 +301,7 @@ froFor None (Some _) (Some _) fro = \case
       I -> CarryBit
 
 toFor :: 
-  (Add m n b ~ (Xor (LowBit m) (LowBit n) b ': Add (HighBits m) (HighBits n) (Carry (LowBit m) (LowBit n) b))) =>
+  (Add m n b ~ (Add (HighBits m) (HighBits n) (Carry (LowBit m) (LowBit n) b) ':. Xor (LowBit m) (LowBit n) b)) =>
   Opt (LowBit m) i -> Opt (LowBit n) j -> Opt b k -> To (HighBits m) (HighBits n) (Carry (LowBit m) (LowBit n) b) -> To m n b
 toFor None None _ to = \case
   LHS (bs :! b) -> to (LHS bs) :! b
@@ -369,15 +343,15 @@ withCombined withVector withTo withFro Combined{vector,to,fro} = Combined
   , fro = withFro fro
   }
 
-type LowBit :: Bits -> Bit
+type LowBit :: Binary -> Bit
 type family LowBit m where
-  LowBit '[] = 'O
-  LowBit (b ': bs) = b
+  LowBit 'Ob = 'O
+  LowBit (bs ':. b) = b
 
-type HighBits :: Bits -> Bits
+type HighBits :: Binary -> Binary
 type family HighBits m where
-  HighBits '[] = '[]
-  HighBits (b ': bs) = bs
+  HighBits 'Ob = 'Ob
+  HighBits (bs ':. b) = bs
 
 type Carry :: Bit -> Bit -> Bit -> Bit
 type family Carry x y z where
@@ -392,25 +366,25 @@ type family Xor x y z where
   Xor q p q = p
   Xor q q p = p
 
-type Add :: Bits -> Bits -> Bit -> Bits
+type Add :: Binary -> Binary -> Bit -> Binary
 type family Add m n b where
-  Add '[] '[] 'O = '[]
-  Add '[] '[] 'I = 'I ': '[]
-  Add m n b = Xor (LowBit m) (LowBit n) b ': Add (HighBits m) (HighBits n) (Carry (LowBit m) (LowBit n) b)
+  Add 'Ob 'Ob 'O = 'Ob
+  Add 'Ob 'Ob 'I = 'Ob ':. 'I
+  Add m n b = Add (HighBits m) (HighBits n) (Carry (LowBit m) (LowBit n) b) ':. Xor (LowBit m) (LowBit n) b
 
 
 {-
-type (+) :: Bits -> Bits -> Bits
+type (+) :: Binary -> Binary -> Binary
 
 type as + bs = AddBits 'O as bs
 
-type AddBits :: Bit -> Bits -> Bits -> Bits
+type AddBits :: Bit -> Binary -> Binary -> Binary
 type family AddBits carry lhs rhs where
-  AddBits c (a ': as) (b ': bs) = SumBit a b c ': AddBits (CarryBit a b c) as bs
-  AddBits 'O '[] rhs = rhs
-  AddBits 'O lhs '[] = lhs
-  AddBits 'I '[] rhs = AddBits 'O '[ 'I] rhs
-  AddBits 'I lhs '[] = AddBits 'O lhs '[ 'I]
+  AddBits c (as ':. a) (bs ':. b) = SumBit a b AddBits ':. c (CarryBit a b c) as bs
+  AddBits 'O 'Ob rhs = rhs
+  AddBits 'O lhs 'Ob = lhs
+  AddBits 'I 'Ob rhs = AddBits 'O '[ 'I] rhs
+  AddBits 'I lhs 'Ob = AddBits 'O lhs '[ 'I]
 
 type SumBit :: Bit -> Bit -> Bit -> Bit
 type family SumBit a b c where
@@ -431,7 +405,7 @@ type family FlipBit a = a' | a' -> a where
   FlipBit 'O = 'I
   FlipBit 'I = 'O
 
-vacant :: Fin '[] -> a
+vacant :: Fin 'Ob -> a
 vacant = \case
 
 deriving instance Eq (Fin (cardinality))
@@ -480,44 +454,44 @@ deriving instance Functor (Vec length)
 
 instance Foldable (Vec length) where
   foldMap _ Nil = mempty
-  foldMap f (vec :. opt) = foldMap (foldMap f) vec <> foldMap f opt
+  foldMap f (vec :& opt) = foldMap (foldMap f) vec <> foldMap f opt
 
 instance Traversable (Vec length) where
   traverse _ Nil = pure Nil
-  traverse f (vec :. opt) = (:.) <$> traverse (traverse f) vec <*> traverse f opt
+  traverse f (vec :& opt) = (:&) <$> traverse (traverse f) vec <*> traverse f opt
 
 (.!) :: Vec n a -> Fin n -> a
 (.!) = go id
   where
     go :: (a -> b) -> Vec n a -> Fin n -> b
-    go get (_ :. Some a) Z = get a
-    go get (vec :. _) (ix :! b) = go (get . (*! b)) vec ix
+    go get (_ :& Some a) Z = get a
+    go get (vec :& _) (ix :! b) = go (get . (*! b)) vec ix
 
 data a <-> b = Bijection {to :: a -> b, fro :: b -> a}
 
 push :: a -> Vec n a -> Vec ('[ 'I] + n) a
-push a Nil = Nil :. Some a
-push a (vec :. None) = vec :. Some a
-push a (vec :. Some a') = push (a :* a') vec :. None
+push a Nil = Nil :& Some a
+push a (vec :& None) = vec :& Some a
+push a (vec :& Some a') = push (a :* a') vec :& None
 
-type Succ :: Bits -> Bits
+type Succ :: Binary -> Binary
 type family Succ n = n' where
-  Succ ('I ': bs) = 'O ': Succ bs
-  Succ ('O ': bs) = 'I ': bs
-  Succ '[] = '[ 'I]
+  Succ (bs ':. 'I) = Succ ':. 'O bs
+  Succ (bs ':. 'O) = bs ':. 'I
+  Succ 'Ob = '[ 'I]
 
-type Pred :: Bits -> Bits
+type Pred :: Binary -> Binary
 type family Pred n = n' | n' -> n where
-  Pred ('O ': bs) = 'I ': Pred bs
-  Pred ('I ': '[]) = '[]
-  Pred ('I ': bs) = 'O ': bs
+  Pred (bs ':. 'O) = Pred ':. 'I bs
+  Pred ('Ob ':. 'I) = 'Ob
+  Pred (bs ':. 'I) = bs ':. 'O
 
 -- pop :: Vec ('[ 'I] + n) a -> (a, Vec n a)
 pop :: Vec n a -> (a, Vec (Pred n) a)
 -- pop Nil = undefined
-pop (Nil :. Some a) = (a, Nil)
-pop (vec@(_ :. _) :. Some a) = (a, vec :. None)
-pop (vec :. None) = (a', vec' :. Some a)
+pop (Nil :& Some a) = (a, Nil)
+pop (vec@(_ :& _) :& Some a) = (a, vec :& None)
+pop (vec :& None) = (a', vec' :& Some a)
   where
     (a :* a', vec') = pop vec
 
@@ -535,10 +509,10 @@ combine = combine' None
 {-
 combine Nil v = (v, Bijection {to = either vacant id, fro = Right})
 combine v Nil = (v, Bijection {to = either id vacant, fro = Left})
-combine (v :. Some a) (v' :. Some a') = undefined v v'
-combine (v :. None) (v' :. None) = case combine v v' of
+combine (v :& Some a) (v' :& Some a') = undefined v v'
+combine (v :& None) (v' :& None) = case combine v v' of
   (vec, Bijection {to, fro}) ->
-    ( vec :. None,
+    ( vec :& None,
       Bijection
         { to = either
             \case (ix :! b) -> to (Left ix) :! b
@@ -546,9 +520,9 @@ combine (v :. None) (v' :. None) = case combine v v' of
           fro = \case (ix :! b) -> either (Left . (:! b)) (Right . (:! b)) (fro ix)
         }
     )
-combine (v :. None) (v' :. opt@(Some _)) = case combine v v' of
+combine (v :& None) (v' :& opt@(Some _)) = case combine v v' of
   (vec, Bijection {to, fro}) ->
-    ( vec :. opt,
+    ( vec :& opt,
       Bijection
         { to = either
             \case (ix :! b) -> to (Left ix) :! b
@@ -560,9 +534,9 @@ combine (v :. None) (v' :. opt@(Some _)) = case combine v v' of
             Z -> Right Z
         }
     )
-combine (v :. opt@(Some _)) (v' :. None) = case combine v v' of
+combine (v :& opt@(Some _)) (v' :& None) = case combine v v' of
   (vec, Bijection {to, fro}) ->
-    ( vec :. opt,
+    ( vec :& opt,
       Bijection
         { to = either
             \case
