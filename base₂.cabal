@@ -1,4 +1,4 @@
-cabal-version:       2.2.0
+cabal-version:       2.2
 name:                base₂
 version:             1.0.0.0
 synopsis:            Working with the naturals base 2 at the value and type level
