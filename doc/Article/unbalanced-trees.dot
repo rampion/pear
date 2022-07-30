@@ -1,0 +1,25 @@
+digraph {
+  node ["fixed-size"=true width=0 shape=rectangle style=rounded];
+
+  subgraph t1 {
+    t1_root [label="Branch ● ●"];
+    t1_left [label="Branch ● ●"];
+    t1_right [label="Leaf ●"];
+    t1_leftleft [label="Leaf ●"];
+    t1_leftright [label="Branch ● ●"];
+    t1_leftrightleft [label="Leaf ●"];
+    t1_leftrightright [label="Leaf ●"];
+
+    t1_root -> t1_left;
+    t1_root -> t1_right;
+    t1_left -> t1_leftleft;
+    t1_left -> t1_leftright;
+    t1_leftright -> t1_leftrightleft;
+    t1_leftright -> t1_leftrightright;
+
+    t1_leftleft -> "a₀";
+    t1_leftrightleft -> "a₁";
+    t1_leftrightright -> "a₂";
+    t1_right -> "a₃";
+  }
+}

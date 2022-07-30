@@ -1,0 +1,81 @@
+cabal-version:       2.2.0
+name:                base₂
+version:             1.0.0.0
+synopsis:            Working with the naturals base 2 at the value and type level
+homepage:            github.com/rampion/base2
+license:             CC0-1.0
+author:              Noah Luck Easterly
+maintainer:          noah.easterly@gmail.com
+build-type:          Simple
+extra-source-files:  CHANGELOG.md, README.md
+
+flag Development
+  description: Enable all warnings and upgrade warnings to errors
+  default: False
+  manual: True
+
+common library-setup
+  if flag(development)
+    ghc-options: -Wall -Wextra -Werror
+
+  other-extensions:    AllowAmbiguousTypes
+                     , BlockArguments
+                     , ConstrainedClassMethods
+                     , ConstraintKinds
+                     , DataKinds
+                     , DeriveTraversable
+                     , EmptyCase
+                     , FlexibleInstances
+                     , GADTs
+                     , KindSignatures
+                     , LambdaCase
+                     , NamedFieldPuns
+                     , PolyKinds
+                     , Rank2Types
+                     , StandaloneDeriving
+                     , StandaloneKindSignatures
+                     , TypeFamilies
+                     , TypeFamilyDependencies
+                     , TypeOperators
+                     , UndecidableInstances
+                     , ViewPatterns
+  build-depends:       base >=4.14 && <4.15, ghc-prim >=0.6 && <0.7
+  default-language:    Haskell2010
+
+library
+  import:               library-setup
+  hs-source-dirs:       src
+  exposed-modules:      Base₂.Bit
+                      , Base₂.Binary
+                      , Base₂.Function
+                      , Base₂.Singleton
+                      , Base₂.Bit.Singleton
+                      , Base₂.Binary.Singleton
+                      , Base₂.Singleton.Known
+                      , Base₂.Finite
+                      , Base₂.Bit.Finite
+                      , Base₂.Binary.Finite
+                      , Base₂.Indexed
+                      , Base₂.Via.Deindexed
+                      , Base₂.Via.Elem
+                      , Base₂.Singleton.Applicative
+                      , Base₂.Two
+                      , Base₂.Opt
+                      , Base₂.Vec
+                      , Base₂
+
+test-suite base₂-unit-test
+  import:               library-setup
+  hs-source-dirs:       test
+  type:                 exitcode-stdio-1.0
+  main-is:              Base₂/Test.hs
+  other-modules:        Base₂.Bit.Test
+                      , Base₂.Binary.Test
+  build-depends:        base₂
+                      , hspec >= 2.9.1 && < 3.0
+                      , genvalidity-hspec >= 1.0.0.0 && < 1.1.0.0
+                      , genvalidity >= 1.0.0.0 && < 1.1.0.0
+                      , validity >= 0.12.0.0 && < 0.13.0.0
+                      , QuickCheck >= 2.14.2 && < 3.0.0
+                      -- , doctest >= 0.20.0
+  -- build-tool-depends:   markdown-unlit:markdown-unlit >= 0.5.1

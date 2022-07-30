@@ -1,0 +1,77 @@
+digraph {
+  node ["fixed-size"=true width=0 shape=rectangle style=rounded];
+
+  c0 [label="Nil"];
+  c1 [label="Just ●"];
+  c2 [label="Nothing"];
+  c3 [label="Just ●"];
+  c4 [label="Just ●"];
+
+  subgraph {
+    t1 [label="● :* ●"];
+    c1 -> t1;
+
+    t1l [label="● :* ●"];
+    t1 -> t1l;
+    t1r [label="● :* ●"];
+    t1 -> t1r;
+
+    t1ll [label="● :* ●"];
+    t1l -> t1ll;
+    t1lr [label="● :* ●"];
+    t1l -> t1lr;
+    t1rl [label="● :* ●"];
+    t1r -> t1rl;
+    t1rr [label="● :* ●"];
+    t1r -> t1rr;
+
+    a0 [label="a₀"];
+    t1ll -> a0;
+    a1 [label="a₁"];
+    t1ll -> a1;
+    a2 [label="a₂"];
+    t1lr -> a2;
+    a3 [label="a₃"];
+    t1lr -> a3
+    a4 [label="a₄"];
+    t1rl -> a4;
+    a5 [label="a₅"];
+    t1rl -> a5;
+    a6 [label="a₆"];
+    t1rr -> a6;
+    a7 [label="a₇"];
+    t1rr -> a7;
+  }
+
+  subgraph {
+    t3 [label="● :* ●"];
+    c3 -> t3;
+
+    a8 [label="a₈"];
+    t3 -> a8;
+    a9 [label="a₉"];
+    t3 -> a9
+  }
+
+  subgraph {
+    a10 [label="a₁₀"];
+    c4 -> a10;
+  }
+  /*
+    a11 [label="a₁₁"];
+    a12 [label="a₁₂"];
+    a13 [label="a₁₃"];
+    a14 [label="a₁₄"];
+    a15 [label="a₁₅"];
+*/
+
+  
+  subgraph {
+    rank = same;
+    rankdir = "LR";
+    edge [label=":&", dir=back];
+    c0 -> c1 -> c2 -> c3 -> c4;
+  }
+
+
+}

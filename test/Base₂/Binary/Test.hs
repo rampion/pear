@@ -10,27 +10,19 @@
 -- {-# LANGUAGE DerivingVia #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 -- {-# LANGUAGE UndecidableInstances #-}
-module Data.Natural.Binary.Type.Test where
+module Base₂.Binary.Test where
 
 import GHC.Natural
 import GHC.Generics
 
--- import Data.Function (on)
 import Data.GenValidity
-import Data.Natural.Binary.Type
--- import Data.Validity
 
 import Test.Hspec
 import Test.Validity
 import Test.QuickCheck
 
-instance Validity Bit
-instance GenValid Bit
-
-bitSpec :: Spec
-bitSpec = describe "Bit" do
-  eqSpec @Bit
-  ordSpec @Bit
+import Base₂.Binary
+import Base₂.Bit.Test ()
 
 instance Validity Binary
 instance GenValid Binary

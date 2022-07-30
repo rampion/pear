@@ -6,18 +6,29 @@ data Binary = Ob | Binary :. Bit
 data Bit = O | I
 ```
 
+<!--
 ```haskell example
->>> Numeric.showIntAtBase 2 (\case 0 -> '0' ; 1 -> '1') 23 ""
-"10111"
->>> fromInteger 23 :: Binary
-Ob :. I :. O :. I :. I :. I
+{- $setup
 ```
+-->
+
+```haskell example
+>>> import Base₂
+>>> 0b10101 :: Binary
+0b10101
+```
+
+<!--
+```haskell example
+-}
+```
+-->
 
 Though this encoding can be used on its own, its primary purpose is as an
 alternative to the unary encoding of the natural numbers often used at the type
 level (`data Unary = Zero | Succ Unary`).
 
-```haskell
+```haskell ignore
 -- Singleton encoding
 data SBinary (m :: Binary) where
   SOb :: SBinary 'Ob
@@ -38,7 +49,7 @@ of known length encoded as a `Binary` value, which has values addresssable in
 O(log(n)) time, in contrast to the idiomatic `Unary` version which has `O(n)`
 access time.
 
-```haskell
+```haskell ignore
 data Vec (m :: Binary) a where
   Nil :: Vec 'Ob a
   (:&) :: Vec bs (Two a) -> Opt b a -> Vec (bs ':. b) a

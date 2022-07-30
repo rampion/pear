@@ -1,69 +1,48 @@
-{-# LANGUAGE BlockArguments #-}
-{-# LANGUAGE PatternSynonyms #-}
-{-# LANGUAGE LambdaCase #-}
-{-# LANGUAGE ViewPatterns #-}
-{-# LANGUAGE StandaloneKindSignatures #-}
+{-# OPTIONS_GHC -Wno-name-shadowing #-}
 {-# LANGUAGE BangPatterns #-}
-{-# LANGUAGE DeriveGeneric #-}
-
-{-# LANGUAGE KindSignatures #-}
+{-# LANGUAGE BlockArguments #-}
 {-# LANGUAGE DataKinds #-}
-module Data.Natural.Binary.Type 
+{-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE KindSignatures #-}
+{-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE PatternSynonyms #-}
+{-# LANGUAGE StandaloneKindSignatures #-}
+{-# LANGUAGE ViewPatterns #-}
+module Base₂.Binary
   ( Bit(..)
   , Binary(..)
+  , showBits
   , pattern Zero, isZero
   , pattern Push, pop
   , toCanonical, isCanonical
   , safePred, safeMinus, safeQuotRem
   , foldhi, foldlo
   , toBinary, fromBinary
-  , pattern (:+:), d
   ) where
 
-import qualified Data.Natural.Binary.Two as Two
-import Data.Natural.Binary.Two (Two((:*)))
+import Numeric (showIntAtBase)
 import Data.Functor ((<&>))
 import GHC.Generics
-
 import Data.Bits
-
 import Data.Function (fix)
 
-pattern (:+:) :: Num a => a -> a -> a
-pattern (:+:) x y <- (fix . d -> (x,y))
+import Base₂.Bit
+import Base₂.Two (Two((:*)))
+import qualified Base₂.Two as Two
 
-d :: Num a => a -> (a,a) -> (a,a)
-d n ~(x,y) = (n -y, n - x)
-
-
-type Bit :: *
-data Bit = O | I deriving (Eq, Ord, Show, Enum, Generic, Bounded)
-
-instance Bits Bit where
-  I .&. I = I
-  _ .&. _ = O
-  O .|. O = O
-  _ .|. _ = I
-  I `xor` b = complement b
-  O `xor` b = b
-  complement O = I
-  complement I = O
-  shift b 0 = b
-  shift _ _ = O
-  rotate = const
-  bitSize = const 1
-  bitSizeMaybe = const (Just 1)
-  isSigned = const False
-  testBit I 0 = True
-  testBit _ _ = False
-  bit b
-    | even b = O
-    | otherwise = I
-  popCount O = 0
-  popCount I = 1
+-- $setup
+-- >>> :set -XBlockArguments
 
 infixl 4 :.
 
+-- | An encoding of the natural numbers
+--
+--    0 ~ Ob 
+--    1 ~ Ob :. I
+--    2 ~ Ob :. I :. O
+--    3 ~ Ob :. I :. I
+--    …
+--
 type Binary :: *
 data Binary = Ob | Binary :. Bit
   deriving Generic
@@ -98,10 +77,38 @@ data Binary = Ob | Binary :. Bit
 --  (no leading zeroes), and not worry about the equivalence of non-canonical
 --  representations at the type level.
 
+-- |
+-- Represents canonical values as binary literals, and non-canonical values as
+-- a string of bits.
+--
+--  >>> Ob
+--  0b0
+--  >>> Ob :. I :. I :. O :. I
+--  0b1101
+--  >>> Ob :. O :. I :. I :. O :. I
+--  Ob :. O :. I :. I :. O :. I
+--
 instance Show Binary where
-  showsPrec p = showParen (p >= 4) . showBinary where
-    showBinary Ob = showString "Ob"
-    showBinary (bs :. b) = showBinary bs . showString " :. " . shows b
+  showsPrec p n 
+    | isCanonical n = showString "0b" . showIntAtBase 2 digit n
+    | otherwise = showParen (p >= 4) (showBits n)
+    where
+      digit :: Int -> Char
+      digit = toEnum . (+ fromEnum '0')
+
+-- |
+-- Builds a representation of a Binary using its constructors
+--
+--  >>> Ob
+--  Ob
+--  >>> Ob :. I :. I :. O :. I
+--  Ob :. I :. I :. O :. I
+--  >>> Ob :. O :. I :. I :. O :. I
+--  Ob :. O :. I :. I :. O :. I
+--
+showBits :: Binary -> ShowS
+showBits Ob = showString "Ob"
+showBits (bs :. b) = showBits bs . showString " :. " . shows b
 
 instance Ord Binary where
   compare = compareCarry EQ where
@@ -112,32 +119,81 @@ instance Ord Binary where
     compareCarry _ (_ :. _) Ob = GT
     compareCarry _ Ob (_ :. _) = LT
 
-{-# COMPLETE Zero, (:.)  #-}
+-- |
+-- Pattern matching the canonical zero (Ob) and non-canonical zero values
+-- (Ob :. O, Ob :. O :. O, …)
 pattern Zero :: Binary
 pattern Zero <- (isZero -> True)
   where Zero = Ob
+{-# COMPLETE Zero, (:.)  #-}
 
+
+-- |
+-- Predicate for canonical and non-canonical zero values
+--
+-- >>> isZero 0b
+-- True
+-- >>> isZero do 0b :. O
+-- True
+-- >>> isZero do 0b :. I
+-- False
+-- >>> isZero do 0b :. O :. O
+-- True
+-- >>> isZero do 0b :. O :. I
+-- False
 isZero :: Binary -> Bool
 isZero (bs :. O) = isZero bs
 isZero (_ :. I)= False
 isZero Ob = True
 
-{-# COMPLETE Push #-}
+-- |
+-- Pattern splitting a binary number n into a binary number m and a bit b such
+-- that n = 2*m + b
 pattern Push :: Binary -> Bit -> Binary
 pattern Push bs b <- (pop -> (bs, b))
   where Push bs I = bs :. I
         Push Ob _ = Ob
         Push bs _ = bs :. O
+{-# COMPLETE Push #-}
 
+-- |
+-- Split a binary number n into a binary number m and a bit b such
+-- that n = 2*m + b
+--
+-- >>> pop 0
+-- (0b0, O)
+-- >>> pop 1
+-- (0b0, I)
+-- >>> pop 2
+-- (0b1, O)
 pop :: Binary -> (Binary, Bit)
 pop Ob = (Ob, O)
 pop (bs :. b) = (bs, b)
 
+-- |
+-- Predicate for checking if a given binary number uses the canonical encoding
+-- (i.e. does not have any leading zeroes).
+--
+-- >>> isCanonical Ob
+-- True
+-- >>> isCanonical do Ob :. I :. I :. O :. I
+-- True
+-- >>> isCanonical do Ob :. O :. I :. I :. O :. I
+-- False
 isCanonical :: Binary -> Bool
 isCanonical (Ob :. O) = False
 isCanonical (bs :. _) = isCanonical bs
 isCanonical Ob = True
 
+-- |
+-- Converts any binary number to its canonical encoding
+--
+-- >>> toCanonical Ob
+-- 0b0
+-- >>> toCanonical do Ob :. I :. I :. O :. I
+-- 0b1101
+-- >>> toCanonical do Ob :. O :. I :. I :. O :. I
+-- 0b1101
 toCanonical :: Binary -> Binary
 toCanonical Ob = Ob
 toCanonical (bs :. b) = toCanonical bs `Push` b
@@ -145,6 +201,8 @@ toCanonical (bs :. b) = toCanonical bs `Push` b
 instance Eq Binary where
   a == b = compare a b == EQ
 
+-- |
+-- convenience method for constructing partial functions from total ones
 orThrow :: Maybe a -> String -> a
 orThrow Nothing msg = error msg
 orThrow (Just a) _ = a
@@ -162,13 +220,32 @@ instance Bounded Binary where
   minBound = Ob
   maxBound = fix (:.I)
 
+-- |
+-- The predecessor of the input, if one exists
+--
+-- >>> safePred Ob
+-- Nothing
+-- >>> safePred do Ob :. I :. I :. O :. I
+-- Just 0b1100
+-- >>> safePred do Ob :. O :. I :. I :. O :. I
+-- Just (Ob :. O :. I :. I :. O :. O)
+--
+-- Preserves canonical encodings.
 safePred :: Binary -> Maybe Binary
 safePred (bs :. O) = safePred bs <&> (:. I)
 safePred (Ob :. I) = Just Ob
 safePred (bs :. I) = Just (bs :. O)
 safePred Ob = Nothing
 
--- non-strict fold starting with high bits
+-- |
+-- A non-strict fold starting with high bits
+--
+-- >>> foldhi False (\r b -> b == O || r) Ob
+-- False
+-- >>> foldhi False (\r b -> b == O || r) do Ob :. I :. O :. I
+-- True
+-- >>> foldhi False (\r b -> b == O || r) do fix (:. I) :. O :. I
+-- True
 foldhi :: a -> (a -> Bit -> a) -> Binary -> a
 foldhi a f (bs :. b) = f (foldhi a f bs) b
 foldhi a _ Ob = a

@@ -1,0 +1,20 @@
+digraph {
+  node ["fixed-size"=true width=0 shape=rectangle style=rounded];
+  
+  t1_0 [label="Branch ●"];
+  t1_1 [label="Branch ●"];
+  t1_2 [label="Leaf ●"];
+  t1_3 [label="(●,●)"];
+  t1_4 [label="(●,●)"];
+  t1_5 [label="(●,●)"];
+
+  t1_0 -> t1_1 -> t1_2 -> t1_3; 
+
+  t1_3 -> t1_4;
+  t1_3 -> t1_5;
+
+  t1_4 -> "a₀";
+  t1_4 -> "a₁";
+  t1_5 -> "a₂";
+  t1_5 -> "a₃";
+}
