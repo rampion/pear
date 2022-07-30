@@ -67,6 +67,7 @@ library
 test-suite base₂-unit-test
   import:               library-setup
   hs-source-dirs:       test
+  ghc-options:        -threaded
   type:                 exitcode-stdio-1.0
   main-is:              Base₂/Test.hs
   other-modules:        Base₂.Bit.Test
