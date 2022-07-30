@@ -45,7 +45,7 @@ data FBinary (m :: Binary) where
 ```
 
 As a motivating example, the package provides a `Vec` data type for collections
-of known length encoded as a `Binary` value, which has values addresssable in
+of known length encoded as a `Binary` value, which has values addressable in
 O(log(n)) time, in contrast to the idiomatic `Unary` version which has `O(n)`
 access time.
 
