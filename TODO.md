@@ -1,18 +1,14 @@
 - [ ] document FILES.md
   - [ ] write documentation as we add each file
     - [ ] test documentation
-      - [ ] have ghcid automatically rerun doc tests
-        - [ ] have ghcid automatically rerun spec
-          - [ ] clear lint warnings
 
+- [ ] rename package?
+    - naturals₂
+    - nats₂
+    - type-nats₂
+    - base-two
+    - nats-base-two
 
-Set up test harness
-  - ghcid running unit tests and doc tests
-  - can't use --with-ghc=doctest b/c the repl fails to load if the doctests fail
-  - trouble running doctests w/in Test.hs because it doesn't know about the libraries
-
-# Base₂.Bit
-# Base₂.Binary
 # Base₂.Function
 # Base₂.Singleton
 # Base₂.Bit.Singleton

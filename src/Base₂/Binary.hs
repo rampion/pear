@@ -22,26 +22,29 @@ module Base₂.Binary
 
 import Numeric (showIntAtBase)
 import Data.Functor ((<&>))
-import GHC.Generics
-import Data.Bits
+import GHC.Generics (Generic)
+import Data.Bits (Bits(..))
 import Data.Function (fix)
 
-import Base₂.Bit
+import Base₂.Bit (Bit(..))
 import Base₂.Two (Two((:*)))
 import qualified Base₂.Two as Two
 
 -- $setup
--- >>> :set -XBlockArguments
+-- >>> :set -XBlockArguments -XLambdaCase
+-- >>> import Data.Function ((&))
 
 infixl 4 :.
 
--- | An encoding of the natural numbers
+-- | A binary encoding of the natural numbers
 --
+-- @
 --    0 ~ Ob 
 --    1 ~ Ob :. I
 --    2 ~ Ob :. I :. O
 --    3 ~ Ob :. I :. I
 --    …
+-- @
 --
 type Binary :: *
 data Binary = Ob | Binary :. Bit
@@ -78,8 +81,8 @@ data Binary = Ob | Binary :. Bit
 --  representations at the type level.
 
 -- |
--- Represents canonical values as binary literals, and non-canonical values as
--- a string of bits.
+-- Represents canonical values as binary literals (@-XBinaryLiterals@), and
+-- non-canonical values using ':.' and 'Bit' constructors.
 --
 --  >>> Ob
 --  0b0
@@ -97,7 +100,7 @@ instance Show Binary where
       digit = toEnum . (+ fromEnum '0')
 
 -- |
--- Builds a representation of a Binary using its constructors
+-- Builds a representation of a 'Binary' using its constructors
 --
 --  >>> showBits Ob ""
 --  "Ob"
@@ -110,6 +113,16 @@ showBits :: Binary -> ShowS
 showBits Ob = showString "Ob"
 showBits (bs :. b) = showBits bs . showString " :. " . shows b
 
+-- $Ord
+--
+-- A custom 'Ord' instance is used to preserve equivalence between
+-- canonical and non-canonical representations.
+--
+-- >>> compare (Ob :. O :. O) (Ob :. I)
+-- LT
+-- >>> compare Ob (Ob :. O)
+-- EQ
+
 instance Ord Binary where
   compare = compareCarry EQ where
 
@@ -120,8 +133,8 @@ instance Ord Binary where
     compareCarry _ Ob (_ :. _) = LT
 
 -- |
--- Pattern matching the canonical zero (Ob) and non-canonical zero values
--- (Ob :. O, Ob :. O :. O, …)
+-- Pattern matching the canonical zero ('Ob') and non-canonical zero values
+-- (@Ob :. O@, @Ob :. O :. O@, …)
 pattern Zero :: Binary
 pattern Zero <- (isZero -> True)
   where Zero = Ob
@@ -149,6 +162,31 @@ isZero Ob = True
 -- |
 -- Pattern splitting a binary number n into a binary number m and a bit b such
 -- that n = 2*m + b
+--
+-- >>> Push Ob O
+-- 0b0
+-- >>> 0b0 & \case Push Ob O -> ()
+-- ()
+-- >>> Push Ob I
+-- 0b1
+-- >>> 0b1 & \case Push Ob I -> ()
+-- ()
+-- >>> Push 0b101 O
+-- 0b1010
+-- >>> 0b1010 & \case Push 0b101 O -> ()
+-- ()
+-- >>> Push 0b101 I
+-- 0b1011
+-- >>> 0b1011 & \case Push 0b101 I -> ()
+-- ()
+--
+-- It preserves canaonical representations, but does not normalize
+-- non-canonical representations.
+--
+-- >>> Push (Ob :. O) O
+-- Ob :. O :. O
+-- >>> Push (Ob :. O :. I) O
+-- Ob :. O :. I :. O
 pattern Push :: Binary -> Bit -> Binary
 pattern Push bs b <- (pop -> (bs, b))
   where Push bs I = bs :. I
@@ -186,7 +224,7 @@ isCanonical (bs :. _) = isCanonical bs
 isCanonical Ob = True
 
 -- |
--- Converts any binary number to its canonical encoding
+-- Converts any 'Binary' to its canonical encoding
 --
 -- >>> toCanonical Ob
 -- 0b0
@@ -240,6 +278,11 @@ safePred Ob = Nothing
 -- |
 -- A non-strict fold starting with high bits
 --
+-- >>> foldhi Ob (:.) 0b10110110
+-- 0b10110110
+--
+-- Since it is non-strict, the output may be defined even on infinite inputs.
+--
 -- >>> foldhi False (\r b -> b == O || r) Ob
 -- False
 -- >>> foldhi False (\r b -> b == O || r) do Ob :. I :. O :. I
@@ -250,24 +293,63 @@ foldhi :: a -> (a -> Bit -> a) -> Binary -> a
 foldhi a f (bs :. b) = f (foldhi a f bs) b
 foldhi a _ Ob = a
 
--- strict fold starting with low bits
+-- |
+-- A strict fold starting with low bits
+--
+-- >>> foldlo Ob (\b r -> r :. b) 0b10110001
+-- 0b10001101
+-- >>> foldlo 0 (\case O -> id ; I -> succ) 0b10110001
+-- 4
 foldlo :: a -> (Bit -> a -> a) -> Binary -> a
 foldlo !a f (bs :. b) = foldlo (f b a) f bs
 foldlo a _ Ob = a
 
+-- |
+-- Convert a 'Binary' into any integral value
+--
+-- >>> fromBinary 0b10110001 :: Int
+-- 177
+-- >>> fromBinary 0b10110001 :: Integer
+-- 177
+-- >>> fromBinary (Ob :. O :. I :. O :. I :. I :. O :. O :. O :. I)
+-- 177
 fromBinary :: Integral a => Binary -> a
 fromBinary = Two.snd . foldlo (1 :* 0) \b (p :* t) -> 
   (p * 2) :* (t + p * case b of { O -> 0 ; I -> 1 })
 
+-- |
+-- Convert an integral value into a 'Binary'
+--
+-- >>> toBinary (177 :: Int)
+-- 0b10110001
+-- >>> toBinary (177 :: Integer)
+-- 0b10110001
 toBinary :: Integral a => a -> Binary
 toBinary 0 = Ob
 toBinary n = case quotRem n 2 of
   (q, 0) -> toBinary q :. O
   (q, ~1) -> toBinary q :. I
     
+-- |
+-- xor three bits
+--
+-- >>> xor3 I O I
+-- O
+-- >>> xor3 I I I
+-- I
 xor3 :: Bit -> Bit -> Bit -> Bit
 xor3 a b c = a `xor` b `xor` c
 
+-- |
+-- Subtract the second argument from the first,
+-- representing underflow with 'Nothing'.
+--
+-- >>> safeMinus 0b1011 0b11
+-- Just 0b1000
+-- >>> safeMinus 0b1011 0b110
+-- Just 0b101
+-- >>> safeMinus 0b1011 0b1100
+-- Nothing
 safeMinus :: Binary -> Binary -> Maybe Binary
 safeMinus = \ps qs -> safeMinus' ps qs O where
 
@@ -316,6 +398,19 @@ instance Num Binary where
 instance Real Binary where
   toRational = toRational . toInteger
 
+-- |
+-- Divide the first argument by the second, returning the
+-- quotient and remainder, representing division by zero
+-- with 'Nothing'.
+--
+-- >>> safeQuotRem 0b100 0b101
+-- Just (0b0,0b100)
+-- >>> safeQuotRem 0b101 0b101
+-- Just (0b1,0b0)
+-- >>> safeQuotRem 0b10111 0b101
+-- Just (0b100,0b11)
+-- >>> safeQuotRem 0b10111 0b0
+-- Nothing
 safeQuotRem :: Binary -> Binary -> Maybe (Binary, Binary)
 safeQuotRem _ Zero = Nothing
 safeQuotRem m n = Just do loop m where

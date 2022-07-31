@@ -2,12 +2,13 @@
 {-# LANGUAGE StandaloneKindSignatures #-}
 module Base₂.Bit where
 
-import GHC.Generics
-import Data.Bits
+import GHC.Types (Type)
+import GHC.Generics (Generic)
+import Data.Bits (Bits(..))
 
 -- |
 -- A 0 or a 1
-type Bit :: *
+type Bit :: Type
 data Bit 
     = O  -- ^ 0
     | I  -- ^ 1

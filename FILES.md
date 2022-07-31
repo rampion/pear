@@ -10,10 +10,14 @@ A description of the **base₂** package, used by `cabal`.
 # src/Base₂.hs
 Umbrella module reexporting the contents of the modules in the `src/Base₂` directory.
 
+# src/Base₂/Bit.hs
+A custom type for representing a single bit.
+
 # src/Base₂/Binary.hs
+A custom type for representing a natural number as a sequence of bits.
+
 # src/Base₂/Binary/Finite.hs
 # src/Base₂/Binary/Singleton.hs
-# src/Base₂/Bit.hs
 # src/Base₂/Bit/Finite.hs
 # src/Base₂/Bit/Singleton.hs
 # src/Base₂/Example.hs
