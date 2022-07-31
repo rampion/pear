@@ -64,16 +64,33 @@ library
                       , Base₂.Vec
                       , Base₂
 
-test-suite base₂-unit-test
+test-suite base₂-spec
   import:               library-setup
-  hs-source-dirs:       test
-  ghc-options:        -threaded
+  hs-source-dirs:       test src
+  ghc-options:          -threaded
   type:                 exitcode-stdio-1.0
   main-is:              Base₂/Test.hs
   other-modules:        Base₂.Bit.Test
                       , Base₂.Binary.Test
-  build-depends:        base₂
-                      , hspec == 2.9.1
+                      , Base₂.Bit
+                      , Base₂.Binary
+                      , Base₂.Function
+                      , Base₂.Singleton
+                      , Base₂.Bit.Singleton
+                      , Base₂.Binary.Singleton
+                      , Base₂.Singleton.Known
+                      , Base₂.Finite
+                      , Base₂.Bit.Finite
+                      , Base₂.Binary.Finite
+                      , Base₂.Indexed
+                      , Base₂.Via.Deindexed
+                      , Base₂.Via.Elem
+                      , Base₂.Singleton.Applicative
+                      , Base₂.Two
+                      , Base₂.Opt
+                      , Base₂.Vec
+                      , Base₂
+  build-depends:        hspec == 2.9.1
                       , genvalidity-hspec == 1.0.0.0
                       , genvalidity == 1.0.0.0
                       , validity == 0.12.0.0

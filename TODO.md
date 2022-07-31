@@ -1,3 +1,11 @@
+- [ ] document FILES.md
+  - [ ] write documentation as we add each file
+    - [ ] test documentation
+      - [ ] have ghcid automatically rerun doc tests
+        - [ ] have ghcid automatically rerun spec
+          - [ ] clear lint warnings
+
+
 Set up test harness
   - ghcid running unit tests and doc tests
   - can't use --with-ghc=doctest b/c the repl fails to load if the doctests fail

@@ -1,5 +1,3 @@
 --lint
 --allow-eval
 --restart base₂.cabal
---command "cabal repl --with-ghc=/Users/rampion/.cabal/bin/doctest -f Development base₂"
---test ":! cabal test -f Development"
