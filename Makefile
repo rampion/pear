@@ -1,10 +1,10 @@
-build-and-test-on-change:
-	ghcid --lint --allow-eval --run --command "cabal repl base₂-library-test base₂-documentation-test" --restart base₂.cabal
-
-dev:
+spec:
 	ghcid --target test:base₂-spec --run
+
+doctest:
+	ghcid --target test:base₂-doctest --run --reload=src/
 
 test:
 	cabal test --test-show-details=streaming --test-option=--color
 
-.PHONY: test
+.PHONY: test spec doctest

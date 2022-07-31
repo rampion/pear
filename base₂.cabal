@@ -95,5 +95,10 @@ test-suite base₂-spec
                       , genvalidity == 1.0.0.0
                       , validity == 0.12.0.0
                       , QuickCheck == 2.14.2
-                      -- , doctest >= 0.20.0
-  -- build-tool-depends:   markdown-unlit:markdown-unlit >= 0.5.1
+test-suite base₂-doctest
+  type:                 exitcode-stdio-1.0
+  hs-source-dirs:       test
+  main-is:              doctest.hs
+  build-depends:        base >=4.14 && <4.15
+                      , doctest >= 0.20.0
+  build-tool-depends:   markdown-unlit:markdown-unlit >= 0.5.1

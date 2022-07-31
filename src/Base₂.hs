@@ -1,3 +1,6 @@
+{- |
+
+ -}
 module Base₂
   ( module Base₂.Bit
   , module Base₂.Bit.Singleton

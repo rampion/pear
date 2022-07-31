@@ -99,12 +99,12 @@ instance Show Binary where
 -- |
 -- Builds a representation of a Binary using its constructors
 --
---  >>> Ob
---  Ob
---  >>> Ob :. I :. I :. O :. I
---  Ob :. I :. I :. O :. I
---  >>> Ob :. O :. I :. I :. O :. I
---  Ob :. O :. I :. I :. O :. I
+--  >>> showBits Ob ""
+--  "Ob"
+--  >>> showBits (Ob :. I :. I :. O :. I) ""
+--  "Ob :. I :. I :. O :. I"
+--  >>> showBits (Ob :. O :. I :. I :. O :. I) ""
+--  "Ob :. O :. I :. I :. O :. I"
 --
 showBits :: Binary -> ShowS
 showBits Ob = showString "Ob"
@@ -131,15 +131,15 @@ pattern Zero <- (isZero -> True)
 -- |
 -- Predicate for canonical and non-canonical zero values
 --
--- >>> isZero 0b
+-- >>> isZero Ob
 -- True
--- >>> isZero do 0b :. O
+-- >>> isZero do Ob :. O
 -- True
--- >>> isZero do 0b :. I
+-- >>> isZero do Ob :. I
 -- False
--- >>> isZero do 0b :. O :. O
+-- >>> isZero do Ob :. O :. O
 -- True
--- >>> isZero do 0b :. O :. I
+-- >>> isZero do Ob :. O :. I
 -- False
 isZero :: Binary -> Bool
 isZero (bs :. O) = isZero bs
@@ -161,11 +161,11 @@ pattern Push bs b <- (pop -> (bs, b))
 -- that n = 2*m + b
 --
 -- >>> pop 0
--- (0b0, O)
+-- (0b0,O)
 -- >>> pop 1
--- (0b0, I)
+-- (0b0,I)
 -- >>> pop 2
--- (0b1, O)
+-- (0b1,O)
 pop :: Binary -> (Binary, Bit)
 pop Ob = (Ob, O)
 pop (bs :. b) = (bs, b)
