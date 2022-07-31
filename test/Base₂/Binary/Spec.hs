@@ -7,10 +7,8 @@
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE DeriveAnyClass #-}
--- {-# LANGUAGE DerivingVia #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
--- {-# LANGUAGE UndecidableInstances #-}
-module Base₂.Binary.Test where
+module Base₂.Binary.Spec where
 
 import GHC.Natural
 import GHC.Generics
@@ -22,7 +20,7 @@ import Test.Validity
 import Test.QuickCheck
 
 import Base₂.Binary
-import Base₂.Bit.Test ()
+import Base₂.Bit.Spec ()
 
 instance Validity Binary
 instance GenValid Binary

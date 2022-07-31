@@ -3,7 +3,7 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE DerivingStrategies #-}
 {-# LANGUAGE TypeApplications #-}
-module Base₂.Bit.Test where
+module Base₂.Bit.Spec where
 
 import Data.GenValidity
 import Base₂.Bit

@@ -69,9 +69,9 @@ test-suite base₂-spec
   hs-source-dirs:       test src
   ghc-options:          -threaded
   type:                 exitcode-stdio-1.0
-  main-is:              Base₂/Test.hs
-  other-modules:        Base₂.Bit.Test
-                      , Base₂.Binary.Test
+  main-is:              Base₂/Spec.hs
+  other-modules:        Base₂.Bit.Spec
+                      , Base₂.Binary.Spec
                       , Base₂.Bit
                       , Base₂.Binary
                       , Base₂.Function
