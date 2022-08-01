@@ -1,9 +1,9 @@
 {-# LANGUAGE BlockArguments #-}
 module Main (main) where
 
-import ℕ₂()
-import ℕ₂.Bit.Spec
-import ℕ₂.Binary.Spec
+import Pear()
+import Pear.Bit.Spec
+import Pear.Binary.Spec
 
 import Test.Hspec
 

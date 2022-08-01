@@ -7,11 +7,11 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE LambdaCase #-}
-module ℕ₂.Bit.Singleton where
+module Pear.Bit.Singleton where
 
-import ℕ₂.Bit
-import ℕ₂.Function
-import ℕ₂.Singleton
+import Pear.Bit
+import Pear.Function
+import Pear.Singleton
 
 type SBit :: Bit -> *
 data SBit b where

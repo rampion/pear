@@ -1,36 +1,31 @@
 - [ ] document FILES.md
   - [ ] write documentation as we add each file
-    - [ ] test documentation
 
-- [ ] rename package?
-    - naturals₂
-    - nats₂
-    - type-nats₂
-    - base-two
-    - nats-base-two
+- [X] rename package?
 
-# Base₂.Function
-# Base₂.Singleton
-# Base₂.Bit.Singleton
-# Base₂.Binary.Singleton
-# Base₂.Known
-# Base₂.Finite
-# Base₂.Bit.Finite
-# Base₂.Binary.Finite
-# Base₂.Indexed
-# Base₂.Indexed.Functor
-# Base₂.Indexed.Applicative
-# Base₂.Indexed.Monad
-# Base₂.Indexed.Foldable
-# Base₂.Indexed.Traversable
-# Base₂.Singleton.Applicative
-# Base₂.Two
+
+# Pear.Function
+# Pear.Singleton
+# Pear.Bit.Singleton
+# Pear.Binary.Singleton
+# Pear.Known
+# Pear.Finite
+# Pear.Bit.Finite
+# Pear.Binary.Finite
+# Pear.Indexed
+# Pear.Indexed.Functor
+# Pear.Indexed.Applicative
+# Pear.Indexed.Monad
+# Pear.Indexed.Foldable
+# Pear.Indexed.Traversable
+# Pear.Singleton.Applicative
+# Pear.Two
 - I\* instances?
-# Base₂.Opt
+# Pear.Opt
 - I\* instances
-# Base₂.Vec
+# Pear.Vec
 - [ ] clean up combine and (++)
-# Base₂
+# Pear
 - [ ] re-export everything
 
 ---

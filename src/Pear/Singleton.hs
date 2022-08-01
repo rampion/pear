@@ -8,10 +8,10 @@
 {-# LANGUAGE StandaloneKindSignatures #-}
 {-# LANGUAGE TypeFamilyDependencies #-}
 {-# LANGUAGE TypeOperators #-}
-module ℕ₂.Singleton where
+module Pear.Singleton where
 
 import GHC.Types (Constraint)
-import ℕ₂.Function
+import Pear.Function
 
 type Singleton :: (k -> *) -> Constraint
 class Singleton (sing :: k -> *) where

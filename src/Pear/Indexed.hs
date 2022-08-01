@@ -11,7 +11,7 @@
 {-# LANGUAGE StandaloneKindSignatures #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE PolyKinds #-}
-module ℕ₂.Indexed where
+module Pear.Indexed where
 
 import GHC.Types (Constraint)
 import Data.Functor.Const (Const(..))
@@ -50,9 +50,9 @@ class (Indexed f, Functor f) => IFunctor f where
 --    data X a = ...
 --       deriving anyclass (IApplicative, IMonad, IFoldable, ITraversable)
 --
--- To derive non-indexed variants from indexed variants, see ℕ₂.Via.Deindexed
+-- To derive non-indexed variants from indexed variants, see Pear.Via.Deindexed
 --
--- To derive instances from subclass instances, see ℕ₂.Via.Elem
+-- To derive instances from subclass instances, see Pear.Via.Elem
 --
 --    data X a = ...
 --       deriving (Functor, Applicative, Monad, Foldable, Traversable) via Deindexed X

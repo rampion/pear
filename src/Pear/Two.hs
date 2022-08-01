@@ -3,11 +3,11 @@
 {-# LANGUAGE DerivingVia #-}
 {-# LANGUAGE StandaloneKindSignatures #-}
 {-# LANGUAGE TypeFamilies #-}
-module ℕ₂.Two where
+module Pear.Two where
 
-import ℕ₂.Indexed
-import ℕ₂.Via.Deindexed
-import ℕ₂.Bit
+import Pear.Indexed
+import Pear.Via.Deindexed
+import Pear.Bit
 import Data.Functor ((<&>))
 import Control.Applicative (liftA2)
 

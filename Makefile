@@ -1,8 +1,8 @@
 spec:
-	ghcid --target test:ℕ₂-spec --run
+	ghcid --target test:pear-spec --run
 
 doctest:
-	ghcid --target test:ℕ₂-doctest --run --reload=src/
+	ghcid --target test:pear-doctest --run --reload=src/
 
 test:
 	cabal test --test-show-details=streaming --test-option=--color

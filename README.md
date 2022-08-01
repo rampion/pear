@@ -1,4 +1,4 @@
-The **ℕ₂** package provides a pattern-matchable binary encoding of
+The **pear** package provides a pattern-matchable binary encoding of
 the natural numbers:
 
 ```haskell
@@ -10,7 +10,7 @@ data Bit = O | I
 ```haskell example
 {- $setup
 >>> :set -XBinaryLiterals
->>> import ℕ₂
+>>> import Pear
 
 ```
 -->

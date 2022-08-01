@@ -1,5 +1,5 @@
 cabal-version:       2.2
-name:                ℕ₂
+name:                pear
 version:             1.0.0.0
 synopsis:            Working with the naturals base 2 at the value and type level
 homepage:            github.com/rampion/base2
@@ -45,57 +45,57 @@ common library-setup
 library
   import:               library-setup
   hs-source-dirs:       src
-  exposed-modules:      ℕ₂.Bit
-                      , ℕ₂.Binary
-                      , ℕ₂.Function
-                      , ℕ₂.Singleton
-                      , ℕ₂.Bit.Singleton
-                      , ℕ₂.Binary.Singleton
-                      , ℕ₂.Singleton.Known
-                      , ℕ₂.Finite
-                      , ℕ₂.Bit.Finite
-                      , ℕ₂.Binary.Finite
-                      , ℕ₂.Indexed
-                      , ℕ₂.Via.Deindexed
-                      , ℕ₂.Via.Elem
-                      , ℕ₂.Singleton.Applicative
-                      , ℕ₂.Two
-                      , ℕ₂.Opt
-                      , ℕ₂.Vec
-                      , ℕ₂
+  exposed-modules:      Pear.Bit
+                      , Pear.Binary
+                      , Pear.Function
+                      , Pear.Singleton
+                      , Pear.Bit.Singleton
+                      , Pear.Binary.Singleton
+                      , Pear.Singleton.Known
+                      , Pear.Finite
+                      , Pear.Bit.Finite
+                      , Pear.Binary.Finite
+                      , Pear.Indexed
+                      , Pear.Via.Deindexed
+                      , Pear.Via.Elem
+                      , Pear.Singleton.Applicative
+                      , Pear.Two
+                      , Pear.Opt
+                      , Pear.Vec
+                      , Pear
 
-test-suite ℕ₂-spec
+test-suite pear-spec
   import:               library-setup
   hs-source-dirs:       test src
   ghc-options:          -threaded
   type:                 exitcode-stdio-1.0
-  main-is:              ℕ₂/Spec.hs
-  other-modules:        ℕ₂.Bit.Spec
-                      , ℕ₂.Binary.Spec
-                      , ℕ₂.Bit
-                      , ℕ₂.Binary
-                      , ℕ₂.Function
-                      , ℕ₂.Singleton
-                      , ℕ₂.Bit.Singleton
-                      , ℕ₂.Binary.Singleton
-                      , ℕ₂.Singleton.Known
-                      , ℕ₂.Finite
-                      , ℕ₂.Bit.Finite
-                      , ℕ₂.Binary.Finite
-                      , ℕ₂.Indexed
-                      , ℕ₂.Via.Deindexed
-                      , ℕ₂.Via.Elem
-                      , ℕ₂.Singleton.Applicative
-                      , ℕ₂.Two
-                      , ℕ₂.Opt
-                      , ℕ₂.Vec
-                      , ℕ₂
+  main-is:              Pear/Spec.hs
+  other-modules:        Pear.Bit.Spec
+                      , Pear.Binary.Spec
+                      , Pear.Bit
+                      , Pear.Binary
+                      , Pear.Function
+                      , Pear.Singleton
+                      , Pear.Bit.Singleton
+                      , Pear.Binary.Singleton
+                      , Pear.Singleton.Known
+                      , Pear.Finite
+                      , Pear.Bit.Finite
+                      , Pear.Binary.Finite
+                      , Pear.Indexed
+                      , Pear.Via.Deindexed
+                      , Pear.Via.Elem
+                      , Pear.Singleton.Applicative
+                      , Pear.Two
+                      , Pear.Opt
+                      , Pear.Vec
+                      , Pear
   build-depends:        hspec == 2.9.1
                       , genvalidity-hspec == 1.0.0.0
                       , genvalidity == 1.0.0.0
                       , validity == 0.12.0.0
                       , QuickCheck == 2.14.2
-test-suite ℕ₂-doctest
+test-suite pear-doctest
   type:                 exitcode-stdio-1.0
   hs-source-dirs:       test
   main-is:              doctest.hs

@@ -15,12 +15,12 @@
 {-# LANGUAGE TypeFamilyDependencies #-}
 {-# LANGUAGE TypeOperators #-}
 -- {-# LANGUAGE ViewPatterns #-}
-module ℕ₂.Finite where
+module Pear.Finite where
 
 import GHC.Types (Constraint)
 
-import ℕ₂.Function
-import ℕ₂.Singleton.Known
+import Pear.Function
+import Pear.Singleton.Known
 
 type Finite :: (k -> *) -> Constraint
 class Finite (fin :: k -> *) where

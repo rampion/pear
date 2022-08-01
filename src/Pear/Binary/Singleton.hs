@@ -5,12 +5,12 @@
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE ViewPatterns #-}
 {-# LANGUAGE TypeFamilies #-}
-module ℕ₂.Binary.Singleton where
+module Pear.Binary.Singleton where
 
-import ℕ₂.Bit.Singleton
-import ℕ₂.Binary
-import ℕ₂.Function
-import ℕ₂.Singleton
+import Pear.Bit.Singleton
+import Pear.Binary
+import Pear.Function
+import Pear.Singleton
 
 type SBinary :: Binary -> *
 data SBinary n where

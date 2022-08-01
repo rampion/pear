@@ -8,7 +8,7 @@
 {-# LANGUAGE PatternSynonyms #-}
 {-# LANGUAGE StandaloneKindSignatures #-}
 {-# LANGUAGE ViewPatterns #-}
-module ℕ₂.Binary
+module Pear.Binary
   ( Bit(..)
   , Binary(..)
   , showBits
@@ -26,9 +26,9 @@ import GHC.Generics (Generic)
 import Data.Bits (Bits(..))
 import Data.Function (fix)
 
-import ℕ₂.Bit (Bit(..))
-import ℕ₂.Two (Two((:*)))
-import qualified ℕ₂.Two as Two
+import Pear.Bit (Bit(..))
+import Pear.Two (Two((:*)))
+import qualified Pear.Two as Two
 
 -- $setup
 -- >>> :set -XBlockArguments -XLambdaCase -XBinaryLiterals

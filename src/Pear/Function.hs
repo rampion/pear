@@ -7,7 +7,7 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE FlexibleContexts #-}
-module ℕ₂.Function where
+module Pear.Function where
 
 import Prelude hiding ((.), id)
 import GHC.Types (Type)
