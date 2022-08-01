@@ -1,0 +1,1 @@
+module ℕ₂ where

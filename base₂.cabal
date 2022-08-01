@@ -46,6 +46,7 @@ library
   import:               library-setup
   hs-source-dirs:       src
   exposed-modules:      Base₂.Bit
+                      , ℕ₂
                       , Base₂.Binary
                       , Base₂.Function
                       , Base₂.Singleton
