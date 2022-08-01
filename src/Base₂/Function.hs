@@ -1,3 +1,4 @@
+-- | Convenience types for working with injections, surjections and bijections
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE ScopedTypeVariables #-}
@@ -9,14 +10,23 @@
 module Base₂.Function where
 
 import Prelude hiding ((.), id)
-import Control.Category
+import GHC.Types (Type)
+import Control.Category (Category(..), (>>>))
 import Data.List.NonEmpty (NonEmpty)
 import Control.Monad ((>=>))
 
-type Function :: Injectivity -> Surjectivity -> * -> * -> *
+-- | Specification of a function along with its preimage
+--
+-- Legal values should satisfy these two properties:
+--
+-- Give f :: Function I S A B, then
+--
+--  1. ∀ a :: A, a ∈ preimage f (image a)
+--  2. ∀ b :: B, ∀ a ∈ preimage f b, b == image f a
+type Function :: Injectivity -> Surjectivity -> Type -> Type -> Type
 data Function i s a b = Function
-  { image :: a -> b
-  , preimage :: b -> Preimage i s a
+  { image :: a -> b                 -- ^ run the function forward
+  , preimage :: b -> Preimage i s a -- ^ run the function backward
   }
 
 instance Category (Inverse i s) => Category (Function i s) where
@@ -32,20 +42,28 @@ instance Category (Inverse i s) => Category (Function i s) where
 inverse :: Function i s a b -> Inverse i s a b
 inverse = Inverse . preimage
 
-type Injectivity :: *
+-- | Flag for whether a function is injective, aka "1 to 1"
+--
+-- f :: A -> B is __injective__ if and only if for all a₀, a₁ :: A,
+-- f a₀ = f a₁ ⇒ a₀ = a₁
+type Injectivity :: Type
 data Injectivity = Noninjective | Injective
 
-type Surjectivity :: *
+-- | Flag for whether a function is surjective, aka "onto"
+--
+-- f :: A -> B is __surjective__ if and only if for all b :: B,
+-- there exists a :: A such that f a = b
+type Surjectivity :: Type
 data Surjectivity = Nonsurjective | Surjective
 
-type Preimage :: Injectivity -> Surjectivity -> * -> *
+type Preimage :: Injectivity -> Surjectivity -> Type -> Type
 type family Preimage i s a where
   Preimage 'Noninjective 'Nonsurjective a = [a]
   Preimage 'Noninjective 'Surjective a = NonEmpty a
   Preimage 'Injective 'Nonsurjective a = Maybe a
   Preimage 'Injective 'Surjective a = a
 
-type Inverse :: Injectivity -> Surjectivity -> * -> * -> *
+type Inverse :: Injectivity -> Surjectivity -> Type -> Type -> Type
 newtype Inverse i s a b = Inverse { runInverse :: b -> Preimage i s a }
 
 instance Category (Inverse 'Noninjective 'Nonsurjective) where
@@ -71,14 +89,14 @@ to = image
 from :: Function i s a b -> b -> Preimage i s a
 from = preimage
 
-type (*->) :: * -> * -> *
+type (*->) :: Type -> Type -> Type
 type (*->) = Function 'Noninjective 'Nonsurjective
 
-type (+->) :: * -> * -> *
+type (+->) :: Type -> Type -> Type
 type (+->) = Function 'Noninjective 'Surjective
 
-type (?->) :: * -> * -> *
+type (?->) :: Type -> Type -> Type
 type (?->) = Function 'Injective 'Nonsurjective
 
-type (<->) :: * -> * -> *
+type (<->) :: Type -> Type -> Type
 type (<->) = Function 'Injective 'Surjective

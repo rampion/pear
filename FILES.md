@@ -16,19 +16,22 @@ A custom type for representing a single bit.
 # src/Base₂/Binary.hs
 A custom type for representing a natural number as a sequence of bits.
 
-# src/Base₂/Binary/Finite.hs
+# src/Base₂/Singleton.hs
+# src/Base₂/Singleton/Applicative.hs
+# src/Base₂/Singleton/Known.hs
 # src/Base₂/Binary/Singleton.hs
-# src/Base₂/Bit/Finite.hs
 # src/Base₂/Bit/Singleton.hs
-# src/Base₂/Example.hs
+
+# src/Base₂/Binary/Finite.hs
+# src/Base₂/Bit/Finite.hs
 # src/Base₂/Finite.hs
+
+# src/Base₂/Example.hs
 # src/Base₂/Function.hs
 # src/Base₂/Indexed.hs
 # src/Base₂/Opt.hs
 # src/Base₂/README.lhs
-# src/Base₂/Singleton.hs
-# src/Base₂/Singleton/Applicative.hs
-# src/Base₂/Singleton/Known.hs
+
 # src/Base₂/Two.hs
 # src/Base₂/Vec.hs
 # src/Base₂/Via/Deindexed.hs
