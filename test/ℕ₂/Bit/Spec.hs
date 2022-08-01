@@ -3,10 +3,10 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE DerivingStrategies #-}
 {-# LANGUAGE TypeApplications #-}
-module Base₂.Bit.Spec where
+module ℕ₂.Bit.Spec where
 
 import Data.GenValidity
-import Base₂.Bit
+import ℕ₂.Bit
 
 import Test.Hspec
 import Test.Validity

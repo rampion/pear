@@ -1,4 +1,4 @@
-The **base₂** package provides a pattern-matchable binary encoding of
+The **ℕ₂** package provides a pattern-matchable binary encoding of
 the natural numbers:
 
 ```haskell
@@ -10,7 +10,7 @@ data Bit = O | I
 ```haskell example
 {- $setup
 >>> :set -XBinaryLiterals
->>> import Base₂
+>>> import ℕ₂
 
 ```
 -->

@@ -11,10 +11,10 @@
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE UndecidableInstances #-}
-module Base₂.Via.Deindexed where
+module ℕ₂.Via.Deindexed where
 
 import Data.Coerce (coerce)
-import Base₂.Indexed
+import ℕ₂.Indexed
 
 type Deindexed :: (* -> *) -> * -> *
 newtype Deindexed f a = Deindexed { getDeindexed :: f a }

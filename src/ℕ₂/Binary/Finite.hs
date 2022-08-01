@@ -8,17 +8,17 @@
 {-# LANGUAGE StandaloneKindSignatures #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE TypeOperators #-}
-module Base₂.Binary.Finite where
+module ℕ₂.Binary.Finite where
 
 -- import Data.Bits
-import Base₂.Bit
-import Base₂.Bit.Singleton
-import Base₂.Binary
-import Base₂.Finite
-import Base₂.Function
-import Base₂.Singleton
-import Base₂.Singleton.Known
-import Base₂.Binary.Singleton
+import ℕ₂.Bit
+import ℕ₂.Bit.Singleton
+import ℕ₂.Binary
+import ℕ₂.Finite
+import ℕ₂.Function
+import ℕ₂.Singleton
+import ℕ₂.Singleton.Known
+import ℕ₂.Binary.Singleton
 
 type FBinary :: Binary -> *
 data FBinary cardinality where

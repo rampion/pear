@@ -1,6 +1,6 @@
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE StandaloneKindSignatures #-}
-module Base₂.Bit where
+module ℕ₂.Bit where
 
 import GHC.Types (Type)
 import GHC.Generics (Generic)

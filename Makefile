@@ -1,8 +1,8 @@
 spec:
-	ghcid --target test:base₂-spec --run
+	ghcid --target test:ℕ₂-spec --run
 
 doctest:
-	ghcid --target test:base₂-doctest --run --reload=src/
+	ghcid --target test:ℕ₂-doctest --run --reload=src/
 
 test:
 	cabal test --test-show-details=streaming --test-option=--color

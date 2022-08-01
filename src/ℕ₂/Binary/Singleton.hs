@@ -5,12 +5,12 @@
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE ViewPatterns #-}
 {-# LANGUAGE TypeFamilies #-}
-module Base₂.Binary.Singleton where
+module ℕ₂.Binary.Singleton where
 
-import Base₂.Bit.Singleton
-import Base₂.Binary
-import Base₂.Function
-import Base₂.Singleton
+import ℕ₂.Bit.Singleton
+import ℕ₂.Binary
+import ℕ₂.Function
+import ℕ₂.Singleton
 
 type SBinary :: Binary -> *
 data SBinary n where

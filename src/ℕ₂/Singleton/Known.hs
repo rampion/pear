@@ -9,15 +9,15 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE TypeFamilyDependencies #-}
 {-# LANGUAGE FlexibleContexts #-}
-module Base₂.Singleton.Known where
+module ℕ₂.Singleton.Known where
 
 import GHC.Types (Constraint)
 
-import Base₂.Bit
-import Base₂.Bit.Singleton
-import Base₂.Binary
-import Base₂.Binary.Singleton
-import Base₂.Singleton
+import ℕ₂.Bit
+import ℕ₂.Bit.Singleton
+import ℕ₂.Binary
+import ℕ₂.Binary.Singleton
+import ℕ₂.Singleton
 
 type Known :: k -> Constraint
 class Singleton (Sing_ k) => Known (t :: k) where

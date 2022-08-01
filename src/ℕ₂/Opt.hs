@@ -14,16 +14,16 @@
 {-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE StandaloneKindSignatures #-}
 {-# LANGUAGE TypeFamilies #-}
-module Base₂.Opt where
+module ℕ₂.Opt where
 
-import Base₂.Bit
-import Base₂.Bit.Singleton
-import Base₂.Bit.Finite
-import Base₂.Singleton.Applicative
-import Base₂.Singleton.Known
-import Base₂.Indexed
-import Base₂.Via.Deindexed
-import Base₂.Via.Elem
+import ℕ₂.Bit
+import ℕ₂.Bit.Singleton
+import ℕ₂.Bit.Finite
+import ℕ₂.Singleton.Applicative
+import ℕ₂.Singleton.Known
+import ℕ₂.Indexed
+import ℕ₂.Via.Deindexed
+import ℕ₂.Via.Elem
 
 type Opt :: Bit -> * -> *
 data Opt (length :: Bit) a where
@@ -69,7 +69,7 @@ instance Known b => IMonad (Opt b) where
 -- `const` doesn't work in this case, due to the constraint on the ignored
 -- parameter;
 --
---    src/Base₂/Opt.hs:72:9-18: error:
+--    src/ℕ₂/Opt.hs:72:9-18: error:
 --        • Couldn't match type ‘'O’ with ‘'I’
 --        • In the expression: const None
 --          In a case alternative: SO -> const None

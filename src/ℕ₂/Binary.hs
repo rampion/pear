@@ -8,7 +8,7 @@
 {-# LANGUAGE PatternSynonyms #-}
 {-# LANGUAGE StandaloneKindSignatures #-}
 {-# LANGUAGE ViewPatterns #-}
-module Base₂.Binary
+module ℕ₂.Binary
   ( Bit(..)
   , Binary(..)
   , showBits
@@ -26,12 +26,12 @@ import GHC.Generics (Generic)
 import Data.Bits (Bits(..))
 import Data.Function (fix)
 
-import Base₂.Bit (Bit(..))
-import Base₂.Two (Two((:*)))
-import qualified Base₂.Two as Two
+import ℕ₂.Bit (Bit(..))
+import ℕ₂.Two (Two((:*)))
+import qualified ℕ₂.Two as Two
 
 -- $setup
--- >>> :set -XBlockArguments -XLambdaCase
+-- >>> :set -XBlockArguments -XLambdaCase -XBinaryLiterals
 -- >>> import Data.Function ((&))
 
 infixl 4 :.

@@ -13,12 +13,12 @@
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE PolyKinds #-}
 {-# LANGUAGE TypeOperators #-}
-module Base₂.Via.Elem where
+module ℕ₂.Via.Elem where
 
 import GHC.Types (Constraint)
 import Data.Coerce (coerce)
-import Base₂.Indexed
-import Base₂.Via.Deindexed
+import ℕ₂.Indexed
+import ℕ₂.Via.Deindexed
 
 
 type (∈) :: k -> (k -> Constraint) -> k

@@ -7,13 +7,13 @@
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE RankNTypes #-}
-module Base₂.Bit.Finite where
+module ℕ₂.Bit.Finite where
 
-import Base₂.Bit
-import Base₂.Bit.Singleton
-import Base₂.Finite
-import Base₂.Singleton.Known
-import Base₂.Function
+import ℕ₂.Bit
+import ℕ₂.Bit.Singleton
+import ℕ₂.Finite
+import ℕ₂.Singleton.Known
+import ℕ₂.Function
 
 type FBit :: Bit -> *
 data FBit b where

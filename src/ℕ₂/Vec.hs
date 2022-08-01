@@ -21,20 +21,20 @@
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE ViewPatterns #-}
-module Base₂.Vec where
+module ℕ₂.Vec where
 
-import Base₂.Binary
-import Base₂.Singleton.Applicative
-import Base₂.Singleton.Known
-import Base₂.Finite
-import Base₂.Bit.Finite
-import Base₂.Binary.Singleton
-import Base₂.Binary.Finite
-import Base₂.Opt
-import Base₂.Two
-import Base₂.Indexed
-import Base₂.Via.Deindexed
-import Base₂.Via.Elem
+import ℕ₂.Binary
+import ℕ₂.Singleton.Applicative
+import ℕ₂.Singleton.Known
+import ℕ₂.Finite
+import ℕ₂.Bit.Finite
+import ℕ₂.Binary.Singleton
+import ℕ₂.Binary.Finite
+import ℕ₂.Opt
+import ℕ₂.Two
+import ℕ₂.Indexed
+import ℕ₂.Via.Deindexed
+import ℕ₂.Via.Elem
 
 import Data.Functor ((<&>))
 import GHC.Types (Constraint)

@@ -8,7 +8,7 @@
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
-module Base₂.Binary.Spec where
+module ℕ₂.Binary.Spec where
 
 import GHC.Natural
 import GHC.Generics
@@ -19,8 +19,8 @@ import Test.Hspec
 import Test.Validity
 import Test.QuickCheck
 
-import Base₂.Binary
-import Base₂.Bit.Spec ()
+import ℕ₂.Binary
+import ℕ₂.Bit.Spec ()
 
 instance Validity Binary
 instance GenValid Binary

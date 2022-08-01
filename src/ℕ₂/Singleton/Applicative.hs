@@ -6,14 +6,14 @@
 {-# LANGUAGE QuantifiedConstraints #-}
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE FlexibleInstances #-}
-module Base₂.Singleton.Applicative where
+module ℕ₂.Singleton.Applicative where
 
 import GHC.Types (Constraint)
-import Base₂.Singleton
-import Base₂.Singleton.Known
-import Base₂.Via.Elem
-import Base₂.Finite
-import Base₂.Indexed
+import ℕ₂.Singleton
+import ℕ₂.Singleton.Known
+import ℕ₂.Via.Elem
+import ℕ₂.Finite
+import ℕ₂.Indexed
 
 type SApplicative :: (k -> * -> *) -> Constraint
 class SApplicative (f :: k -> * -> *) where
