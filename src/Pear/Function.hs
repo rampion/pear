@@ -29,18 +29,19 @@ data Function i s a b = Function
   , preimage :: b -> Preimage i s a -- ^ run the function backward
   }
 
-instance Category (Inverse i s) => Category (Function i s) where
+instance Category (InverseImage i s) => Category (Function i s) where
   id = Function
     { image = id
-    , preimage = runInverse @i @s id
+    , preimage = runInverseImage @i @s id
     }
   f . g = Function
     { image = image f . image g
-    , preimage = runInverse (inverse f . inverse g)
+    , preimage = runInverseImage (inverseImage f . inverseImage g)
     }
 
-inverse :: Function i s a b -> Inverse i s a b
-inverse = Inverse . preimage
+-- | Extact the computation of the inverse image from a function.
+inverseImage :: Function i s a b -> InverseImage i s a b
+inverseImage = InverseImage . preimage
 
 -- | Flag for whether a function is injective, aka "1 to 1"
 --
@@ -56,47 +57,57 @@ data Injectivity = Noninjective | Injective
 type Surjectivity :: Type
 data Surjectivity = Nonsurjective | Surjective
 
+-- | Shape of the preimage of a function; how
+--   many elements in the domain can map to a single
+--   element in the codomain
 type Preimage :: Injectivity -> Surjectivity -> Type -> Type
 type family Preimage i s a where
-  Preimage 'Noninjective 'Nonsurjective a = [a]
-  Preimage 'Noninjective 'Surjective a = NonEmpty a
-  Preimage 'Injective 'Nonsurjective a = Maybe a
-  Preimage 'Injective 'Surjective a = a
+  Preimage 'Noninjective 'Nonsurjective a = [a]       -- general case: no limit on the size of the preimage
+  Preimage 'Noninjective 'Surjective a = NonEmpty a   -- surjective : ∀ b, ∃ at least one a s.t f a = b
+  Preimage 'Injective 'Nonsurjective a = Maybe a      -- injective : ∀ b, ∃ at most one a s.t. f a = b
+  Preimage 'Injective 'Surjective a = a               -- bijective : ∀ b, ∃ exactly one a s.t. f a = b
 
-type Inverse :: Injectivity -> Surjectivity -> Type -> Type -> Type
-newtype Inverse i s a b = Inverse { runInverse :: b -> Preimage i s a }
+-- | Inverse image of a function
+type InverseImage :: Injectivity -> Surjectivity -> Type -> Type -> Type
+newtype InverseImage i s a b = InverseImage { runInverseImage :: b -> Preimage i s a }
 
-instance Category (Inverse 'Noninjective 'Nonsurjective) where
-  id = Inverse pure
-  Inverse f . Inverse g = Inverse (f >=> g)
+instance Category (InverseImage 'Noninjective 'Nonsurjective) where
+  id = InverseImage pure
+  InverseImage f . InverseImage g = InverseImage (f >=> g)
 
-instance Category (Inverse 'Noninjective 'Surjective) where
-  id = Inverse pure
-  Inverse f . Inverse g = Inverse (f >=> g)
+instance Category (InverseImage 'Noninjective 'Surjective) where
+  id = InverseImage pure
+  InverseImage f . InverseImage g = InverseImage (f >=> g)
 
-instance Category (Inverse 'Injective 'Nonsurjective) where
-  id = Inverse pure
-  Inverse f . Inverse g = Inverse (f >=> g)
+instance Category (InverseImage 'Injective 'Nonsurjective) where
+  id = InverseImage pure
+  InverseImage f . InverseImage g = InverseImage (f >=> g)
 
-instance Category (Inverse 'Injective 'Surjective) where
-  id = Inverse id
-  Inverse f . Inverse g = Inverse (f >>> g)
+instance Category (InverseImage 'Injective 'Surjective) where
+  id = InverseImage id
+  InverseImage f . InverseImage g = InverseImage (f >>> g)
 
 
+-- | run a function forwards
 to :: Function i s a b -> a -> b
 to = image
 
+-- | run a function backwards
 from :: Function i s a b -> b -> Preimage i s a
 from = preimage
 
+-- | general function
 type (*->) :: Type -> Type -> Type
 type (*->) = Function 'Noninjective 'Nonsurjective
 
+-- | surjective function
 type (+->) :: Type -> Type -> Type
 type (+->) = Function 'Noninjective 'Surjective
 
+-- | injective function
 type (?->) :: Type -> Type -> Type
 type (?->) = Function 'Injective 'Nonsurjective
 
+-- | bijective function
 type (<->) :: Type -> Type -> Type
 type (<->) = Function 'Injective 'Surjective
