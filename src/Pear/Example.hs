@@ -1,2 +1,2 @@
-module Base₂.Example where
+module Pear.Example where
 

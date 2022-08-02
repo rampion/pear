@@ -7,37 +7,37 @@ An user's introduction to the **base₂** package.
 # base₂.cabal
 A description of the **base₂** package, used by `cabal`.
 
-# src/Base₂.hs
-Umbrella module reexporting the contents of the modules in the `src/Base₂` directory.
+# src/Pear.hs
+Umbrella module reexporting the contents of the modules in the `src/Pear` directory.
 
-# src/Base₂/Bit.hs
+# src/Pear/Bit.hs
 A custom type for representing a single bit.
 
-# src/Base₂/Binary.hs
+# src/Pear/Binary.hs
 A custom type for representing a natural number as a sequence of bits.
 
-# src/Base₂/Function.hs
+# src/Pear/Function.hs
 A custom type for bundling a function along with its inverse image.
 
-# src/Base₂/Singleton.hs
-# src/Base₂/Singleton/Applicative.hs
-# src/Base₂/Singleton/Known.hs
-# src/Base₂/Binary/Singleton.hs
-# src/Base₂/Bit/Singleton.hs
+# src/Pear/Singleton.hs
+# src/Pear/Singleton/Applicative.hs
+# src/Pear/Singleton/Known.hs
+# src/Pear/Binary/Singleton.hs
+# src/Pear/Bit/Singleton.hs
 
-# src/Base₂/Binary/Finite.hs
-# src/Base₂/Bit/Finite.hs
-# src/Base₂/Finite.hs
+# src/Pear/Binary/Finite.hs
+# src/Pear/Bit/Finite.hs
+# src/Pear/Finite.hs
 
-# src/Base₂/Example.hs
-# src/Base₂/Indexed.hs
-# src/Base₂/Opt.hs
-# src/Base₂/README.lhs
+# src/Pear/Example.hs
+# src/Pear/Indexed.hs
+# src/Pear/Opt.hs
+# src/Pear/README.lhs
 
-# src/Base₂/Two.hs
-# src/Base₂/Vec.hs
-# src/Base₂/Via/Deindexed.hs
-# src/Base₂/Via/Elem.hs
+# src/Pear/Two.hs
+# src/Pear/Vec.hs
+# src/Pear/Via/Deindexed.hs
+# src/Pear/Via/Elem.hs
 
 # cabal.project
 # .ghcid
@@ -90,6 +90,6 @@ A list of changes introduced at each version of the package.
 # doc/Article/unbalanced-trees.png
 # doc/Article/uncounted-forest.dot
 # doc/Article/uncounted-forest.png
-# test/Base₂/Binary/Test.hs
-# test/Base₂/Bit/Test.hs
-# test/Base₂/Test.hs
+# test/Pear/Binary/Test.hs
+# test/Pear/Bit/Test.hs
+# test/Pear/Test.hs
