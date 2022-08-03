@@ -20,6 +20,8 @@ A custom type for representing a natural number as a sequence of bits.
 A custom type for bundling a function along with its inverse image.
 
 # src/Pear/Singleton.hs
+A class and family for mapping between values and singleton types.
+
 # src/Pear/Singleton/Applicative.hs
 # src/Pear/Singleton/Known.hs
 # src/Pear/Binary/Singleton.hs
