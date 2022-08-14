@@ -2,10 +2,10 @@
 A brief description of each file in this repository.
 
 # README.md
-An user's introduction to the **base₂** package.
+An user's introduction to the **pear** package.
 
-# base₂.cabal
-A description of the **base₂** package, used by `cabal`.
+# pear.cabal
+A description of the **pear** package, used by `cabal`.
 
 # src/Pear.hs
 Umbrella module reexporting the contents of the modules in the `src/Pear` directory.
@@ -24,8 +24,6 @@ A class and family for mapping between values and singleton types.
 
 # src/Pear/Singleton/Known.hs
 A constraint for reifying a singleton value for a type.
-
-# src/Pear/Singleton/Applicative.hs
 
 # src/Pear/Bit/Singleton.hs
 A singleton type for Bit
@@ -46,6 +44,9 @@ A singleton type for Binary
 # src/Pear/Vec.hs
 # src/Pear/Via/Deindexed.hs
 # src/Pear/Via/Elem.hs
+
+# src/Pear/Singleton/Applicative.hs
+
 
 # cabal.project
 # .ghcid

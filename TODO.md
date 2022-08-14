@@ -4,7 +4,6 @@
 - [X] rename package?
 
 
-# Pear.Known
 # Pear.Finite
 # Pear.Bit.Finite
 # Pear.Binary.Finite
@@ -14,7 +13,10 @@
 # Pear.Indexed.Monad
 # Pear.Indexed.Foldable
 # Pear.Indexed.Traversable
+
 # Pear.Singleton.Applicative
+- maybe rename? also needs Via, Finite, ...
+
 # Pear.Two
 - I\* instances?
 # Pear.Opt

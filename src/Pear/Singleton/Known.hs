@@ -9,6 +9,7 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE TypeFamilyDependencies #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE BlockArguments #-}
 module Pear.Singleton.Known where
 
 import GHC.Types (Constraint)
@@ -25,6 +26,12 @@ import Pear.Singleton
 type Known :: k -> Constraint
 class Singleton (Sing_ k) => Known (t :: k) where
   sing_ :: Sing_ k t
+
+-- |
+-- A given singleton type is 'Informative' if its value lets the type be
+-- 'Known'
+class Singleton s => Informative s where
+  withSing :: s t -> (Known t => r) -> r
 
 -- | A convenience alias for `sing_` that
 -- makes it easier to use with TypeApplications
@@ -48,3 +55,11 @@ instance Known 'Ob where
 
 instance (Known bs, Known b) => Known (bs ':. b) where
   sing_ = sing @bs ::. sing @b
+
+instance Informative SBit where
+  withSing SO = id
+  withSing SI = id
+
+instance Informative SBinary where
+  withSing SOb r = r
+  withSing (bs ::. b) r = withSing bs do withSing b r
