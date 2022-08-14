@@ -22,8 +22,10 @@ A custom type for bundling a function along with its inverse image.
 # src/Pear/Singleton.hs
 A class and family for mapping between values and singleton types.
 
-# src/Pear/Singleton/Applicative.hs
 # src/Pear/Singleton/Known.hs
+A constraint for reifying a singleton value for a type.
+
+# src/Pear/Singleton/Applicative.hs
 
 # src/Pear/Bit/Singleton.hs
 A singleton type for Bit
