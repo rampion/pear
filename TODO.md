@@ -4,10 +4,6 @@
 - [X] rename package?
 
 
-# Pear.Function
-# Pear.Singleton
-# Pear.Bit.Singleton
-# Pear.Binary.Singleton
 # Pear.Known
 # Pear.Finite
 # Pear.Bit.Finite
@@ -25,6 +21,10 @@
 - I\* instances
 # Pear.Vec
 - [ ] clean up combine and (++)
+- ? express (++) using cons?
+    2^k + 2^{m+k} + ... = 2^k (1 + 2^m) + ...
+                                ^- cons
+
 # Pear
 - [ ] re-export everything
 

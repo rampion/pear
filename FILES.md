@@ -24,8 +24,12 @@ A class and family for mapping between values and singleton types.
 
 # src/Pear/Singleton/Applicative.hs
 # src/Pear/Singleton/Known.hs
-# src/Pear/Binary/Singleton.hs
+
 # src/Pear/Bit/Singleton.hs
+A singleton type for Bit
+
+# src/Pear/Binary/Singleton.hs
+A singleton type for Binary
 
 # src/Pear/Binary/Finite.hs
 # src/Pear/Bit/Finite.hs

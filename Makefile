@@ -7,4 +7,7 @@ doctest:
 test:
 	cabal test --test-show-details=streaming --test-option=--color
 
-.PHONY: test spec doctest
+haddock:
+	ghcid --target pear --test=':! cabal haddock'
+
+.PHONY: test spec doctest haddock

@@ -13,6 +13,7 @@ import Pear.Bit
 import Pear.Function
 import Pear.Singleton
 
+-- | A 'Singleton' type for 'Bit'
 type SBit :: Bit -> *
 data SBit b where
   SO :: SBit 'O

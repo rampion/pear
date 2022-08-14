@@ -12,6 +12,7 @@ import Pear.Binary
 import Pear.Function
 import Pear.Singleton
 
+-- | A 'Singleton' Type for 'Binary'
 type SBinary :: Binary -> *
 data SBinary n where
   SOb :: SBinary 'Ob
