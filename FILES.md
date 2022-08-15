@@ -40,18 +40,20 @@ A finite type for Bit.
 # src/Pear/Binary/Finite.hs
 A finite type for Binary.
 
-# src/Pear/Example.hs
 # src/Pear/Indexed.hs
+Indexed variants of `Functor`, `Applicative`, `Monad`, `Foldable` and `Traversable`.
+
+# src/Pear/Singleton/Applicative.hs
+# src/Pear/Via/Deindexed.hs
+# src/Pear/Via/Elem.hs
+
 # src/Pear/Opt.hs
+Counted variant of `Maybe`
+
 # src/Pear/README.lhs
 
 # src/Pear/Two.hs
 # src/Pear/Vec.hs
-# src/Pear/Via/Deindexed.hs
-# src/Pear/Via/Elem.hs
-
-# src/Pear/Singleton/Applicative.hs
-
 
 # cabal.project
 # .ghcid
@@ -63,6 +65,8 @@ A program to perform setup tasks when building the package.
 
 # CHANGELOG.md
 A list of changes introduced at each version of the package.
+
+# src/Pear/Example.hs
 
 # ANNOUNCE.md
 # Makefile

@@ -2,11 +2,8 @@
 {-# LANGUAGE DerivingVia #-}
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE BlockArguments #-}
--- {-# LANGUAGE DeriveFoldable #-}
--- {-# LANGUAGE DeriveFunctor #-}
 {-# LANGUAGE DeriveTraversable #-}
 {-# LANGUAGE GADTs #-}
--- {-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE TypeApplications #-}
@@ -25,6 +22,10 @@ import Pear.Indexed
 import Pear.Via.Deindexed
 import Pear.Via.Elem
 
+-- | Parameterized version of `Maybe`
+--
+--  - @Opt 'O@ is isomorphic to @Const ()@
+--  - @Opt 'I@ is isomorphic to @Identity@
 type Opt :: Bit -> * -> *
 data Opt (length :: Bit) a where
   None :: Opt 'O a
@@ -65,6 +66,7 @@ instance Known b => IMonad (Opt b) where
   ibind _ None = None
   ibind f (Some a) = f Z a
 
+-- | Wrap a constrained value
 {-# ANN toOpt "HLint: ignore Use const" #-}
 -- `const` doesn't work in this case, due to the constraint on the ignored
 -- parameter;
@@ -85,26 +87,32 @@ toOpt = case sing @b of
   SO -> \_ -> None
   SI -> Some
 
+-- | Use the constraint @b ~ 'I@ when updating a wrapped value
 mapOpt :: (b ~ 'I => x -> y) -> Opt b x -> Opt b y
 mapOpt _ None = None
 mapOpt f (Some x) = Some (f x)
 
+-- | Use the constraint @b ~ 'I@ when zipping wrapped values
 zipOpt :: (b ~ 'I => x -> y -> z) -> Opt b x -> Opt b y -> Opt b z
 zipOpt _ None None = None
 zipOpt f (Some x) (Some y) = Some (f x y)
 
+-- | Use the constraint @b ~ 'I@ when chaining computations
 bindOpt :: Opt b x -> (b ~ 'I => x -> Opt b y) -> Opt b y
 bindOpt None _ = None
 bindOpt (Some a) f = f a
 
+-- | Use the constraint @b ~ 'I@ when collaping a value to a monoid
 foldOpt :: Monoid m => (b ~ 'I => a -> m) -> Opt b a -> m
 foldOpt _ None = mempty
 foldOpt f (Some a) = f a
 
+-- | Use the constraint @b ~ 'I@ when wrapping a value in an @Applicative@
 traverseOpt :: Applicative f => (b ~ 'I => x -> f y) -> Opt b x -> f (Opt b y)
 traverseOpt _ None = pure None
 traverseOpt f (Some a) = Some <$> f a
 
+-- | Derive the value of @b@ from a value @Opt b a@
 seqOpt :: Opt b a -> (Known b => r) -> r
 seqOpt None r = r
 seqOpt (Some _) r = r
