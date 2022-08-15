@@ -47,6 +47,8 @@ Indexed variants of `Functor`, `Applicative`, `Monad`, `Foldable` and `Traversab
 Variant of `IApplicative` that takes an explicit shape parameter.
 
 # src/Pear/Via/Deindexed.hs
+Helper newtype for deriving non-indexed typeclasses from their indexed variants.
+
 # src/Pear/Via/Elem.hs
 
 # src/Pear/Opt.hs

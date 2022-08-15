@@ -11,11 +11,17 @@
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE UndecidableInstances #-}
-module Pear.Via.Deindexed where
+module Pear.Via.Deindexed 
+  ( Deindexed(..)
+  )
+where
 
 import Data.Coerce (coerce)
 import Pear.Indexed
 
+-- | Helper newtype for use with @DerivingVia@ to derive
+-- Functor, Applicative, Monad, Foldable and Traversable
+-- from their indexed variants.
 type Deindexed :: (* -> *) -> * -> *
 newtype Deindexed f a = Deindexed { getDeindexed :: f a }
 
