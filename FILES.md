@@ -56,7 +56,13 @@ Helper newtype for deriving instances for one typeclass using instances of anoth
 Counted variant of `Maybe`
 
 # src/Pear/Two.hs
+A strict pair of values of the same type.
+
 # src/Pear/Vec.hs
+A length-indexed collection type
+
+# src/Pear/Vec/Combine.hs
+An algorithm for combining two `Vec`s
 
 # src/Pear/README.lhs
 

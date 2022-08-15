@@ -90,6 +90,7 @@ test-suite pear-spec
                       , Pear.Two
                       , Pear.Opt
                       , Pear.Vec
+                      , Pear.Vec.Combine
                       , Pear
   build-depends:        hspec == 2.9.1
                       , genvalidity-hspec == 1.0.0.0
