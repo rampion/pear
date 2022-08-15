@@ -44,6 +44,8 @@ A finite type for Binary.
 Indexed variants of `Functor`, `Applicative`, `Monad`, `Foldable` and `Traversable`.
 
 # src/Pear/Singleton/Applicative.hs
+Variant of `IApplicative` that takes an explicit shape parameter.
+
 # src/Pear/Via/Deindexed.hs
 # src/Pear/Via/Elem.hs
 
