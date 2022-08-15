@@ -50,14 +50,15 @@ Variant of `IApplicative` that takes an explicit shape parameter.
 Helper newtype for deriving non-indexed typeclasses from their indexed variants.
 
 # src/Pear/Via/Elem.hs
+Helper newtype for deriving instances for one typeclass using instances of another
 
 # src/Pear/Opt.hs
 Counted variant of `Maybe`
 
-# src/Pear/README.lhs
-
 # src/Pear/Two.hs
 # src/Pear/Vec.hs
+
+# src/Pear/README.lhs
 
 # cabal.project
 # .ghcid
