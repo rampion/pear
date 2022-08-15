@@ -31,9 +31,14 @@ A singleton type for Bit
 # src/Pear/Binary/Singleton.hs
 A singleton type for Binary
 
-# src/Pear/Binary/Finite.hs
-# src/Pear/Bit/Finite.hs
 # src/Pear/Finite.hs
+A class for associating a value of a type with a subset of that type.
+
+# src/Pear/Bit/Finite.hs
+A finite type for Bit.
+
+# src/Pear/Binary/Finite.hs
+A finite type for Binary.
 
 # src/Pear/Example.hs
 # src/Pear/Indexed.hs
@@ -52,32 +57,6 @@ A singleton type for Binary
 # .ghcid
 # .vimrc
 # .gitignore
-
-# src/Data/Natural/Binary/Type.hs
-Definitions of the core types, `Binary` and `Bit`, and their instances.
-
-# src/Data/Natural/Binary/Finite.hs
-Definitions of the finite types, `FBinary` and `FBit`, and their instances.
-
-# src/Data/Natural/Binary/Singleton.hs
-Definitions of the singleton types, `SBinary` and `SBit`, and their instances.
-
-# src/Data/Natural/Binary/Two.hs
-Definition of `Two a`, a strict version of `(a,a)`, and its instances.
-
-# src/Data/Natural/Binary/Opt.hs
-Definition of `Opt :: Bit -> Type -> Type`, a dependently-typed variant of `Maybe`, and its instances.
-
-# src/Data/Natural/Binary/Vec.hs
-Definition of `Vec :: Binary -> Type -> Type`, a dependently-typed variant of `[]`, and its instances.
-
-# src/Data/Natural/Binary/Combine.hs
-Definition of `combine`, an `O(log(m + n))` algorithm for shuffling a `Vec m` and a `Vec n` into a `Vec (m + n)`.
-
-# src/Data/Natural/Binary/Append.hs
-Definition of `(++)`, an `O(m + n)` algorithm for concatenating a `Vec m` and a `Vec n` into a `Vec (m + n)`.
-
-# test/Main.hs
 
 # Setup.hs
 A program to perform setup tasks when building the package.

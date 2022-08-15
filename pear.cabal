@@ -72,6 +72,7 @@ test-suite pear-spec
   main-is:              Pear/Spec.hs
   other-modules:        Pear.Bit.Spec
                       , Pear.Binary.Spec
+                      , Pear.Binary.Finite.Spec
                       , Pear.Bit
                       , Pear.Binary
                       , Pear.Function
