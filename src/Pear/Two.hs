@@ -3,16 +3,22 @@
 {-# LANGUAGE DerivingVia #-}
 {-# LANGUAGE StandaloneKindSignatures #-}
 {-# LANGUAGE TypeFamilies #-}
-module Pear.Two where
+module Pear.Two
+  ( Two(..)
+  , fst
+  , snd
+  ) where
 
 import Pear.Indexed
 import Pear.Via.Deindexed
 import Pear.Bit
 import Data.Functor ((<&>))
 import Control.Applicative (liftA2)
+import Prelude hiding (fst, snd)
 
 infixr 8 :*
 
+-- | A strict pair of values
 type Two :: * -> *
 data Two a = !a :* !a
   deriving stock (Eq, Ord, Show, Functor, Foldable, Traversable)
@@ -45,8 +51,10 @@ itwo op f (aO :* aI) = f O aO `op` f I aI
 diag :: Two a -> Two a -> Two a
 diag (a0 :* _) (_ :* a1) = a0 :* a1
 
+-- | extract the first element of the pair
 fst :: Two a -> a
 fst (a :* _) = a
 
+-- | extract the second element of the pair
 snd :: Two a -> a
 snd (_ :* a) = a
