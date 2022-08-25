@@ -98,7 +98,7 @@ instance Finite FBinary where
 
     preimage' :: forall r (t :: Binary). Maybe r -> (Fin t -> Maybe r) -> Sing t -> Binary -> Maybe r
     preimage' eq lt (ts ::. t) = \case
-      Push bs b -> preimage'
+      PushBit bs b -> preimage'
         do case (t, b) of
             (SO, I) -> Nothing
             (SI, O) -> lt Top

@@ -13,7 +13,7 @@ module Pear.Binary
   , Binary(..)
   , showBits
   , pattern Zero, isZero
-  , pattern Push, pop
+  , pattern PushBit, popBit
   , toCanonical, isCanonical
   , safePred, safeMinus, safeQuotRem
   , foldhi, foldlo
@@ -163,50 +163,50 @@ isZero Ob = True
 -- Pattern splitting a binary number n into a binary number m and a bit b such
 -- that n = 2*m + b
 --
--- >>> Push Ob O
+-- >>> PushBit Ob O
 -- 0b0
--- >>> 0b0 & \case Push Ob O -> ()
+-- >>> 0b0 & \case PushBit Ob O -> ()
 -- ()
--- >>> Push Ob I
+-- >>> PushBit Ob I
 -- 0b1
--- >>> 0b1 & \case Push Ob I -> ()
+-- >>> 0b1 & \case PushBit Ob I -> ()
 -- ()
--- >>> Push 0b101 O
+-- >>> PushBit 0b101 O
 -- 0b1010
--- >>> 0b1010 & \case Push 0b101 O -> ()
+-- >>> 0b1010 & \case PushBit 0b101 O -> ()
 -- ()
--- >>> Push 0b101 I
+-- >>> PushBit 0b101 I
 -- 0b1011
--- >>> 0b1011 & \case Push 0b101 I -> ()
+-- >>> 0b1011 & \case PushBit 0b101 I -> ()
 -- ()
 --
 -- It preserves canaonical representations, but does not normalize
 -- non-canonical representations.
 --
--- >>> Push (Ob :. O) O
+-- >>> PushBit (Ob :. O) O
 -- Ob :. O :. O
--- >>> Push (Ob :. O :. I) O
+-- >>> PushBit (Ob :. O :. I) O
 -- Ob :. O :. I :. O
-pattern Push :: Binary -> Bit -> Binary
-pattern Push bs b <- (pop -> (bs, b))
-  where Push bs I = bs :. I
-        Push Ob _ = Ob
-        Push bs _ = bs :. O
-{-# COMPLETE Push #-}
+pattern PushBit :: Binary -> Bit -> Binary
+pattern PushBit bs b <- (popBit -> (bs, b))
+  where PushBit bs I = bs :. I
+        PushBit Ob _ = Ob
+        PushBit bs _ = bs :. O
+{-# COMPLETE PushBit #-}
 
 -- |
 -- Split a binary number n into a binary number m and a bit b such
 -- that n = 2*m + b
 --
--- >>> pop 0
+-- >>> popBit 0
 -- (0b0,O)
--- >>> pop 1
+-- >>> popBit 1
 -- (0b0,I)
--- >>> pop 2
+-- >>> popBit 2
 -- (0b1,O)
-pop :: Binary -> (Binary, Bit)
-pop Ob = (Ob, O)
-pop (bs :. b) = (bs, b)
+popBit :: Binary -> (Binary, Bit)
+popBit Ob = (Ob, O)
+popBit (bs :. b) = (bs, b)
 
 -- |
 -- Predicate for checking if a given binary number uses the canonical encoding
@@ -234,7 +234,7 @@ isCanonical Ob = True
 -- 0b1101
 toCanonical :: Binary -> Binary
 toCanonical Ob = Ob
-toCanonical (bs :. b) = toCanonical bs `Push` b
+toCanonical (bs :. b) = toCanonical bs `PushBit` b
 
 instance Eq Binary where
   a == b = compare a b == EQ
@@ -415,10 +415,10 @@ safeQuotRem :: Binary -> Binary -> Maybe (Binary, Binary)
 safeQuotRem _ Zero = Nothing
 safeQuotRem m n = Just do loop m where
   loop (m :. b) = 
-    let (q, (`Push` b) -> r) = loop m in 
+    let (q, (`PushBit` b) -> r) = loop m in 
     case safeMinus r n of
-      Nothing -> (Push q O, r)
-      Just r  -> (Push q I, r)
+      Nothing -> (PushBit q O, r)
+      Just r  -> (PushBit q I, r)
   loop Ob = (Ob, Ob)
 
 instance Integral Binary where
@@ -426,14 +426,14 @@ instance Integral Binary where
   toInteger = fromBinary
 
 instance Bits Binary where
-  (as :. a) .&. (bs :. b) = Push (as .&. bs) (a .&. b)
+  (as :. a) .&. (bs :. b) = PushBit (as .&. bs) (a .&. b)
   _ .&. _ = Ob
 
   (as :. a) .|. (bs :. b) = (as .|. bs) :. (a .|. b)
   Ob .|. bs = bs
   as .|. Ob = as
 
-  (as :. a) `xor` (bs :. b) = Push (as `xor` bs) (a `xor` b)
+  (as :. a) `xor` (bs :. b) = PushBit (as `xor` bs) (a `xor` b)
   Ob `xor` bs = bs
   as `xor` Ob = as
 
@@ -442,7 +442,7 @@ instance Bits Binary where
   shift bs 0 = bs
   shift bs n
     | n >= 0 = iterate (:. O) bs !! n
-    | otherwise = iterate (fst . pop) bs !! negate n
+    | otherwise = iterate (fst . popBit) bs !! negate n
 
   rotate = shift
 
