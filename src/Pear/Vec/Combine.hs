@@ -56,9 +56,11 @@ instance HeadBin (bs ':. 'I) where
   snoc = (:!)
   top Dict = Top
 
-type Dict :: Constraint -> *
-data Dict c where
-  Dict :: c => Dict c
+type (+) :: Binary -> Binary -> Binary
+type m + n = Add m n 'O
+
+(++) :: Vec m a -> Vec n a -> Vec (m + n) a
+u ++ v = vector (combine u v)
 
 -- would be O(1), except for strictness
 binaryVec :: Vec m a -> Dict (HeadBin m)
