@@ -12,14 +12,17 @@ data BalancedTree a
 
 If you haven't seen non-uniform recursion before, this definition can seem a little odd. It almost looks more like a list than a tree.
 
-Examining values reveals how `BalancedTree` works; it can only store exactly 2^k elements, where `k` is the number of `Trunk` constructors.
+Examining values reveals how `BalancedTree` works; it can only store exactly 2ᵏ elements, where `k` is the number of `Trunk` constructors.
 
 ![visual representation of `Canopy a₀`](images/BalancedTreeSize1.png)
+
 ![visual representation of `Trunk (Canopy (a₀,a₁))`](images/BalancedTreeSize2.png)
+
 ![visual representation of `Trunk (Trunk (Canopy ((a₀,a₁),(a₂,a₃))))`](images/BalancedTreeSize4.png)
+
 ![visual representation of `Trunk (Trunk (Trunk (Canopy (((a₀,a₁),(a₂,a₃)),((a₄,a₅),(a₆,a₇))))))`](images/BalancedTreeSize8.png)
 
-Compare with the traditional binary tree:
+Compare with the traditional binary tree[^1]:
 
 ```haskell
 data ArbitraryTree a
@@ -27,30 +30,32 @@ data ArbitraryTree a
   | Leaf a
 ```
 
-  [note]: *
-    One thing I think is cool is how close the two definitions are. 
+[^1]: One thing I think is cool is how close the two definitions are. 
 
-    If we defined 
+      If we defined 
 
-    ```haskell
-    type Pair a = (a,a)
-    ```
+      ```haskell
+      type Pair a = (a,a)
+      ```
 
-    Then we could make isomorphic definitions
+      Then we could make isomorphic definitions
 
-    ```haskell
-    data BalancedTree' a  = Trunk'  (BalancedTree' (Pair a))   | Canopy' a
-    data ArbitraryTree' a = Branch' (Pair (ArbitraryTree' a))  | Leaf' a
-    ```
+      ```haskell
+      data BalancedTree' a  = Trunk'  (BalancedTree' (Pair a))   | Canopy' a
+      data ArbitraryTree' a = Branch' (Pair (ArbitraryTree' a))  | Leaf' a
+      ```
 
-    With that, it's easy to see that the difference is really just the order of
-    `Pair` and the tree type.
+      With that, it's easy to see that the difference is really just the order of
+      `Pair` and the tree type.
 
-With optimal packing, it can also store 2^k elements in a similar layout:
+With optimal packing, it can also store 2ᵏ elements in a similar layout:
 
 ![visual representation of `Leaf a₀`](images/ArbitraryTreeSize1.png)
+
 ![visual representation of `Branch (Leaf a₀) (Leaf a₁)`](images/ArbitraryTreeSize2.png)
+
 ![visual representation of `Branch (Branch (Leaf a₀) (Leaf a₁)) (Branch (Leaf a₂,a₃))))`](images/ArbitraryTreeSize4.png)
+
 ![visual representation of `Branch (Branch (Branch (Leaf a₀) (Leaf a₁)) (Branch (Leaf a₂) (Leaf a₃))) (Branch (Branch (Leaf a₄) (Leaf a₅)) (Branch (Leaf a₆) (Leaf a₇)))`](images/ArbitraryTreeSize8.png)
 
 At first, the `Trunk` constructor can seem like a wasteful delay compared to
@@ -59,25 +64,25 @@ the immediate splitting `Branch` provides, but for a full balanced binary tree,
 constructors, even compared with an optimally packed `ArbitraryTree`
 
 ```
-number of elements    1     2     4     8     …     2^k
+number of elements    1     2     4     8     …     2ᵏ
 
                       number of constructors in tree
 
-BalancedTree          1     3     6     11    …     2^k + k
+BalancedTree          1     3     6     11    …     2ᵏ + k
     Trunk             0     1     2     3     …     k
     Canopy            1     1     1     1     …     1
-    (,)               0     1     3     7     …     2^k - 1
+    (,)               0     1     3     7     …     2ᵏ - 1
 
-ArbitraryTree         1     3     7     15    …     2^{k+1} - 1
-    Branch            0     1     3     7     …     2^k - 1
-    Leaf              1     2     4     8     …     2^k
+ArbitraryTree         1     3     7     15    …     2ᵏ⁺¹ - 1
+    Branch            0     1     3     7     …     2ᵏ - 1
+    Leaf              1     2     4     8     …     2ᵏ
 ```
 
 An optimally packed `ArbitraryTree` still has an advantage at indexing, since
 the distance of each element from the tree's root is less
 
 ```
-number of elements    1     2     4     8     …     2^k
+number of elements    1     2     4     8     …     2ᵏ
 
                       number of constructors between element and root
 
@@ -116,22 +121,21 @@ infixl 4 :>-
 ```
 
 Here, `t :>- Nothing` plays the same role as `Trunk t` does for `BalancedTree`,
-and `Top a` plays the same role as `Canopy a`.  The difference is `t :>- Just a`.
+and `Top a` plays the same role as `Canopy a`.  The difference is `t :>- Just a`.[^2]
 
-  [note]: *
-    I chose `(:>-) :: PearTree (a,a) -> Maybe a -> PearTree a` as my constructor name
-    rather than something like `Fork :: PearTree (a,a) -> Maybe a -> PearTree a` or 
-    having distinct constructors for the `Nothing` and `Just` cases because I
-    thought it made the `Show` implementation prettier.
+[^2]: I chose `(:>-) :: PearTree (a,a) -> Maybe a -> PearTree a` as my constructor name
+      rather than something like `Fork :: PearTree (a,a) -> Maybe a -> PearTree a` or 
+      having distinct constructors for the `Nothing` and `Just` cases because I
+      thought it made the `Show` implementation prettier.
 
-    ```
-    $> fromList ['a'..'z'] :: PearTree Char
-    Top (((('a','b'),('c','d')),(('e','f'),('g','h'))),((('i','j'),('k','l')),(('m','n'),('o','p'))))
-      :>- Just ((('q','r'),('s','t')),(('u','v'),('w','x'))) 
-      :>- Nothing 
-      :>- Just ('y','z') 
-      :>- Nothing
-    ```
+      ```
+      $> fromList ['a'..'z'] :: PearTree Char
+      Top (((('a','b'),('c','d')),(('e','f'),('g','h'))),((('i','j'),('k','l')),(('m','n'),('o','p'))))
+        :>- Just ((('q','r'),('s','t')),(('u','v'),('w','x'))) 
+        :>- Nothing 
+        :>- Just ('y','z') 
+        :>- Nothing
+      ```
 
 Every positive integer has a unique binary encoding.
 
@@ -143,7 +147,7 @@ Every positive integer has a unique binary encoding.
         4            0b100
         5            0b101
         …                …
-        n             Σ_{k=0}^{⌊log₂ n⌋} b_k · 2^{k}, b_k ∈ {0,1}
+        n             Σ_{k=0}^{⌊log₂ n⌋} bₖ · 2ᵏ, bₖ ∈ {0,1}
 ```
 
 `PearTree` uses this fact to store `n` elements as a uniquely-determined
@@ -278,8 +282,8 @@ pop = \case
 # indexing
 
 
-top(x,k) = ⌊ x / 2^k ⌋
-btm(x,k) = x mod 2^k 
+top(x,k) = ⌊ x / 2ᵏ ⌋
+btm(x,k) = x mod 2ᵏ 
 bit(x,k) = top(x,k) mod 2
 
 
@@ -296,11 +300,11 @@ XX     `Top ((6,5),(4,3)
 
 Given a tree of size
 
-  m = m_0·2^0 + m_1·2^1 + … + m_{n-1}·2^{n-1}
+  m = m₀·2⁰ + m₁·2¹ + … + m_{n-1}·2^{n-1}
 
 And an index
 
-  j = j_0·2^0 + j_1·2^1 + … + j_{k-1}·2^{k-1}
+  j = j₀·2⁰ + j₁·2¹ + … + j_{k-1}·2^{k-1}
 
 We can find the element with index j in O(log₂ m) = O(n) steps. 
 
