@@ -19,15 +19,20 @@
       });
       defaultPackage = forAllSystems (system: self.packages.${system}.pear);
       checks = self.packages;
-      devShell = forAllSystems (system: let haskellPackages = nixpkgsFor.${system}.haskellPackages;
+      devShell = forAllSystems (
+        system: 
+        let haskellPackages = nixpkgsFor.${system}.haskellPackages;
         in haskellPackages.shellFor {
-          packages = p: [self.packages.${system}.pear];
+          packages = p: [
+            self.packages.${system}.pear
+          ];
           withHoogle = true;
           buildInputs = with haskellPackages; [
             haskell-language-server
             ghcid
             cabal-install
             hoogle
+            pandoc
           ];
           # Change the prompt to show that you are in a devShell
           shellHook = "export PS1='\\e[1;34mdev > \\e[0m'";
