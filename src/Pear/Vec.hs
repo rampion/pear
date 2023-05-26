@@ -18,7 +18,7 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 -- {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE StandaloneKindSignatures #-}
--- {-# LANGUAGE TypeApplications #-}
+{-# LANGUAGE TypeApplications #-}
 -- {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE TypeFamilyDependencies #-}
 {-# LANGUAGE TypeOperators #-}
@@ -165,6 +165,75 @@ shift vec = case pop vec of
 {-# ANN exchange "HLint: ignore Use tuple-section" #-}
 exchange :: a -> State a a
 exchange orig = state \new -> (new, orig)
+
+(++) :: Vec u n a -> Vec v m a -> Vec (UAdd u v) (n + m) a
+Nil BOb ++ vec = vec
+lvec@(Nil (B_O _)) ++ rvec = mergeZero lvec rvec
+lvec@(_ :& None) ++ rvec = mergeNonZero lvec rvec
+lvec@(Init _ _) ++ rvec = case pop lvec of
+  (lvec, a) -> mergeZero lvec (unshift a rvec)
+lvec@(_ :& Some _) ++ rvec = case pop lvec of
+  (lvec, a) -> case lemma lvec rvec of Dict -> mergeNonZero lvec (unshift a rvec)
+
+lemma :: Vec ('USucc ('USucc (UDouble u))) n a -> Vec v m a 
+      -> Dict (UAdd (UDouble u) ('USucc v) ~ 'USucc (UAdd (UDouble u) v))
+lemma = undefined
+
+mergeZero :: Vec 'UZero n a -> Vec v m a -> Vec v (Merge n m) a
+mergeZero (Nil BOb) (Nil BOb) = Nil BOb
+mergeZero vec (Nil BOb) = vec
+mergeZero (Nil BOb) vec = vec
+mergeZero (Nil (B_O z)) (Nil (B_O z')) = case Nil z ++ Nil z' of
+  Nil z -> Nil (B_O z)
+mergeZero (Nil (B_O z)) (Init z' a) = case Nil z ++ Nil z' of
+  Nil z -> Init z a
+mergeZero (Nil (B_O z)) (vec :& opt) = case Nil z ++ vec of
+  vec -> vec :& opt
+
+{-
+type SUnary :: Unary -> Type
+data SUnary u where
+  SZero :: SUnary 'UZero
+  SSucc :: SUnary u -> SUnary ('USucc u)
+
+rightZero :: SUnary u -> Dict (UAdd u 'UZero ~ u)
+rightZero SZero = Dict
+rightZero (SSucc su) = case rightZero su of Dict -> Dict
+
+toSUnary :: Vec u n a -> SUnary u
+toSUnary (Nil _) = SZero
+toSUnary (Init _ _) = SSucc SZero
+toSUnary (vec :& None) = sdouble (toSUnary vec)
+toSUnary (vec :& Some _) = SSucc (sdouble (toSUnary vec))
+
+sdouble :: SUnary u -> SUnary (UDouble u)
+sdouble SZero = SZero
+sdouble (SSucc su)  = SSucc (SSucc (sdouble su))
+
+
+rightZeroVec :: Vec u n a -> Dict (UAdd u 'UZero ~ u)
+rightZeroVec = rightZero . toSUnary
+-}
+
+mergeNonZero :: Vec ('USucc u) n a -> Vec v m a -> Vec (UAdd ('USucc u) v) (Merge n m) a
+mergeNonZero vec (Nil BOb) = vec
+
+type UAdd :: Unary -> Unary -> Unary
+type family UAdd u v where
+  UAdd ('USucc u) v = 'USucc (UAdd u v)
+  UAdd 'UZero v = v
+
+type (+) :: Binary -> Binary -> Binary
+type family (+) n m where
+  'Ob + m = m
+  (n ':. 'O) + m = Merge (n ':. 'O) m
+  (n ':. 'I) + m = Merge (Pred (n ':. 'I)) (Succ m)
+
+type Merge :: Binary -> Binary -> Binary
+type family Merge n m where
+  Merge n 'Ob = n
+  Merge 'Ob m = m
+  Merge (n ':. 'O) (m ':. b) = (n + m) ':. b
 
   {-
 (++) :: Vec n a -> Vec m a -> Vec (n + m) a
