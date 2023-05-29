@@ -9,6 +9,7 @@ It's been years since I first saw [this definition of a balanced binary tree on 
 You've found the setup for my literate haskell!
 
 ```haskell example
+{-# OPTIONS_GHC -Wall -Wextra -Werror -Wno-name-shadowing #-}
 {-# LANGUAGE BlockArguments #-}
 {-# LANGUAGE DeriveFoldable #-}
 {-# LANGUAGE DeriveFunctor #-}
@@ -18,9 +19,7 @@ You've found the setup for my literate haskell!
 {-# LANGUAGE ScopedTypeVariables #-}
 module Article where
 
-import Control.Applicative ((<|>))
-import Data.Functor ((<&>))
-import Data.List.NonEmpty
+import Data.List.NonEmpty (NonEmpty(..))
 import Data.List (foldl')
 ``` -->
 
@@ -63,8 +62,8 @@ data ArbitraryTree a
 
       If we defined 
 
-      ```haskell example
-      type Pair a = (a,a)
+      ```haskell
+      data Pair a = Pair a a
       ```
 
       Then we could make isomorphic definitions
@@ -146,18 +145,7 @@ data PearTree a
   = PearTree (a,a) :>- Maybe a
   | Top a
 
--- only custom to avoid extra parens
-instance Show a => Show (PearTree a) where
-  showsPrec p = showParen (p >= 4) . showsTree where
-    showsTree :: forall a. Show a => PearTree a -> ShowS
-    showsTree = \case
-      Top a -> showString "Top " . showsPrec 10 a
-      t :>- ma -> showsTree t . showString " :>- " . showsPrec 4 ma
-
 infixl 4 :>-
-
-fromNonEmpty :: NonEmpty a -> PearTree a
-fromNonEmpty (a :| as) = foldl' pushNonEmpty (Top a) as
 ```
 
 Here, `t :>- Nothing` plays the same role as `Trunk t` does for `BalancedTree`,
@@ -165,16 +153,15 @@ and `Top a` plays the same role as `Canopy a`.  The difference is `t :>- Just a`
 
 [^2]: I chose `(:>-) :: PearTree (a,a) -> Maybe a -> PearTree a` as my constructor name
       rather than something like `Fork :: PearTree (a,a) -> Maybe a -> PearTree a` or 
-      having distinct constructors for the `Nothing` and `Just` cases because I
-      thought it made the `Show` implementation prettier.
-
-      <!--
-      ```haskell example
-      ```
-      -->
+      having distinct constructors for the `Nothing` and `Just` cases because
+      with an operator there's no need to wrap the contained `PearTree (a,a)`
+      values in parentheses.
 
       ```haskell example
-      {- $show-example
+      fromNonEmpty :: NonEmpty a -> PearTree a
+      fromNonEmpty (a :| as) = foldl' pushNonEmpty (Top a) as
+
+      {- |
       >>> fromNonEmpty ('a' :| ['b'..'z']) :: PearTree Char
       Top
         ( ( ( ( 'a' , 'b' ) , ( 'c' , 'd' ) )
@@ -192,12 +179,13 @@ and `Top a` plays the same role as `Canopy a`.  The difference is `t :>- Just a`
         Just ( 'y' , 'z' ) :>-
         Nothing
       -}
+      instance Show a => Show (PearTree a) where
+        showsPrec p = showParen (p >= 4) . showsTree where
+          showsTree :: forall a. Show a => PearTree a -> ShowS
+          showsTree = \case
+            Top a -> showString "Top " . showsPrec 10 a
+            t :>- ma -> showsTree t . showString " :>- " . showsPrec 4 ma
       ```
-
-      <!--
-      ```haskell example
-      ```
-      -->
 
 Every positive integer has a unique binary encoding.
 
@@ -219,7 +207,69 @@ combination of balanced binary trees.
 
 With this definition in hand, lets look at the definition of some common operations.
 
+### `Traversable`
+
+`PearTree` naturally has a `Functor` instance:
+
+```haskell example
+-- |
+-- >>> fmap succ $ Top (('a','b'),('c','d')) :>- Nothing :>- Just 'e'
+-- Top ( ( 'b' , 'c' ) , ( 'd' , 'e' ) ) :>- Nothing :>- Just 'f'
+instance Functor PearTree where
+  fmap f = \case
+    Top a -> Top (f a)
+    t :>- ma -> 
+      let ff (a₀,a₁) = (f a₀, f a₁)
+      in fmap ff t :>- fmap f ma
+```
+
+As is normal for recursive data structures, `PearTree`'s `fmap` is defined in
+terms of itself. 
+
+However, as `PearTree`'s recursion is non-uniform, the function `f` passed to
+`fmap` has the wrong type to pass to the recursive call to `fmap` on the
+contained `PearTree (a,a)`.
+
+Instead we must define a new function, `ff`, that transforms each element of any
+pair of type `(a,a)`, and pass that to the recursive call.[^3]
+
+[^3]: Had we defined `PearTree` in terms of a custom pair functor, rather than the
+      using the two-tuple, this new function would have just been defined using 
+      that type's `fmap`:
+
+      ```haskell example
+      data PearTree' a = Top' a | PearTree' (Pair a) :>-: Maybe a
+
+      data Pair a = Pair a a
+        deriving Functor
+
+      instance Functor PearTree' where
+        fmap f = \case
+          Top' a-> Top' (f a)
+          t :>-: ma -> fmap (fmap f) t :>-: fmap f ma
+      ```
+
+`PearTree`'s `Foldable` is similar; again we must transform the function passed
+to the recursive call to `foldMap` to account for the shift in type:
+
+```haskell
+-- |
+-- >>> foldMap Sum $ Top (((1,2),(3,4)),((5,6),(7,8))) :>- Nothing :>- Just (9,10) :>- Just 11
+-- Sum 66
+instance Foldable PearTree where
+  foldMap f = \case
+    Top a -> f a
+    t :>- ma ->
+      let ff (a₀, a₁) = f a₀ <> f a₁
+      in foldMap ff t <> foldMap f ma
+```
+
+
 <!-- we can derive Functor, Applicative, Foldable and even Traversable, but their instances are informative -->
+
+... 
+
+In fact, with `DeriveFuntor`, `DeriveFoldable`, and `DeriveTraversable`, ghc can quite easily derive these instances itself.
 
 ### `push`/`pop`
 
@@ -384,17 +434,17 @@ By step t, we've examined the `t` least significant bits of `j`
 ```haskell
 (#) :: forall a. PearTree a -> Int -> Maybe a
 (#) = loop id Nothing where
-  loop :: forall p. (p -> a) -> Maybe a -> PearTree p -> Int -> Maybe a
+  loop :: forall aⁿ. (aⁿ -> a) -> Maybe a -> PearTree aⁿ -> Int -> Maybe a
   loop from next = \case
-    t :>- mp -> \ix -> 
-      let ma = from <$> mp
+    t :>- maⁿ -> \ix -> 
+      let ma = from <$> maⁿ
           (q,r) = ix `quotRem` 2
       in 
       case r of
         0 -> loop (from . fst) (ma <|> next) t q
         ~1 -> loop (from . snd) (ma *> next) t q
-    Top p -> \case
-      0 -> Just (from p)
+    Top aⁿ -> \case
+      0 -> Just (from aⁿ)
       1 -> next
       _ -> Nothing
 ```
@@ -414,25 +464,22 @@ We can even create a pseudooptic:
 newtype PearTreeEntry a = PearTreeEntry { getPearTreeEntry :: forall f. Functor f => (a -> f a) -> f (PearTree a) }
 
 at :: forall a. Int -> PearTree a -> Maybe (PearTreeEntry a)
-at = flip (loop id id Nothing) where
-  loop :: forall p. 
-    (forall f. Functor f => (a -> f a) -> p -> f p) -> 
-    (PearTree p -> PearTree a) -> 
-    Maybe (PearTreeEntry a) -> 
-    PearTree p -> 
-    Int -> 
-    Maybe (PearTreeEntry a)
-  loop lens wrap next = \case
-    t :>- mp -> \ix -> 
+at = loop id id Nothing where
+  loop :: forall aⁿ. 
+    (forall f. Functor f => (a -> f a) -> aⁿ -> f aⁿ) -> 
+    (PearTree aⁿ -> PearTree a) -> Maybe (PearTreeEntry a) -> 
+    Int -> PearTree aⁿ -> Maybe (PearTreeEntry a)
+  loop lens wrap next ix = \case
+    t :>- maⁿ -> 
       let here :: Maybe (PearTreeEntry a)
-          here = mp <&> \p -> PearTreeEntry \f -> wrap . (t :>-) . Just <$> lens f p
+          here = maⁿ <&> \aⁿ -> PearTreeEntry \f -> wrap . (t :>-) . Just <$> lens f aⁿ
           (q,r) = ix `quotRem` 2
       in 
       case r of
-        0 -> loop (_1 . lens) (wrap . (:>- mp)) (here <|> next) t q
-        ~1 -> loop (_2 . lens) (wrap . (:>- mp)) (here *> next) t q
-    Top p -> \case
-      0 -> Just do PearTreeEntry \f -> wrap . Top <$> lens f p
+        0 -> loop (_1 . lens) (wrap . (:>- maⁿ)) (here <|> next) t q
+        ~1 -> loop (_2 . lens) (wrap . (:>- maⁿ)) (here *> next) t q
+    Top aⁿ -> case ix of
+      0 -> Just do PearTreeEntry \f -> wrap . Top <$> lens f aⁿ
       1 -> next
       _ -> Nothing
 
