@@ -207,7 +207,7 @@ combination of balanced binary trees.
 
 With this definition in hand, lets look at the definition of some common operations.
 
-### `Traversable`
+### `Functor`, `Foldable`, and `Traversable`
 
 `PearTree` naturally has a `Functor` instance:
 
@@ -224,14 +224,11 @@ instance Functor PearTree where
 ```
 
 As is normal for recursive data structures, `PearTree`'s `fmap` is defined in
-terms of itself. 
-
-However, as `PearTree`'s recursion is non-uniform, the function `f` passed to
-`fmap` has the wrong type to pass to the recursive call to `fmap` on the
-contained `PearTree (a,a)`.
-
-Instead we must define a new function, `ff`, that transforms each element of any
-pair of type `(a,a)`, and pass that to the recursive call.[^3]
+terms of itself.  However, as `PearTree`'s recursion is non-uniform, the
+function `f` passed to `fmap` has the wrong type to pass to the recursive call
+to `fmap` on the contained `PearTree (a,a)`.  Instead we must define a new
+function, `ff`, that transforms each element of any pair of type `(a,a)`, and
+pass that to the recursive call.[^3]
 
 [^3]: Had we defined `PearTree` in terms of a custom pair functor, rather than the
       using the two-tuple, this new function would have just been defined using 
@@ -252,10 +249,11 @@ pair of type `(a,a)`, and pass that to the recursive call.[^3]
 `PearTree`'s `Foldable` is similar; again we must transform the function passed
 to the recursive call to `foldMap` to account for the shift in type:
 
-```haskell
+```haskell example
 -- |
+-- >>> import Data.Monoid (Sum(..))
 -- >>> foldMap Sum $ Top (((1,2),(3,4)),((5,6),(7,8))) :>- Nothing :>- Just (9,10) :>- Just 11
--- Sum 66
+-- Sum { getSum = 66 }
 instance Foldable PearTree where
   foldMap f = \case
     Top a -> f a
@@ -264,12 +262,31 @@ instance Foldable PearTree where
       in foldMap ff t <> foldMap f ma
 ```
 
+Ditto for `Traversable`:
 
-<!-- we can derive Functor, Applicative, Foldable and even Traversable, but their instances are informative -->
+```haskell example
+-- |
+-- 
+-- >>> traverse (enumFromTo 0) $ Top (0,1) :>- Just 2
+-- [ Top ( 0 , 0 ) :>- Just 0
+-- , Top ( 0 , 0 ) :>- Just 1
+-- , Top ( 0 , 0 ) :>- Just 2
+-- , Top ( 0 , 1 ) :>- Just 0
+-- , Top ( 0 , 1 ) :>- Just 1
+-- , Top ( 0 , 1 ) :>- Just 2
+-- ]
+instance Traversable PearTree where
+  traverse f = \case
+    Top a -> Top <$> f a
+    t :>- ma ->
+      let ff (a₀, a₁) = (,) <$> f a₀ <*> f a₁
+      in (:>-) <$> traverse ff t <*> traverse f ma
+```
 
-... 
-
-In fact, with `DeriveFuntor`, `DeriveFoldable`, and `DeriveTraversable`, ghc can quite easily derive these instances itself.
+In fact, with `DeriveFuntor`, `DeriveFoldable`, and `DeriveTraversable`, ghc
+can quite easily derive these instances itself.  However, it is informative to
+see how the non-uniformity is handled in these simple cases before we get to
+anything more complex.
 
 ### `push`/`pop`
 
