@@ -27,12 +27,11 @@
             self.packages.${system}.pear
           ];
           withHoogle = true;
-          buildInputs = with haskellPackages; [
-            haskell-language-server
-            ghcid
-            cabal-install
-            hoogle
-            pandoc
+          buildInputs = [
+            nixpkgsFor.${system}.entr
+            haskellPackages.ghcid
+            haskellPackages.cabal-install
+            haskellPackages.pandoc
           ];
           # Change the prompt to show that you are in a devShell
           shellHook = "export PS1='\\e[1;34mdev > \\e[0m'";

@@ -1,13 +1,28 @@
-spec:
-	ghcid --target test:pear-spec --run
+preview-article:
+	echo doc/Article.md | entr make doc/Article.html
+.PHONY: preview-article
 
-doctest:
-	ghcid --target test:pear-doctest --run --reload=src/
+doctest-article:
+	cabal exec cabal test doctest-article
+.PHONY: doctest-article
 
-test:
-	cabal test --test-show-details=streaming --test-option=--color
+ghcid-article:
+	ghcid --test=":! make doctest-article"
+.PHONY: ghcid-article
 
-haddock:
-	ghcid --target pear --test=':! cabal haddock'
+doc/%.html: doc/%.md
+	pandoc --standalone --css doc/css/gfm.css --from gfm --to html --metadata=title:$* $< -o $@
 
-.PHONY: test spec doctest haddock
+# spec:
+# 	ghcid --target test:pear-spec --run
+# 
+# doctest:
+# 	ghcid --target test:pear-doctest --run --reload=src/
+# 
+# test:
+# 	cabal test --test-show-details=streaming --test-option=--color
+# 
+# haddock:
+# 	ghcid --target pear --test=':! cabal haddock'
+# 
+# .PHONY: test spec doctest haddock article article-html article-doctest

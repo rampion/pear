@@ -1,14 +1,39 @@
-> *I think that I shall never see a poem as lovely as a tree.*
-> 
-> &mdash; Joyce Kilmer
+  > *I think that I shall never see a poem as lovely as a tree.*
+  > 
+  > &mdash; Joyce Kilmer
+
 
 It's been years since I first saw [this definition of a balanced binary tree on Edward Z. Yang's blog](http://blog.ezyang.com/2012/08/statically-checked-perfect-binary-trees/#nested-data-types), and I'm still struck by its beauty and elegance:
 
-```haskell
+<!-- 
+You've found the setup for my literate haskell!
+
+```haskell example
+{-# LANGUAGE BlockArguments #-}
+{-# LANGUAGE DeriveFoldable #-}
+{-# LANGUAGE DeriveFunctor #-}
+{-# LANGUAGE DeriveTraversable #-}
+{-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+module Article where
+
+import Control.Applicative ((<|>))
+import Data.Functor ((<&>))
+import Data.List.NonEmpty
+import Data.List (foldl')
+``` -->
+
+```haskell example
 data BalancedTree a
   = Trunk (BalancedTree (a,a))
   | Canopy a
+
 ```
+<!-- 
+```haskell example
+  deriving (Show, Eq, Functor, Foldable, Traversable)
+``` -->
 
 If you haven't seen non-uniform recursion before, this definition can seem a little odd. It almost looks more like a list than a tree.
 
@@ -24,23 +49,27 @@ Examining values reveals how `BalancedTree` works; it can only store exactly 2�
 
 Compare with the traditional binary tree[^1]:
 
-```haskell
+```haskell example
 data ArbitraryTree a
   = Branch (ArbitraryTree a) (ArbitraryTree a)
   | Leaf a
 ```
+<!-- 
+```haskell example
+  deriving (Show, Eq, Functor, Foldable, Traversable)
+``` -->
 
 [^1]: One thing I think is cool is how close the two definitions are. 
 
       If we defined 
 
-      ```haskell
+      ```haskell example
       type Pair a = (a,a)
       ```
 
       Then we could make isomorphic definitions
 
-      ```haskell
+      ```haskell example
       data BalancedTree' a  = Trunk'  (BalancedTree' (Pair a))   | Canopy' a
       data ArbitraryTree' a = Branch' (Pair (ArbitraryTree' a))  | Leaf' a
       ```
@@ -112,12 +141,23 @@ The rest of this article is an examination of a modified version of
 (positive) number of elements while retaining the optimal packing quality of
 the original.
 
-```haskell
+```haskell example
 data PearTree a
   = PearTree (a,a) :>- Maybe a
   | Top a
 
+-- only custom to avoid extra parens
+instance Show a => Show (PearTree a) where
+  showsPrec p = showParen (p >= 4) . showsTree where
+    showsTree :: forall a. Show a => PearTree a -> ShowS
+    showsTree = \case
+      Top a -> showString "Top " . showsPrec 10 a
+      t :>- ma -> showsTree t . showString " :>- " . showsPrec 4 ma
+
 infixl 4 :>-
+
+fromNonEmpty :: NonEmpty a -> PearTree a
+fromNonEmpty (a :| as) = foldl' pushNonEmpty (Top a) as
 ```
 
 Here, `t :>- Nothing` plays the same role as `Trunk t` does for `BalancedTree`,
@@ -128,14 +168,36 @@ and `Top a` plays the same role as `Canopy a`.  The difference is `t :>- Just a`
       having distinct constructors for the `Nothing` and `Just` cases because I
       thought it made the `Show` implementation prettier.
 
+      <!--
+      ```haskell example
       ```
-      $> fromList ['a'..'z'] :: PearTree Char
-      Top (((('a','b'),('c','d')),(('e','f'),('g','h'))),((('i','j'),('k','l')),(('m','n'),('o','p'))))
-        :>- Just ((('q','r'),('s','t')),(('u','v'),('w','x'))) 
-        :>- Nothing 
-        :>- Just ('y','z') 
-        :>- Nothing
+      -->
+
+      ```haskell example
+      {- $show-example
+      >>> fromNonEmpty ('a' :| ['b'..'z']) :: PearTree Char
+      Top
+        ( ( ( ( 'a' , 'b' ) , ( 'c' , 'd' ) )
+          , ( ( 'e' , 'f' ) , ( 'g' , 'h' ) )
+          )
+        , ( ( ( 'i' , 'j' ) , ( 'k' , 'l' ) )
+          , ( ( 'm' , 'n' ) , ( 'o' , 'p' ) )
+          )
+        ) :>-
+        Just
+          ( ( ( 'q' , 'r' ) , ( 's' , 't' ) )
+          , ( ( 'u' , 'v' ) , ( 'w' , 'x' ) )
+          ) :>-
+        Nothing :>-
+        Just ( 'y' , 'z' ) :>-
+        Nothing
+      -}
       ```
+
+      <!--
+      ```haskell example
+      ```
+      -->
 
 Every positive integer has a unique binary encoding.
 
@@ -143,7 +205,7 @@ Every positive integer has a unique binary encoding.
   base 10           base 2
         1              0b1
         2             0b10
-        3             0b13
+        3             0b11
         4            0b100
         5            0b101
         …                …
@@ -157,7 +219,9 @@ combination of balanced binary trees.
 
 With this definition in hand, lets look at the definition of some common operations.
 
-# `push`/`pop`
+<!-- we can derive Functor, Applicative, Foldable and even Traversable, but their instances are informative -->
+
+### `push`/`pop`
 
 For a `PearTree` of size `n`, push`ing an element on to the end takes time O(log₂ n).
 It's just like incrementing a binary number; we add one to the lowest place,
@@ -190,7 +254,11 @@ When we push an element `a₁` onto the end of a `PearTree a`, we can replace a
 `(a₀,a₁)` value that needs to carried over by pushing it onto the linked
 `PearTree (a,a)`.
 
-    input:   Top (((('a','b'),('c','d')),(('e','f'),('g','h'))),((('i','j'),('k','l')),(('m','n'),('o','p')))) :>- Nothing :>- Just (('q','r'),('s','t')) :>- Just ('u','v') :>- Just 'w'
+    input:   Top (((('a','b'),('c','d')),(('e','f'),('g','h'))),((('i','j'),('k','l')),(('m','n'),('o','p'))))
+                :>- Nothing
+                :>- Just (('q','r'),('s','t'))
+                :>- Just ('u','v')
+                :>- Just 'w'
 
     tree:    Top (((('a'…'p')))) :>- Nothing :>- Just (('q'…'t')) :>- Just ('u','v') :>- Just 'w'
     push:                                                                                     'x'
@@ -207,13 +275,15 @@ When we push an element `a₁` onto the end of a `PearTree a`, we can replace a
     output:  Top (((('a'…'p')))) :>- Just ((('q'…'x'))) :>- Nothing :>- Nothing :>- Nothing
     
 
-```haskell
+```haskell example
 push :: Maybe (PearTree a) -> a -> PearTree a
-push = maybe Top pushNonEmpty where
-  pushNonEmpty :: PearTree x -> x -> PearTree x
-  pushNonEmpty (tx² :>- Just x₀) x₁ = pushNonEmpty tx² (x₀,x₁) :>- Nothing
-  pushNonEmpty (tx² :>- Nothing) x₁ = tx² :>- Just x₁
-  pushNonEmpty (Top x₀) x₁ = Top (x₀,x₁) :>- Nothing
+push = maybe Top pushNonEmpty
+
+pushNonEmpty :: PearTree x -> x -> PearTree x
+pushNonEmpty = \case
+  tx² :>- Just x₀ ->  \x₁ -> pushNonEmpty tx² (x₀,x₁) :>- Nothing
+  tx² :>- Nothing ->  \x₁ -> tx² :>- Just x₁
+  Top x₀ ->           \x₁ -> Top (x₀,x₁) :>- Nothing
 ```
 
 Likewise, for `pop`, we can use the metaphor of decrementing a binary number.
@@ -258,24 +328,24 @@ pop = \case
       (ta, a) -> (Just ta, a)
   where 
     popNonSingular :: PearTree (x,x) -> (PearTree x, x)
-    popNonSingular (tx⁴ :>- Nothing) k = case popNonSingular tx⁴ of
+    popNonSingular (tx⁴ :>- Nothing) = case popNonSingular tx⁴ of
       (tx², (x₀,x₁)) -> (tx² :>- Just x₀, x₁)
     popNonSingular (tx⁴ :>- Just (x₀,x₁)) = (tx⁴ :>- Nothing :>- Just x₀, x₁)
-    popNonSingular (Top (x₀,x₁)) k = (Top x₀, x₁)
+    popNonSingular (Top (x₀,x₁)) = (Top x₀, x₁)
 ```
 
 Although I prefer to use continuations so that the helper function is tail-call optimized:
 
 ```haskell
-pop :: PearTree a -> (Maybe (PearTree a), a)
-pop = \case
+pop' :: PearTree a -> (Maybe (PearTree a), a)
+pop' = \case
     Top a -> (Nothing, a)
     ta² :>- Just a -> (Just (ta² :>- Nothing), a)
     ta² :>- Nothing -> popNonSingular ta² \ta a -> (Just ta, a)
   where 
     popNonSingular :: PearTree (x,x) -> (PearTree x -> x -> r) -> r
     popNonSingular (tx⁴ :>- Nothing) k = popNonSingular tx⁴ \tx² (x₀,x₁) -> k (tx² :>- Just x₀) x₁
-    popNonSingular (tx⁴ :>- Just (x₀,x₁)) = k (tx⁴ :>- Nothing :>- Just x₀) x₁
+    popNonSingular (tx⁴ :>- Just (x₀,x₁)) k = k (tx⁴ :>- Nothing :>- Just x₀) x₁
     popNonSingular (Top (x₀,x₁)) k = k (Top x₀) x₁
 ```
 
@@ -314,17 +384,17 @@ By step t, we've examined the `t` least significant bits of `j`
 ```haskell
 (#) :: forall a. PearTree a -> Int -> Maybe a
 (#) = loop id Nothing where
-  loop :: forall x. (x -> a) -> Maybe a -> PearTree x -> Int -> a
+  loop :: forall p. (p -> a) -> Maybe a -> PearTree p -> Int -> Maybe a
   loop from next = \case
-    t :>- mb -> \ix -> 
-      let ma = from <$> mb
+    t :>- mp -> \ix -> 
+      let ma = from <$> mp
           (q,r) = ix `quotRem` 2
       in 
       case r of
-        0 -> loop (from . fst) (ma <|> next) t
-        ~1 -> loop (from . snd) (ma *> next) t
-    Top b -> \case
-      0 -> Just (f b)        
+        0 -> loop (from . fst) (ma <|> next) t q
+        ~1 -> loop (from . snd) (ma *> next) t q
+    Top p -> \case
+      0 -> Just (from p)
       1 -> next
       _ -> Nothing
 ```
@@ -341,27 +411,36 @@ examined the `k` least significant bits of the index.
 We can even create a pseudooptic:
 
 ```haskell
-at :: forall a. Int -> PearTree a -> Maybe (forall f. Functor f => (a -> f a) -> f (PearTree a))
-at = loop id id Nothing where
-  loop :: forall b. 
-    (forall f. Functor f => (a -> f a) -> b -> f b) -> 
-    (PearTree b -> PearTree a) -> 
-    Maybe (forall f. Functor f => (a -> f a) -> f (PearTree a)) -> 
+newtype PearTreeEntry a = PearTreeEntry { getPearTreeEntry :: forall f. Functor f => (a -> f a) -> f (PearTree a) }
+
+at :: forall a. Int -> PearTree a -> Maybe (PearTreeEntry a)
+at = flip (loop id id Nothing) where
+  loop :: forall p. 
+    (forall f. Functor f => (a -> f a) -> p -> f p) -> 
+    (PearTree p -> PearTree a) -> 
+    Maybe (PearTreeEntry a) -> 
+    PearTree p -> 
     Int -> 
-    PearTree b -> 
-    Maybe (forall f. Functor f => (a -> f a) -> f (PearTree a))
+    Maybe (PearTreeEntry a)
   loop lens wrap next = \case
-    t :>- mb -> \ix -> 
-      let here = mb <&> \b f -> wrap . (t :>-) <$> lens f b
+    t :>- mp -> \ix -> 
+      let here :: Maybe (PearTreeEntry a)
+          here = mp <&> \p -> PearTreeEntry \f -> wrap . (t :>-) . Just <$> lens f p
           (q,r) = ix `quotRem` 2
       in 
       case r of
-        0 -> loop (_1 . lens) (wrap . (:>- mb)) (here <|> next)
-        ~1 -> loop (_2 . lens) (wrap . (:>- mb)) (here *> next)
-    Top b -> \case
-      0 -> Just \f -> wrap . Top <$> lens f b
+        0 -> loop (_1 . lens) (wrap . (:>- mp)) (here <|> next) t q
+        ~1 -> loop (_2 . lens) (wrap . (:>- mp)) (here *> next) t q
+    Top p -> \case
+      0 -> Just do PearTreeEntry \f -> wrap . Top <$> lens f p
       1 -> next
       _ -> Nothing
+
+  _1 :: forall x y e f. Functor f => (x -> f y) -> (x,e) -> f (y,e)
+  _1 f (x,e) = f x <&> \y -> (y,e)
+
+  _2 :: forall x y e f. Functor f => (x -> f y) -> (e,x) -> f (e,y)
+  _2 f (e,x) = f x <&> \y -> (e,y)
 ```
 
 # `fromList` / `toList`
