@@ -17,8 +17,11 @@ You've found the setup for my literate haskell!
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TypeOperators #-}
 module Article where
 
+import Control.Applicative ((<|>))
+import Data.Functor ((<&>))
 import Data.List.NonEmpty (NonEmpty(..))
 import Data.List (foldl')
 ``` -->
@@ -82,7 +85,7 @@ With optimal packing, it can also store 2ᵏ elements in a similar layout:
 
 ![visual representation of `Branch (Leaf a₀) (Leaf a₁)`](images/ArbitraryTreeSize2.png)
 
-![visual representation of `Branch (Branch (Leaf a₀) (Leaf a₁)) (Branch (Leaf a₂,a₃))))`](images/ArbitraryTreeSize4.png)
+![visual representation of `Branch (Branch (Leaf a₀) (Leaf a₁)) (Branch (Leaf a₂) (Leaf a₃))`](images/ArbitraryTreeSize4.png)
 
 ![visual representation of `Branch (Branch (Branch (Leaf a₀) (Leaf a₁)) (Branch (Leaf a₂) (Leaf a₃))) (Branch (Branch (Leaf a₄) (Leaf a₅)) (Branch (Leaf a₆) (Leaf a₇)))`](images/ArbitraryTreeSize8.png)
 
@@ -128,12 +131,14 @@ Another advantage of `ArbitraryTree` over `BalancedTree` is that it can be
 used to store an arbitrary (positive) number of elements, not just powers of
 two.
 
-[INSERT PICTURE]
+![visual representation of `Branch (Branch (Branch (Leaf a₀) (Leaf a₁)) (Leaf a₂)) (Branch (Leaf a₃) (Leaf a₄))`](images/ArbitraryTreeSize5.png)
 
 But that flexibility comes with no guarantee of balance, allowing degenerate
 cases that have list-like depth from the root.
 
-[INSERT PICTURE]
+![visual representation of `Branch (Leaf a₀) (Branch (Leaf a₁) (Branch (Leaf a₂) (Branch (Leaf a₃) (Branch (Leaf a₄) (Branch (Leaf a₅) (Branch (Leaf a₆) (Leaf a₇)))))))`](images/LopsidedArbitraryTreeSize8.png)
+
+[BETTER TRANSITION GOES HERE]
 
 The rest of this article is an examination of a modified version of
 `BalancedTree` that that, like `ArbitraryTree`, can store an arbitrary
@@ -266,7 +271,6 @@ Ditto for `Traversable`:
 
 ```haskell example
 -- |
--- 
 -- >>> traverse (enumFromTo 0) $ Top (0,1) :>- Just 2
 -- [ Top ( 0 , 0 ) :>- Just 0
 -- , Top ( 0 , 0 ) :>- Just 1
@@ -386,7 +390,7 @@ we `pop` from the linked `PearTree (a,a)` when the current tree ends in `… :>-
 and then decompose the returned `(a₀,a₁)` value to rebuild the updated tree
 with `… :>- Just a₀` and pop the value `a₁`.
 
-```haskell
+```haskell example
 pop :: PearTree a -> (Maybe (PearTree a), a)
 pop = \case
     Top a -> (Nothing, a)
@@ -403,7 +407,7 @@ pop = \case
 
 Although I prefer to use continuations so that the helper function is tail-call optimized:
 
-```haskell
+```haskell example
 pop' :: PearTree a -> (Maybe (PearTree a), a)
 pop' = \case
     Top a -> (Nothing, a)
@@ -448,18 +452,18 @@ We can find the element with index j in O(log₂ m) = O(n) steps.
 By step t, we've examined the `t` least significant bits of `j`
 
 
-```haskell
+```haskell example
 (#) :: forall a. PearTree a -> Int -> Maybe a
 (#) = loop id Nothing where
   loop :: forall aⁿ. (aⁿ -> a) -> Maybe a -> PearTree aⁿ -> Int -> Maybe a
   loop from next = \case
-    t :>- maⁿ -> \ix -> 
+    ta²ⁿ :>- maⁿ -> \ix -> 
       let ma = from <$> maⁿ
           (q,r) = ix `quotRem` 2
       in 
-      case r of
-        0 -> loop (from . fst) (ma <|> next) t q
-        ~1 -> loop (from . snd) (ma *> next) t q
+      if r == 0 
+        then loop (from . fst) (ma <|> next) ta²ⁿ q
+        else loop (from . snd) (ma *> next) ta²ⁿ q
     Top aⁿ -> \case
       0 -> Just (from aⁿ)
       1 -> next
@@ -477,26 +481,34 @@ examined the `k` least significant bits of the index.
 
 We can even create a pseudooptic:
 
-```haskell
-newtype PearTreeEntry a = PearTreeEntry { getPearTreeEntry :: forall f. Functor f => (a -> f a) -> f (PearTree a) }
+```haskell example
+newtype a ∊ t = Selected { withSelected :: forall f. Functor f => (a -> f a) -> f t }
 
-at :: forall a. Int -> PearTree a -> Maybe (PearTreeEntry a)
+-- |
+-- >>> import Data.Functor.Identity (Identity(..))
+-- >>> tree = Top (('a','b'),('c','d')) :>- Nothing :>- Just 'e'
+-- >>> tree
+-- Top ( ( 'a' , 'b' ) , ( 'c' , 'd' ) ) :>- Nothing :>- Just 'e'
+-- >>> at 2 tree <&> runIdentity . \selection -> withSelected selection (Identity . const '_')
+-- Just 
+--   (Top ( ( 'a' , 'b' ) , ( '_' , 'd' ) ) :>- Nothing :>- Just 'e')
+at :: forall a. Int -> PearTree a -> Maybe (a ∊ PearTree a)
 at = loop id id Nothing where
   loop :: forall aⁿ. 
     (forall f. Functor f => (a -> f a) -> aⁿ -> f aⁿ) -> 
-    (PearTree aⁿ -> PearTree a) -> Maybe (PearTreeEntry a) -> 
-    Int -> PearTree aⁿ -> Maybe (PearTreeEntry a)
+    (PearTree aⁿ -> PearTree a) -> Maybe (a ∊ PearTree a) -> 
+    Int -> PearTree aⁿ -> Maybe (a ∊ PearTree a)
   loop lens wrap next ix = \case
-    t :>- maⁿ -> 
-      let here :: Maybe (PearTreeEntry a)
-          here = maⁿ <&> \aⁿ -> PearTreeEntry \f -> wrap . (t :>-) . Just <$> lens f aⁿ
+    ta²ⁿ :>- maⁿ -> 
+      let here :: Maybe (a ∊ PearTree a)
+          here = maⁿ <&> \aⁿ -> Selected \f -> wrap . (ta²ⁿ :>-) . Just <$> lens f aⁿ
           (q,r) = ix `quotRem` 2
       in 
-      case r of
-        0 -> loop (_1 . lens) (wrap . (:>- maⁿ)) (here <|> next) t q
-        ~1 -> loop (_2 . lens) (wrap . (:>- maⁿ)) (here *> next) t q
+      if r == 0
+        then loop (_1 . lens) (wrap . (:>- maⁿ)) (here <|> next) q ta²ⁿ
+        else loop (_2 . lens) (wrap . (:>- maⁿ)) (here *> next) q ta²ⁿ
     Top aⁿ -> case ix of
-      0 -> Just do PearTreeEntry \f -> wrap . Top <$> lens f aⁿ
+      0 -> Just do Selected \f -> wrap . Top <$> lens f aⁿ
       1 -> next
       _ -> Nothing
 
