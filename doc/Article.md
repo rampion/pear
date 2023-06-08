@@ -41,13 +41,21 @@ If you haven't seen non-uniform recursion before, this definition can seem a lit
 
 Examining values reveals how `BalancedTree` works; it can only store exactly 2ᵏ elements, where `k` is the number of `Trunk` constructors.
 
-![visual representation of `Canopy a₀`](images/BalancedTreeSize1.png)
+|![visual representation of `Canopy a₀`](images/BalancedTreeSize1.png)|
+|:-:|
+|**`Canopy a₀`**|
 
-![visual representation of `Trunk (Canopy (a₀,a₁))`](images/BalancedTreeSize2.png)
+|![visual representation of `Trunk (Canopy (a₀,a₁))`](images/BalancedTreeSize2.png)|
+|:-:|
+|**`Trunk (Canopy (a₀,a₁))`**|
 
-![visual representation of `Trunk (Trunk (Canopy ((a₀,a₁),(a₂,a₃))))`](images/BalancedTreeSize4.png)
+|![visual representation of `Trunk (Trunk (Canopy ((a₀,a₁),(a₂,a₃))))`](images/BalancedTreeSize4.png)|
+|:-:|
+|**`Trunk (Trunk (Canopy ((a₀,a₁),(a₂,a₃))))`**|
 
-![visual representation of `Trunk (Trunk (Trunk (Canopy (((a₀,a₁),(a₂,a₃)),((a₄,a₅),(a₆,a₇))))))`](images/BalancedTreeSize8.png)
+|![visual representation of `Trunk (Trunk (Trunk (Canopy (((a₀,a₁),(a₂,a₃)),((a₄,a₅),(a₆,a₇))))))`](images/BalancedTreeSize8.png)|
+|:-:|
+|**`Trunk (Trunk (Trunk (Canopy (((a₀,a₁),(a₂,a₃)),((a₄,a₅),(a₆,a₇))))))`**|
 
 Compare with the traditional binary tree[^1]:
 
@@ -81,13 +89,21 @@ data ArbitraryTree a
 
 With optimal packing, it can also store 2ᵏ elements in a similar layout:
 
-![visual representation of `Leaf a₀`](images/ArbitraryTreeSize1.png)
+|![visual representation of `Leaf a₀`](images/ArbitraryTreeSize1.png)|
+|:-:|
+|**`Leaf a₀`**|
 
-![visual representation of `Branch (Leaf a₀) (Leaf a₁)`](images/ArbitraryTreeSize2.png)
+|![visual representation of `Branch (Leaf a₀) (Leaf a₁)`](images/ArbitraryTreeSize2.png)|
+|:-:|
+|**`Branch (Leaf a₀) (Leaf a₁)`**|
 
-![visual representation of `Branch (Branch (Leaf a₀) (Leaf a₁)) (Branch (Leaf a₂) (Leaf a₃))`](images/ArbitraryTreeSize4.png)
+|![visual representation of `Branch (Branch (Leaf a₀) (Leaf a₁)) (Branch (Leaf a₂) (Leaf a₃))`](images/ArbitraryTreeSize4.png)|
+|:-:|
+|**`Branch (Branch (Leaf a₀) (Leaf a₁)) (Branch (Leaf a₂) (Leaf a₃))`**|
 
-![visual representation of `Branch (Branch (Branch (Leaf a₀) (Leaf a₁)) (Branch (Leaf a₂) (Leaf a₃))) (Branch (Branch (Leaf a₄) (Leaf a₅)) (Branch (Leaf a₆) (Leaf a₇)))`](images/ArbitraryTreeSize8.png)
+|![visual representation of `Branch (Branch (Branch (Leaf a₀) (Leaf a₁)) (Branch (Leaf a₂) (Leaf a₃))) (Branch (Branch (Leaf a₄) (Leaf a₅)) (Branch (Leaf a₆) (Leaf a₇)))`](images/ArbitraryTreeSize8.png)|
+|:-:|
+|**`Branch (Branch (Branch (Leaf a₀) (Leaf a₁)) (Branch (Leaf a₂) (Leaf a₃))) (Branch (Branch (Leaf a₄) (Leaf a₅)) (Branch (Leaf a₆) (Leaf a₇)))`**|
 
 At first, the `Trunk` constructor can seem like a wasteful delay compared to
 the immediate splitting `Branch` provides, but for a full balanced binary tree,
@@ -131,12 +147,16 @@ Another advantage of `ArbitraryTree` over `BalancedTree` is that it can be
 used to store an arbitrary (positive) number of elements, not just powers of
 two.
 
-![visual representation of `Branch (Branch (Branch (Leaf a₀) (Leaf a₁)) (Leaf a₂)) (Branch (Leaf a₃) (Leaf a₄))`](images/ArbitraryTreeSize5.png)
+|![visual representation of `Branch (Branch (Branch (Leaf a₀) (Leaf a₁)) (Leaf a₂)) (Branch (Leaf a₃) (Leaf a₄))`](images/ArbitraryTreeSize5.png)|
+|:-:|
+|**`Branch (Branch (Branch (Leaf a₀) (Leaf a₁)) (Leaf a₂)) (Branch (Leaf a₃) (Leaf a₄))`**|
 
 But that flexibility comes with no guarantee of balance, allowing degenerate
 cases that have list-like depth from the root.
 
-![visual representation of `Branch (Leaf a₀) (Branch (Leaf a₁) (Branch (Leaf a₂) (Branch (Leaf a₃) (Branch (Leaf a₄) (Branch (Leaf a₅) (Branch (Leaf a₆) (Leaf a₇)))))))`](images/LopsidedArbitraryTreeSize8.png)
+|![visual representation of `Branch (Leaf a₀) (Branch (Leaf a₁) (Branch (Leaf a₂) (Branch (Leaf a₃) (Branch (Leaf a₄) (Branch (Leaf a₅) (Branch (Leaf a₆) (Leaf a₇)))))))`](images/LopsidedArbitraryTreeSize8.png)|
+|:-:|
+|**`Branch (Leaf a₀) (Branch (Leaf a₁) (Branch (Leaf a₂) (Branch (Leaf a₃) (Branch (Leaf a₄) (Branch (Leaf a₅) (Branch (Leaf a₆) (Leaf a₇)))))))`**|
 
 [BETTER TRANSITION GOES HERE]
 
@@ -208,7 +228,22 @@ Every positive integer has a unique binary encoding.
 `PearTree` uses this fact to store `n` elements as a uniquely-determined
 combination of balanced binary trees.
 
-[INSERT PICTURE]
+|![visual representation of `Top a₀`](images/PearTreeSize1.png)|
+|:-:|
+|**`Top a₀`**|
+
+|![visual representation of `Top (a₀,a₁) :>- Nothing`](images/PearTreeSize2.png)|
+|:-:|
+|**`Top (a₀,a₁) :>- Nothing`**|
+
+|![visual representation of `Top (a₀,a₁) :>- Just a₂`](images/PearTreeSize3.png)|
+|:-:|
+|**`Top (a₀,a₁) :>- Just a₂`**|
+
+|![visual representation of `Top ((a₀,a₁),(a₂,a₃)) :>- Nothing :>- Nothing`](images/PearTreeSize4.png)|
+|:-:|
+|**`Top ((a₀,a₁),(a₂,a₃)) :>- Nothing :>- Nothing`**|
+
 
 With this definition in hand, lets look at the definition of some common operations.
 

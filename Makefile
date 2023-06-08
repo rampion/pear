@@ -11,7 +11,7 @@ ghcid-article:
 .PHONY: ghcid-article
 
 doc/%.html: doc/%.md
-	pandoc --standalone --css doc/css/gfm.css --from gfm --to html --metadata=title:$* $< -o $@
+	pandoc --standalone $(addprefix --css ../,$(wildcard doc/css/*)) --from gfm --to html --metadata=title:$* $< -o $@
 
 # spec:
 # 	ghcid --target test:pear-spec --run
