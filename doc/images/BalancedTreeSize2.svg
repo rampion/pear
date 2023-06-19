@@ -1,0 +1,136 @@
+<svg
+  xmlns="http://www.w3.org/2000/svg"
+  height="300"
+  width="500">
+
+  <style>
+    :root {
+      --light-grey: #a0a0a0;
+      --width: 500;
+      --height: 350;
+    }
+
+    #grid {
+    }
+
+    #grid > g {
+      stroke-opacity: 0.1;
+    }
+
+    #types > line {
+      stroke-width: 2;
+      stroke-dasharray: 10 4;
+      stroke: var(--light-grey);
+    }
+
+    #types > text {
+      font-family: monospace;
+      font-weight: bold;
+      dominant-baseline: middle;
+      fill: var(--light-grey);
+    }
+
+    #tree text {
+      font-style: italic;
+      dominant-baseline: middle;
+      fill: black;
+      text-anchor: middle;
+    }
+
+    #tree circle, #tree path, #tree line {
+      stroke-width: 2;
+      stroke: black;
+      fill: white;
+    }
+
+    #tree .constructor {
+      text-anchor: end;
+    }
+  </style>
+
+  <!-- background grid -->
+  <g id="grid">
+    <g stroke="blue">
+      <line x1="0"   x2="0"   y1="0" y2="350"/>
+      <line x1="50"  x2="50"  y1="0" y2="350"/>
+      <line x1="100" x2="100" y1="0" y2="350"/>
+      <line x1="150" x2="150" y1="0" y2="350"/>
+      <line x1="200" x2="200" y1="0" y2="350"/>
+      <line x1="250" x2="250" y1="0" y2="350"/>
+      <line x1="300" x2="300" y1="0" y2="350"/>
+      <line x1="350" x2="350" y1="0" y2="350"/>
+      <line x1="400" x2="400" y1="0" y2="350"/>
+      <line x1="450" x2="450" y1="0" y2="350"/>
+      <line x1="500" x2="500" y1="0" y2="350"/>
+    </g>
+    <g stroke="red">
+      <line y1="0"   y2="0"   x1="0" x2="500"/>
+      <line y1="50"  y2="50"  x1="0" x2="500"/>
+      <line y1="100" y2="100" x1="0" x2="500"/>
+      <line y1="150" y2="150" x1="0" x2="500"/>
+      <line y1="200" y2="200" x1="0" x2="500"/>
+      <line y1="250" y2="250" x1="0" x2="500"/>
+      <line y1="300" y2="300" x1="0" x2="500"/>
+      <line y1="350" y2="350" x1="0" x2="500"/>
+    </g>
+  </g>
+
+  <defs>
+    <!-- triangle for arrow head -->
+    <marker
+      id="arrow"
+      viewBox="0 0 10 10"
+      refX="5"
+      refY="5"
+      markerWidth="4"
+      markerHeight="4"
+      orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" />
+    </marker>
+    <!-- ball for arrow tail -->
+    <marker
+      id="ball"
+      viewBox="0 0 10 10"
+      refX="5"
+      refY="5"
+      markerWidth="4"
+      markerHeight="4"
+      orient="auto-start-reverse">
+      <circle cx="5" cy="5" r="5"/>
+    </marker>
+  </defs>
+
+  <g id="types">
+    <text x="300" y="50">:: a</text>
+    <line y1="85" y2="85" x1="0" x2="500"/>
+    <text x="300" y="115">:: (a,a)</text>
+    <line y1="150" y2="150" x1="0" x2="500"/>
+    <text x="300" y="180">:: BalancedTree (a,a)</text>
+    <line y1="215" y2="215" x1="0" x2="500"/>
+    <text x="300" y="245">:: BalancedTree a</text>
+  </g>
+
+  <g id="tree">
+    <circle cx="75" cy="50" r="16"/>
+    <text x="75" y="50">a₀</text>
+
+    <circle cx="125" cy="50" r="16"/>
+    <text x="125" y="50">a₁</text>
+
+    <path d="M 85 100 l 30 0 a 15 15 180 1 1 0 30 l -30 0 a 15 15 180 1 1 0 -30"/>"
+    <text x="100" y="115" text-anchor="middle">(   ,   )</text>
+
+    <line x1="90" y1="115" x2="75" y2="71" marker-start="url(#ball)" marker-end="url(#arrow)" />
+    <line x1="110" y1="115" x2="125" y2="71" marker-start="url(#ball)" marker-end="url(#arrow)" />
+
+    <path d="M 50 165 l 50 0 a 15 15 180 1 1 0 30 l -50 0 a 15 15 180 1 1 0 -30"/>"
+    <text x="90" y="180" class="constructor">Canopy</text>
+
+    <line x1="100" y1="180" x2="100" y2="136" marker-start="url(#ball)" marker-end="url(#arrow)" />
+
+    <path d="M 60 230 l 40 0 a 15 15 180 1 1 0 30 l -40 0 a 15 15 180 1 1 0 -30"/>"
+    <text x="90" y="245" class="constructor">Trunk</text>
+
+    <line x1="100" y1="245" x2="100" y2="201" marker-start="url(#ball)" marker-end="url(#arrow)" />
+  </g>
+</svg>

@@ -41,7 +41,7 @@ If you haven't seen non-uniform recursion before, this definition can seem a lit
 
 Examining values reveals how `BalancedTree` works; it can only store exactly 2ᵏ elements, where `k` is the number of `Trunk` constructors.
 
-|![visual representation of `Canopy a₀`](images/BalancedTreeSize1.png)|
+|![visual representation of `Canopy a₀`](images/BalancedTreeSize1.svg)|
 |:-:|
 |**`Canopy a₀`**|
 
@@ -243,6 +243,8 @@ combination of balanced binary trees.
 |![visual representation of `Top ((a₀,a₁),(a₂,a₃)) :>- Nothing :>- Nothing`](images/PearTreeSize4.png)|
 |:-:|
 |**`Top ((a₀,a₁),(a₂,a₃)) :>- Nothing :>- Nothing`**|
+
+[ADD MORE]
 
 
 With this definition in hand, lets look at the definition of some common operations.
