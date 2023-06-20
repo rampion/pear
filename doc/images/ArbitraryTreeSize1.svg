@@ -1,0 +1,188 @@
+<svg
+  xmlns="http://www.w3.org/2000/svg"
+  height="128"
+  width="448">
+
+  <style>
+    :root {
+      --light-grey: #a0a0a0;
+    }
+
+    #grid {
+      display: none;
+    }
+
+    #grid > g {
+      stroke-opacity: 0.1;
+    }
+
+    #type-row {
+      stroke-width: 2;
+      stroke-dasharray: 10 4;
+      stroke: var(--light-grey);
+    }
+
+    #types text {
+      font-family: monospace;
+      font-weight: bold;
+      dominant-baseline: middle;
+      fill: var(--light-grey);
+    }
+
+    .tree text {
+      font-style: italic;
+      dominant-baseline: middle;
+      fill: black;
+      text-anchor: middle;
+    }
+
+    .tree circle, .tree path, .tree line {
+      stroke-width: 2;
+      stroke: black;
+      fill: white;
+    }
+
+    .tree .constructor {
+      text-anchor: end;
+    }
+  </style>
+
+  <!-- background grid -->
+  <g id="grid">
+    <g>
+      <line stroke="blue" id="grid-column" y2="128"/>
+      <use href="#grid-column" x="32" />
+      <use href="#grid-column" x="64" />
+      <use href="#grid-column" x="96" />
+      <use href="#grid-column" x="128"/>
+      <use href="#grid-column" x="160"/>
+      <use href="#grid-column" x="192"/>
+      <use href="#grid-column" x="224"/>
+      <use href="#grid-column" x="256"/>
+      <use href="#grid-column" x="288"/>
+      <use href="#grid-column" x="320"/>
+      <use href="#grid-column" x="352"/>
+      <use href="#grid-column" x="384"/>
+      <use href="#grid-column" x="416"/>
+      <use href="#grid-column" x="448"/>
+    </g>
+
+    <g>
+      <line stroke="red" id="grid-row" x2="448"/>
+      <use href="#grid-row" y="32"/>
+      <use href="#grid-row" y="64"/>
+      <use href="#grid-row" y="96"/>
+      <use href="#grid-row" y="128"/>
+    </g>
+  </g>
+
+  <g id="types">
+    <defs>
+      <line id="type-row" x2="448"/>
+    </defs>
+
+    <use href="#type-row" y="64"/>
+
+    <text x="288" y="34">:: a</text>
+    <text x="288" y="98">:: ArbitraryTree a</text>
+  </g>
+
+  <defs>
+    <!-- triangle for arrow head -->
+    <marker
+      id="arrow"
+      viewBox="0 0 10 10"
+      refX="5"
+      refY="5"
+      markerWidth="4"
+      markerHeight="4"
+      orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" />
+    </marker>
+    <!-- ball for arrow tail -->
+    <marker
+      id="ball"
+      viewBox="0 0 10 10"
+      refX="5"
+      refY="5"
+      markerWidth="4"
+      markerHeight="4"
+      orient="auto-start-reverse">
+      <circle cx="5" cy="5" r="5"/>
+    </marker>
+    <g id="leaf" class="tree">
+      <path d="M -28 -16 l 28 0 a 16 16 180 1 1 0 32 l -28 0 a 16 16 180 1 1 0 -32"/>"
+      <text x="-8" y="2" class="constructor">Leaf</text>
+
+      <line y2="-42" marker-start="url(#ball)" marker-end="url(#arrow)" />
+    </g>
+
+    <g id="branch-cell" class="tree">
+      <path d="M -52 -16 l 64 0 a 16 16 180 1 1 0 32 l -64 0 a 16 16 180 1 1 0 -32"/>
+      <text x="-16" y="2" class="constructor">Branch</text>
+    </g>
+
+    <g id="branch" class="tree">
+      <use href="#branch-cell"/>
+      <line x1="-8" x2="-30" y2="-42" marker-start="url(#ball)" marker-end="url(#arrow)" />
+      <line x1="8" x2="30" y2="-42" marker-start="url(#ball)" marker-end="url(#arrow)" />
+    </g>
+
+    <g id="branch2" class="tree">
+      <use href="#branch-cell"/>
+      <line x1="-8" x2="-60" y2="-42" marker-start="url(#ball)" marker-end="url(#arrow)" />
+      <line x1="8" x2="60" y2="-42" marker-start="url(#ball)" marker-end="url(#arrow)" />
+    </g>
+
+    <g id="branch4" class="tree">
+      <use href="#branch-cell"/>
+      <line x1="-8" x2="-120" y2="-42" marker-start="url(#ball)" marker-end="url(#arrow)" />
+      <line x1="8" x2="120" y2="-42" marker-start="url(#ball)" marker-end="url(#arrow)" />
+    </g>
+
+    <g class="tree" id="a₀">
+      <circle r="16"/>
+      <text>a₀</text>
+    </g>
+
+    <g class="tree" id="a₁">
+      <circle r="16"/>
+      <text>a₁</text>
+    </g>
+
+    <g class="tree" id="a₂">
+      <circle r="16"/>
+      <text>a₂</text>
+    </g>
+
+    <g class="tree" id="a₃">
+      <circle r="16"/>
+      <text>a₃</text>
+    </g>
+
+    <g class="tree" id="a₄">
+      <circle r="16"/>
+      <text>a₄</text>
+    </g>
+
+    <g class="tree" id="a₅">
+      <circle r="16"/>
+      <text>a₅</text>
+    </g>
+
+    <g class="tree" id="a₆">
+      <circle r="16"/>
+      <text>a₆</text>
+    </g>
+
+    <g class="tree" id="a₇">
+      <circle r="16"/>
+      <text>a₇</text>
+    </g>
+  </defs>
+
+  <g class="tree">
+    <use href="#a₀" x="64" y="32"/>
+    <use href="#leaf" x="64"  y="96"/>
+  </g>
+</svg>

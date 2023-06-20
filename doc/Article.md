@@ -45,15 +45,15 @@ Examining values reveals how `BalancedTree` works; it can only store exactly 2�
 |:-:|
 |**`Canopy a₀`**|
 
-|![visual representation of `Trunk (Canopy (a₀,a₁))`](images/BalancedTreeSize2.png)|
+|![visual representation of `Trunk (Canopy (a₀,a₁))`](images/BalancedTreeSize2.svg)|
 |:-:|
 |**`Trunk (Canopy (a₀,a₁))`**|
 
-|![visual representation of `Trunk (Trunk (Canopy ((a₀,a₁),(a₂,a₃))))`](images/BalancedTreeSize4.png)|
+|![visual representation of `Trunk (Trunk (Canopy ((a₀,a₁),(a₂,a₃))))`](images/BalancedTreeSize4.svg)|
 |:-:|
 |**`Trunk (Trunk (Canopy ((a₀,a₁),(a₂,a₃))))`**|
 
-|![visual representation of `Trunk (Trunk (Trunk (Canopy (((a₀,a₁),(a₂,a₃)),((a₄,a₅),(a₆,a₇))))))`](images/BalancedTreeSize8.png)|
+|![visual representation of `Trunk (Trunk (Trunk (Canopy (((a₀,a₁),(a₂,a₃)),((a₄,a₅),(a₆,a₇))))))`](images/BalancedTreeSize8.svg)|
 |:-:|
 |**`Trunk (Trunk (Trunk (Canopy (((a₀,a₁),(a₂,a₃)),((a₄,a₅),(a₆,a₇))))))`**|
 
@@ -89,19 +89,19 @@ data ArbitraryTree a
 
 With optimal packing, it can also store 2ᵏ elements in a similar layout:
 
-|![visual representation of `Leaf a₀`](images/ArbitraryTreeSize1.png)|
+|![visual representation of `Leaf a₀`](images/ArbitraryTreeSize1.svg)|
 |:-:|
 |**`Leaf a₀`**|
 
-|![visual representation of `Branch (Leaf a₀) (Leaf a₁)`](images/ArbitraryTreeSize2.png)|
+|![visual representation of `Branch (Leaf a₀) (Leaf a₁)`](images/ArbitraryTreeSize2.svg)|
 |:-:|
 |**`Branch (Leaf a₀) (Leaf a₁)`**|
 
-|![visual representation of `Branch (Branch (Leaf a₀) (Leaf a₁)) (Branch (Leaf a₂) (Leaf a₃))`](images/ArbitraryTreeSize4.png)|
+|![visual representation of `Branch (Branch (Leaf a₀) (Leaf a₁)) (Branch (Leaf a₂) (Leaf a₃))`](images/ArbitraryTreeSize4.svg)|
 |:-:|
 |**`Branch (Branch (Leaf a₀) (Leaf a₁)) (Branch (Leaf a₂) (Leaf a₃))`**|
 
-|![visual representation of `Branch (Branch (Branch (Leaf a₀) (Leaf a₁)) (Branch (Leaf a₂) (Leaf a₃))) (Branch (Branch (Leaf a₄) (Leaf a₅)) (Branch (Leaf a₆) (Leaf a₇)))`](images/ArbitraryTreeSize8.png)|
+|![visual representation of `Branch (Branch (Branch (Leaf a₀) (Leaf a₁)) (Branch (Leaf a₂) (Leaf a₃))) (Branch (Branch (Leaf a₄) (Leaf a₅)) (Branch (Leaf a₆) (Leaf a₇)))`](images/ArbitraryTreeSize8.svg)|
 |:-:|
 |**`Branch (Branch (Branch (Leaf a₀) (Leaf a₁)) (Branch (Leaf a₂) (Leaf a₃))) (Branch (Branch (Leaf a₄) (Leaf a₅)) (Branch (Leaf a₆) (Leaf a₇)))`**|
 
@@ -147,7 +147,7 @@ Another advantage of `ArbitraryTree` over `BalancedTree` is that it can be
 used to store an arbitrary (positive) number of elements, not just powers of
 two.
 
-|![visual representation of `Branch (Branch (Branch (Leaf a₀) (Leaf a₁)) (Leaf a₂)) (Branch (Leaf a₃) (Leaf a₄))`](images/ArbitraryTreeSize5.png)|
+|![visual representation of `Branch (Branch (Branch (Leaf a₀) (Leaf a₁)) (Leaf a₂)) (Branch (Leaf a₃) (Leaf a₄))`](images/ArbitraryTreeSize5.svg)|
 |:-:|
 |**`Branch (Branch (Branch (Leaf a₀) (Leaf a₁)) (Leaf a₂)) (Branch (Leaf a₃) (Leaf a₄))`**|
 

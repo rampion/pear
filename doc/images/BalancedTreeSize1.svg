@@ -1,7 +1,7 @@
 <svg
   xmlns="http://www.w3.org/2000/svg"
-  height="150"
-  width="450">
+  height="128"
+  width="448">
 
   <style>
     :root {
@@ -29,43 +29,49 @@
       fill: var(--light-grey);
     }
 
-    #tree text {
+    .tree text {
       font-style: italic;
       dominant-baseline: middle;
       fill: black;
+      text-anchor: middle;
     }
 
-    #tree circle, #tree path, #tree line {
+    .tree circle, .tree path, .tree line {
       stroke-width: 2;
       stroke: black;
       fill: white;
     }
 
-    #tree .value {
-      text-anchor: middle;
+    .tree .constructor {
+      text-anchor: end;
     }
-
   </style>
 
   <!-- background grid -->
   <g id="grid">
     <g stroke="blue">
-      <line x1="0" x2="0" y1="0" y2="150"/>
-      <line x1="50" x2="50" y1="0" y2="150"/>
-      <line x1="100" x2="100" y1="0" y2="150"/>
-      <line x1="150" x2="150" y1="0" y2="150"/>
-      <line x1="200" x2="200" y1="0" y2="150"/>
-      <line x1="250" x2="250" y1="0" y2="150"/>
-      <line x1="300" x2="300" y1="0" y2="150"/>
-      <line x1="350" x2="350" y1="0" y2="150"/>
-      <line x1="400" x2="400" y1="0" y2="150"/>
-      <line x1="450" x2="450" y1="0" y2="150"/>
+      <line x1="0"   x2="0"   y1="0" y2="128"/>
+      <line x1="32"  x2="32"  y1="0" y2="128"/>
+      <line x1="64"  x2="64"  y1="0" y2="128"/>
+      <line x1="96"  x2="96"  y1="0" y2="128"/>
+      <line x1="128" x2="128" y1="0" y2="128"/>
+      <line x1="160" x2="160" y1="0" y2="128"/>
+      <line x1="192" x2="192" y1="0" y2="128"/>
+      <line x1="224" x2="224" y1="0" y2="128"/>
+      <line x1="256" x2="256" y1="0" y2="128"/>
+      <line x1="288" x2="288" y1="0" y2="128"/>
+      <line x1="320" x2="320" y1="0" y2="128"/>
+      <line x1="352" x2="352" y1="0" y2="128"/>
+      <line x1="384" x2="384" y1="0" y2="128"/>
+      <line x1="416" x2="416" y1="0" y2="128"/>
+      <line x1="448" x2="448" y1="0" y2="128"/>
     </g>
     <g stroke="red">
-      <line y1="0"  y2="0"  x1="0" x2="450"/>
-      <line y1="50"  y2="50"  x1="0" x2="450"/>
-      <line y1="100" y2="100" x1="0" x2="450"/>
-      <line y1="150" y2="150" x1="0" x2="450"/>
+      <line y1="0"   y2="0"   x1="0" x2="448"/>
+      <line y1="32"  y2="32"  x1="0" x2="448"/>
+      <line y1="64"  y2="64"  x1="0" x2="448"/>
+      <line y1="96"  y2="96"  x1="0" x2="448"/>
+      <line y1="128" y2="128" x1="0" x2="448"/>
     </g>
   </g>
 
@@ -92,21 +98,24 @@
       orient="auto-start-reverse">
       <circle cx="5" cy="5" r="5"/>
     </marker>
+    <g id="canopy" class="tree">
+      <path d="M -48 -16 l 48 0 a 16 16 180 1 1 0 32 l -48 0 a 16 16 180 1 1 0 -32"/>"
+      <text x="-8" y="2" class="constructor">Canopy</text>
+
+      <line x1="0" y1="0" x2="0" y2="-42" marker-start="url(#ball)" marker-end="url(#arrow)" />
+    </g>
   </defs>
 
   <g id="types">
-    <text x="300" y="50">:: a</text>
-    <line y1="85" y2="85" x1="0" x2="450"/>
-    <text x="300" y="115">:: BalancedTree a</text>
+    <text x="300" y="34">:: a</text>
+    <line y1="64" y2="64" x1="0" x2="448"/>
+    <text x="300" y="98">:: BalancedTree a</text> <!-- y = 32n + 2 -->
   </g>
 
-  <g id="tree">
-    <circle cx="100" cy="50" r="16"/>
-    <text x="100" y="50" class="value">a₀</text>
+  <g class="tree">
+    <circle cx="96" cy="32" r="16"/>
+    <text x="96" y="32">a₀</text>
 
-    <path d="M 50 100 l 50 0 a 15 15 180 1 1 0 30 l -50 0 a 15 15 180 1 1 0 -30"/>"
-    <text x="42" y="115">Canopy</text>
-
-    <line x1="100" y1="115" x2="100" y2="71" marker-start="url(#ball)" marker-end="url(#arrow)" />
+    <use x="96" y="96" href="#canopy"/>
   </g>
 </svg>
