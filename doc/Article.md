@@ -154,7 +154,7 @@ two.
 But that flexibility comes with no guarantee of balance, allowing degenerate
 cases that have list-like depth from the root.
 
-|![visual representation of `Branch (Leaf a₀) (Branch (Leaf a₁) (Branch (Leaf a₂) (Branch (Leaf a₃) (Branch (Leaf a₄) (Branch (Leaf a₅) (Branch (Leaf a₆) (Leaf a₇)))))))`](images/LopsidedArbitraryTreeSize8.png)|
+|![visual representation of `Branch (Leaf a₀) (Branch (Leaf a₁) (Branch (Leaf a₂) (Branch (Leaf a₃) (Branch (Leaf a₄) (Branch (Leaf a₅) (Branch (Leaf a₆) (Leaf a₇)))))))`](images/LopsidedArbitraryTreeSize8.svg)|
 |:-:|
 |**`Branch (Leaf a₀) (Branch (Leaf a₁) (Branch (Leaf a₂) (Branch (Leaf a₃) (Branch (Leaf a₄) (Branch (Leaf a₅) (Branch (Leaf a₆) (Leaf a₇)))))))`**|
 
@@ -228,23 +228,37 @@ Every positive integer has a unique binary encoding.
 `PearTree` uses this fact to store `n` elements as a uniquely-determined
 combination of balanced binary trees.
 
-|![visual representation of `Top a₀`](images/PearTreeSize1.png)|
+|![visual representation of `Top a₀`](images/PearTreeSize1.svg)|
 |:-:|
 |**`Top a₀`**|
 
-|![visual representation of `Top (a₀,a₁) :>- Nothing`](images/PearTreeSize2.png)|
+|![visual representation of `Top (a₀,a₁) :>- Nothing`](images/PearTreeSize2.svg)|
 |:-:|
 |**`Top (a₀,a₁) :>- Nothing`**|
 
-|![visual representation of `Top (a₀,a₁) :>- Just a₂`](images/PearTreeSize3.png)|
+|![visual representation of `Top (a₀,a₁) :>- Just a₂`](images/PearTreeSize3.svg)|
 |:-:|
 |**`Top (a₀,a₁) :>- Just a₂`**|
 
-|![visual representation of `Top ((a₀,a₁),(a₂,a₃)) :>- Nothing :>- Nothing`](images/PearTreeSize4.png)|
+|![visual representation of `Top ((a₀,a₁),(a₂,a₃)) :>- Nothing :>- Nothing`](images/PearTreeSize4.svg)|
 |:-:|
 |**`Top ((a₀,a₁),(a₂,a₃)) :>- Nothing :>- Nothing`**|
 
-[ADD MORE]
+|![visual representation of `Top ((a₀,a₁),(a₂,a₃)) :>- Nothing :>- Just a₄`](images/PearTreeSize5.svg)|
+|:-:|
+|**`Top ((a₀,a₁),(a₂,a₃)) :>- Nothing :>- Just a₄`**|
+
+|![visual representation of `Top ((a₀,a₁),(a₂,a₃)) :>- Just (a₄,a₅) :>- Nothing`](images/PearTreeSize6.svg)|
+|:-:|
+|**`Top ((a₀,a₁),(a₂,a₃)) :>- Just (a₄,a₅) :>- Nothing`**|
+
+|![visual representation of `Top ((a₀,a₁),(a₂,a₃)) :>- Just (a₄,a₅) :>- Just a₆`](images/PearTreeSize7.svg)|
+|:-:|
+|**`Top ((a₀,a₁),(a₂,a₃)) :>- Just (a₄,a₅) :>- Just a₆`**|
+
+|![visual representation of `Top (((a₀,a₁),(a₂,a₃)),((a₄,a₅),(a₆,a₇))) :>- Nothing :>- Nothing :>- Nothing`](images/PearTreeSize8.svg)|
+|:-:|
+|**`Top (((a₀,a₁),(a₂,a₃)),((a₄,a₅),(a₆,a₇))) :>- Nothing :>- Nothing :>- Nothing`**|
 
 
 With this definition in hand, lets look at the definition of some common operations.

@@ -1,0 +1,215 @@
+<svg
+  xmlns="http://www.w3.org/2000/svg"
+  height="384"
+  width="352">
+
+  <style>
+    :root {
+      --light-grey: #a0a0a0;
+    }
+
+    #grid {
+      display: none;
+    }
+
+    #grid > g {
+      stroke-opacity: 0.1;
+    }
+
+    .tree text {
+      font-style: italic;
+      dominant-baseline: middle;
+      fill: black;
+      text-anchor: middle;
+    }
+
+    .tree circle, .tree path, .tree line {
+      stroke-width: 2;
+      stroke: black;
+      fill: white;
+    }
+
+    #top text {
+      text-anchor: end;
+    }
+
+    #offshoot text {
+      text-anchor: start;
+    }
+
+    #nothing text, #just text {
+      text-anchor: start;
+    }
+  </style>
+
+  <!-- background grid -->
+  <g id="grid">
+    <g>
+      <line stroke="blue" id="grid-column" y2="384"/>
+      <use href="#grid-column" x="32" />
+      <use href="#grid-column" x="64" />
+      <use href="#grid-column" x="96" />
+      <use href="#grid-column" x="128"/>
+      <use href="#grid-column" x="160"/>
+      <use href="#grid-column" x="192"/>
+      <use href="#grid-column" x="224"/>
+      <use href="#grid-column" x="256"/>
+      <use href="#grid-column" x="288"/>
+      <use href="#grid-column" x="320"/>
+      <use href="#grid-column" x="352"/>
+    </g>
+
+    <g>
+      <line stroke="red" id="grid-row" x2="352"/>
+      <use href="#grid-row" y="32"/>
+      <use href="#grid-row" y="64"/>
+      <use href="#grid-row" y="96"/>
+      <use href="#grid-row" y="128"/>
+      <use href="#grid-row" y="160"/>
+      <use href="#grid-row" y="192"/>
+      <use href="#grid-row" y="224"/>
+      <use href="#grid-row" y="256"/>
+      <use href="#grid-row" y="288"/>
+      <use href="#grid-row" y="320"/>
+      <use href="#grid-row" y="352"/>
+      <use href="#grid-row" y="384"/>
+    </g>
+  </g>
+
+  <defs>
+    <!-- triangle for arrow head -->
+    <marker
+      id="arrow"
+      viewBox="0 0 10 10"
+      refX="5"
+      refY="5"
+      markerWidth="4"
+      markerHeight="4"
+      orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" />
+    </marker>
+    <!-- ball for arrow tail -->
+    <marker
+      id="ball"
+      viewBox="0 0 10 10"
+      refX="5"
+      refY="5"
+      markerWidth="4"
+      markerHeight="4"
+      orient="auto-start-reverse">
+      <circle cx="5" cy="5" r="5"/>
+    </marker>
+
+    <g id="top" class="tree">
+      <path d="M -24 -16 l 24 0 a 16 16 180 1 1 0 32 l -24 0 a 16 16 180 1 1 0 -32"/>"
+      <text x="-8" y="2" text-anchor="end">Top</text>
+
+      <line y2="-42" marker-start="url(#ball)" marker-end="url(#arrow)" />
+    </g>
+
+    <g id="pair" class="tree">
+      <path d="M -12 -16 l 24 0 a 16 16 180 1 1 0 32 l -24 0 a 16 16 180 1 1 0 -32"/>
+      <text y="2">(   ,   )</text>
+
+      <line x1="-8" x2="-30" y2="-42" marker-start="url(#ball)" marker-end="url(#arrow)" />
+      <line x1="8" x2="30" y2="-42" marker-start="url(#ball)" marker-end="url(#arrow)" />
+    </g>
+
+    <g id="pair2" class="tree">
+      <path d="M -12 -16 l 24 0 a 16 16 180 1 1 0 32 l -24 0 a 16 16 180 1 1 0 -32"/>
+      <text y="2">(   ,   )</text>
+
+      <line x1="-8" x2="-60" y2="-42" marker-start="url(#ball)" marker-end="url(#arrow)" />
+      <line x1="8" x2="60" y2="-42" marker-start="url(#ball)" marker-end="url(#arrow)" />
+    </g>
+
+    <g id="pair4" class="tree">
+      <path d="M -12 -16 l 24 0 a 16 16 180 1 1 0 32 l -24 0 a 16 16 180 1 1 0 -32"/>
+      <text y="2">(   ,   )</text>
+
+      <line x1="-8" x2="-120" y2="-42" marker-start="url(#ball)" marker-end="url(#arrow)" />
+      <line x1="8" x2="120" y2="-42" marker-start="url(#ball)" marker-end="url(#arrow)" />
+    </g>
+
+    <g id="offshoot" class="tree">
+      <path d="M 0 -16 l 40 0 a 16 16 180 1 1 0 32 l -40 0 a 16 16 180 1 1 0 -32"/>
+      <text x="8" y="2" class="infix">:&gt;-</text>
+
+      <line y2="-42" marker-start="url(#ball)" marker-end="url(#arrow)" />
+      <line x1="40" x2="92" y2="-42" marker-start="url(#ball)" marker-end="url(#arrow)" />
+    </g>
+
+    <g id="nothing" class="tree">
+      <path d="M 0 -16 l 36 0 a 16 16 180 1 1 0 32 l -36 0 a 16 16 180 1 1 0 -32"/>
+      <text x="-8" y="2">Nothing</text>
+    </g>
+
+    <g id="just" class="tree">
+      <path d="M 0 -16 l 30 0 a 16 16 180 1 1 0 32 l -30 0 a 16 16 180 1 1 0 -32"/>
+      <text x="-8" y="2">Just</text>
+
+      <line x1="30" x2="82" y2="-42" marker-start="url(#ball)" marker-end="url(#arrow)" />
+    </g>
+
+    <g class="tree" id="a₀">
+      <circle r="16"/>
+      <text>a₀</text>
+    </g>
+
+    <g class="tree" id="a₁">
+      <circle r="16"/>
+      <text>a₁</text>
+    </g>
+
+    <g class="tree" id="a₂">
+      <circle r="16"/>
+      <text>a₂</text>
+    </g>
+
+    <g class="tree" id="a₃">
+      <circle r="16"/>
+      <text>a₃</text>
+    </g>
+
+    <g class="tree" id="a₄">
+      <circle r="16"/>
+      <text>a₄</text>
+    </g>
+
+    <g class="tree" id="a₅">
+      <circle r="16"/>
+      <text>a₅</text>
+    </g>
+
+    <g class="tree" id="a₆">
+      <circle r="16"/>
+      <text>a₆</text>
+    </g>
+
+    <g class="tree" id="a₇">
+      <circle r="16"/>
+      <text>a₇</text>
+    </g>
+  </defs>
+
+  <g class="tree">
+    <use href="#a₀" x="32" y="32"/>
+    <use href="#a₁" x="96" y="32"/>
+    <use href="#a₂" x="160" y="32"/>
+    <use href="#a₃" x="224" y="32"/>
+
+    <use x="64" y="96" href="#pair"/>
+    <use x="192" y="96" href="#pair"/>
+
+    <use x="128" y="160" href="#pair2"/>
+
+    <use x="128" y="224" href="#top"/>
+    <use x="224" y="224" href="#nothing"/>
+    <use href="#a₄" x="320" y="224"/>
+
+    <use x="128" y="288" href="#offshoot"/>
+    <use x="224" y="288" href="#just"/>
+
+    <use x="128" y="352" href="#offshoot"/>
+  </g>
+</svg>

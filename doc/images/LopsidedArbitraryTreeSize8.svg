@@ -1,0 +1,152 @@
+<svg
+  xmlns="http://www.w3.org/2000/svg"
+  height="640"
+  width="704">
+
+  <style>
+    .tree text {
+      font-style: italic;
+      dominant-baseline: middle;
+      fill: black;
+      text-anchor: middle;
+    }
+
+    .tree circle, .tree path, .tree line {
+      stroke-width: 2;
+      stroke: black;
+      fill: white;
+    }
+
+    .tree .constructor {
+      text-anchor: end;
+    }
+  </style>
+
+  <defs>
+    <!-- triangle for arrow head -->
+    <marker
+      id="arrow"
+      viewBox="0 0 10 10"
+      refX="5"
+      refY="5"
+      markerWidth="4"
+      markerHeight="4"
+      orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" />
+    </marker>
+    <!-- ball for arrow tail -->
+    <marker
+      id="ball"
+      viewBox="0 0 10 10"
+      refX="5"
+      refY="5"
+      markerWidth="4"
+      markerHeight="4"
+      orient="auto-start-reverse">
+      <circle cx="5" cy="5" r="5"/>
+    </marker>
+    <g id="leaf" class="tree">
+      <path d="M -28 -16 l 28 0 a 16 16 180 1 1 0 32 l -28 0 a 16 16 180 1 1 0 -32"/>"
+      <text x="-8" y="2" class="constructor">Leaf</text>
+
+      <line y2="-42" marker-start="url(#ball)" marker-end="url(#arrow)" />
+    </g>
+
+    <g id="branch-cell" class="tree">
+      <path d="M -52 -16 l 64 0 a 16 16 180 1 1 0 32 l -64 0 a 16 16 180 1 1 0 -32"/>
+      <text x="-16" y="2" class="constructor">Branch</text>
+    </g>
+
+    <g id="branch" class="tree">
+      <use href="#branch-cell"/>
+      <line x1="-8" x2="-30" y2="-42" marker-start="url(#ball)" marker-end="url(#arrow)" />
+      <line x1="8" x2="30" y2="-42" marker-start="url(#ball)" marker-end="url(#arrow)" />
+    </g>
+
+    <g id="branch2" class="tree">
+      <use href="#branch-cell"/>
+      <line x1="-8" x2="-60" y2="-42" marker-start="url(#ball)" marker-end="url(#arrow)" />
+      <line x1="8" x2="60" y2="-42" marker-start="url(#ball)" marker-end="url(#arrow)" />
+    </g>
+
+    <g id="branch4" class="tree">
+      <use href="#branch-cell"/>
+      <line x1="-8" x2="-120" y2="-42" marker-start="url(#ball)" marker-end="url(#arrow)" />
+      <line x1="8" x2="120" y2="-42" marker-start="url(#ball)" marker-end="url(#arrow)" />
+    </g>
+
+    <g class="tree" id="a₀">
+      <circle r="16"/>
+      <text>a₀</text>
+    </g>
+
+    <g class="tree" id="a₁">
+      <circle r="16"/>
+      <text>a₁</text>
+    </g>
+
+    <g class="tree" id="a₂">
+      <circle r="16"/>
+      <text>a₂</text>
+    </g>
+
+    <g class="tree" id="a₃">
+      <circle r="16"/>
+      <text>a₃</text>
+    </g>
+
+    <g class="tree" id="a₄">
+      <circle r="16"/>
+      <text>a₄</text>
+    </g>
+
+    <g class="tree" id="a₅">
+      <circle r="16"/>
+      <text>a₅</text>
+    </g>
+
+    <g class="tree" id="a₆">
+      <circle r="16"/>
+      <text>a₆</text>
+    </g>
+
+    <g class="tree" id="a₇">
+      <circle r="16"/>
+      <text>a₇</text>
+    </g>
+  </defs>
+
+  <g class="tree">
+    <use href="#a₆" x="448" y="32"/>
+    <use href="#a₇" x="512" y="32"/>
+
+    <use href="#a₅" x="384" y="96"/>
+    <use href="#leaf" x="448" y="96"/>
+    <use href="#leaf" x="512" y="96"/>
+
+    <use href="#a₄" x="320" y="160"/>
+    <use href="#leaf" x="384" y="160"/>
+    <use href="#branch" x="480" y="160"/>
+
+    <use href="#a₃" x="256" y="224"/>
+    <use href="#leaf" x="320" y="224"/>
+    <use href="#branch" x="424" y="224"/>
+
+    <use href="#a₂" x="192" y="288"/>
+    <use href="#leaf" x="256" y="288"/>
+    <use href="#branch" x="360" y="288"/>
+
+    <use href="#a₁" x="128" y="352"/>
+    <use href="#leaf" x="192" y="352"/>
+    <use href="#branch" x="296" y="352"/>
+
+    <use href="#a₀" x="64" y="416"/>
+    <use href="#leaf" x="128" y="416"/>
+    <use href="#branch" x="232" y="416"/>
+
+    <use href="#leaf" x="64" y="480"/>
+    <use href="#branch" x="168" y="480"/>
+
+    <use href="#branch" x="104" y="544"/>
+  </g>
+</svg>
