@@ -232,15 +232,15 @@ combination of balanced binary trees.
 |:-:|
 |**`Top a₀`**|
 
-|![visual representation of `Top (a₀,a₁) :>- Nothing`](images/PearTreeSize2.svg)|
+|![visual representation of `Top (a₀,a₁) :>- Nothing`](images/PearTreeSize2.png)|
 |:-:|
 |**`Top (a₀,a₁) :>- Nothing`**|
 
-|![visual representation of `Top (a₀,a₁) :>- Just a₂`](images/PearTreeSize3.svg)|
+|![visual representation of `Top (a₀,a₁) :>- Just a₂`](images/PearTreeSize3.png)|
 |:-:|
 |**`Top (a₀,a₁) :>- Just a₂`**|
 
-|![visual representation of `Top ((a₀,a₁),(a₂,a₃)) :>- Nothing :>- Nothing`](images/PearTreeSize4.svg)|
+|![visual representation of `Top ((a₀,a₁),(a₂,a₃)) :>- Nothing :>- Nothing`](images/PearTreeSize4.png)|
 |:-:|
 |**`Top ((a₀,a₁),(a₂,a₃)) :>- Nothing :>- Nothing`**|
 
@@ -479,16 +479,15 @@ btm(x,k) = x mod 2ᵏ
 bit(x,k) = top(x,k) mod 2
 
 
-
-XX To look up elements by their index in a `PearTree`, we first have to establish
-XX what the order of elements in a `PearTree` is.  There's `n!` possible orders
-XX for a collection of `n` elements, but there's two most obvious candidates:
-XX 
-XX   - order the elements in the same order that they would have needed to be `push`ed in;
-XX     e.g. `Top ((0,1),(2,3)) :>- Just (4,5) :>- Just 6`
-XX     
-XX   - order the elements in the opposite order that they would have been `push`ed in; e.g.
-XX     `Top ((6,5),(4,3)
+>> To look up elements by their index in a `PearTree`, we first have to establish
+>> what the order of elements in a `PearTree` is.  There's `n!` possible orders
+>> for a collection of `n` elements, but there's two most obvious candidates:
+>> 
+>>   - order the elements in the same order that they would have needed to be `push`ed in;
+>>     e.g. `Top ((0,1),(2,3)) :>- Just (4,5) :>- Just 6`
+>>     
+>>   - order the elements in the opposite order that they would have been `push`ed in; e.g.
+>>     `Top ((6,5),(4,3)) :>- Just (2,1) :>- Just 0`
 
 Given a tree of size
 

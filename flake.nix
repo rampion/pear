@@ -29,6 +29,7 @@
           withHoogle = true;
           buildInputs = [
             nixpkgsFor.${system}.entr
+            nixpkgsFor.${system}.hlint
             haskellPackages.ghcid
             haskellPackages.cabal-install
             haskellPackages.pandoc
