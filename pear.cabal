@@ -14,100 +14,27 @@ flag Development
   default: False
   manual: True
 
-library article
-  hs-source-dirs:       doc
-  exposed-modules:      Article
-  ghc-options:          -pgmL markdown-unlit -optL haskell+example
-  build-depends:        base >=4.16 && <4.17
-  build-tool-depends:   markdown-unlit:markdown-unlit >= 0.5.1
-
-test-suite doctest-article
-  type:                 exitcode-stdio-1.0
-  hs-source-dirs:       test
-  main-is:              doctest-article.hs
-  build-depends:        base >=4.16 && <4.17
-                      , doctest >= 0.20.0
-                      , pretty-show
-  build-tool-depends:   markdown-unlit:markdown-unlit >= 0.5.1
-
 common library-setup
   if flag(development)
     ghc-options: -Wall -Wextra -Werror
-
-  -- other-extensions:    AllowAmbiguousTypes
-  --                    , BlockArguments
-  --                    , ConstrainedClassMethods
-  --                    , ConstraintKinds
-  --                    , DataKinds
-  --                    , DeriveTraversable
-  --                    , EmptyCase
-  --                    , FlexibleInstances
-  --                    , GADTs
-  --                    , KindSignatures
-  --                    , LambdaCase
-  --                    , NamedFieldPuns
-  --                    , PolyKinds
-  --                    , Rank2Types
-  --                    , StandaloneDeriving
-  --                    , StandaloneKindSignatures
-  --                    , TypeFamilies
-  --                    , TypeFamilyDependencies
-  --                    , TypeOperators
-  --                    , UndecidableInstances
-  --                    , ViewPatterns
-  build-depends:        base >=4.16 && <4.17
-                      , these
-  --                    , ghc-prim >=0.6 && <0.7
-  --                    , mtl == 2.2.2
-  --                    , transformers == 0.5.6.2
-  default-language:    Haskell2010
+  build-depends:        base >=4.16 && <4.20
+  default-language:     GHC2021
+  default-extensions:   DataKinds
+                        ExplicitNamespaces
+                        TypeFamilies
+                        DerivingStrategies
 
 library
   import:               library-setup
   hs-source-dirs:       src
-  exposed-modules:      Pear.Pair
+  exposed-modules:      Pear.Bit
+                        Pear.Bit.Kind
+                        Pear.Opt
+                        Pear.Order
+                        Pear.Order.Indexed
+                        Pear.Pair
+                        Pear.Positive
+                        Pear.Positive.Kind
+                        Pear.Selected
                         Pear.Tree
--- 
--- test-suite pear-spec
---   import:               library-setup
---   hs-source-dirs:       test src
---   ghc-options:          -threaded
---   type:                 exitcode-stdio-1.0
---   main-is:              Pear/Spec.hs
---   other-modules:        Pear.Bit.Spec
---                       , Pear.Binary.Spec
---                       , Pear.Binary.Finite.Spec
---                       , Pear.Binary.Finite.Spec
---                       , Pear.Vec.Spec
---                       , Pear.Bit
---                       , Pear.Binary
---                       , Pear.Function
---                       , Pear.Singleton
---                       , Pear.Bit.Singleton
---                       , Pear.Binary.Singleton
---                       , Pear.Singleton.Known
---                       , Pear.Finite
---                       , Pear.Bit.Finite
---                       , Pear.Binary.Finite
---                       , Pear.Indexed
---                       , Pear.Via.Deindexed
---                       , Pear.Via.Elem
---                       , Pear.Singleton.Applicative
---                       , Pear.Two
---                       , Pear.Opt
---                       , Pear.Vec
---                       , Pear.Vec.Combine
---                       , Pear
---   build-depends:        hspec == 2.9.1
---                       , genvalidity-hspec == 1.0.0.0
---                       , genvalidity == 1.0.0.0
---                       , validity == 0.12.0.0
---                       , QuickCheck == 2.14.2
--- 
--- test-suite pear-doctest
---   type:                 exitcode-stdio-1.0
---   hs-source-dirs:       test
---   main-is:              doctest.hs
---   build-depends:        base >=4.14 && <4.15
---                       , doctest >= 0.20.0
---   build-tool-depends:   markdown-unlit:markdown-unlit >= 0.5.1
+                        Pear.Tree.Indexed

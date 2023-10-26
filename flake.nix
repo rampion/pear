@@ -1,5 +1,5 @@
 {
-  description = "The pear package for haskell, describing and defining the PearTree";
+  description = "The pear package for haskell, describing and defining the PearTree data structure";
   inputs.nixpkgs.url = "nixpkgs";
   outputs = { self, nixpkgs }:
     let
