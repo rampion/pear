@@ -3,9 +3,9 @@ module Pear.Tree where
 import Data.Kind (Type)
 import Data.List.NonEmpty (NonEmpty)
 import Numeric.Natural (Natural)
+import Pear.Lens
 import Pear.Pair
 import Pear.Positive
-import Pear.Selected
 
 type Tree :: Type -> Type
 data Tree a = Top a | Tree (Pair a) :>- Maybe a
@@ -30,17 +30,17 @@ reverse = undefined
 reverse0 :: Tree0 a -> Tree0 a
 reverse0 = undefined
 
-at :: Natural -> Tree a -> Maybe (a :← Tree a)
-at = undefined
+focus :: Natural -> Tree a -> Maybe (Focused a (Tree a))
+focus = undefined
 
-at0 :: Natural -> Tree0 a -> Maybe (a :← Tree a)
-at0 = undefined
+at :: Natural -> Shard a (Tree a)
+at _ = undefined
 
 indexes :: Tree a -> Tree (Natural, a)
 indexes = undefined
 
-selects :: Tree a -> Tree (a :← Tree a)
-selects = undefined
+foci :: Tree a -> Tree (Focused a (Tree a))
+foci = undefined
 
 filter :: (a -> Bool) -> Tree a -> Tree0 a
 filter = undefined

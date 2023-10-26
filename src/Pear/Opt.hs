@@ -4,7 +4,7 @@ module Pear.Opt where
 import Data.Kind (Type)
 import Pear.Bit
 import Pear.Bit.Kind
-import Pear.Selected
+import Pear.Lens
 
 type Opt :: Bit -> Type -> Type
 data Opt b a where
@@ -17,5 +17,5 @@ deriving instance Functor (Opt b)
 deriving instance Foldable (Opt b)
 deriving instance Traversable (Opt b)
 
-at :: Fin b -> Opt b a -> a :← Opt b a
-at = undefined
+at :: Fin b -> Lens' a (Opt b a)
+at _ = undefined

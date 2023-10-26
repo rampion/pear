@@ -2,11 +2,11 @@ module Pear.Tree.Indexed where
 
 import Data.Kind (Type)
 import Data.List.NonEmpty (NonEmpty)
-import Pear.Pair
+import Pear.Lens
 import Pear.Opt
+import Pear.Pair
 import Pear.Positive
 import Pear.Positive.Kind
-import Pear.Selected
 
 type Tree :: Positive -> Type -> Type
 data Tree n a where
@@ -33,9 +33,8 @@ deriving instance Functor SomeTree
 deriving instance Foldable SomeTree
 deriving instance Traversable SomeTree
 
-
-at :: Fin n -> Tree n a -> (a :← Tree n a)
-at = undefined
+at :: Fin n -> Lens' a (Tree n a)
+at _ = undefined
 
 reverse :: Tree n a -> Tree n a
 reverse = undefined
@@ -43,8 +42,8 @@ reverse = undefined
 indexes :: Tree n a -> Tree n (Fin n, a)
 indexes = undefined
 
-selects :: Tree n a -> Tree n (a :← Tree n a)
-selects = undefined
+ats :: Tree n a -> Tree n (ALens' a (Tree n a))
+ats = undefined
 
 filter :: (a -> Bool) -> Tree n a -> Maybe (SomeTree a)
 filter = undefined

@@ -29,12 +29,12 @@ library
   hs-source-dirs:       src
   exposed-modules:      Pear.Bit
                         Pear.Bit.Kind
+                        Pear.Lens
                         Pear.Opt
                         Pear.Order
                         Pear.Order.Indexed
                         Pear.Pair
                         Pear.Positive
                         Pear.Positive.Kind
-                        Pear.Selected
                         Pear.Tree
                         Pear.Tree.Indexed
