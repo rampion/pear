@@ -9,3 +9,9 @@ data Pair a = a :× a
 
 at :: Functor f => Bit -> (a -> f a) -> Pair a -> f (Pair a)
 at = undefined
+
+fst :: Pair a -> a
+fst (a₀ :× _₁) = a₀
+
+snd :: Pair a -> a
+snd (_₀ :× a₁) = a₁

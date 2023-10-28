@@ -1,10 +1,15 @@
 module Pear.Tree where
 
+import Prelude hiding (lookup, fst, snd, reverse)
+import Control.Applicative (liftA2)
+import Control.Monad.State (evalState, state)
+import Data.Functor.Const (pattern Const, getConst)
+import Data.Functor.Identity (pattern Identity, runIdentity)
 import Data.Kind (Type)
 import Data.List.NonEmpty (NonEmpty)
 import Numeric.Natural (Natural)
 import Pear.Lens
-import Pear.Pair
+import Pear.Pair hiding (at)
 import Pear.Positive
 
 type Tree :: Type -> Type
@@ -28,22 +33,13 @@ reverse :: Tree a -> Tree a
 reverse = undefined
 
 reverse0 :: Tree0 a -> Tree0 a
-reverse0 = undefined
-
-focus :: Natural -> Tree a -> Maybe (Focused a (Tree a))
-focus = undefined
-
-at :: Natural -> Shard a (Tree a)
-at _ = undefined
+reverse0 = fmap reverse
 
 indexes :: Tree a -> Tree (Natural, a)
-indexes = undefined
-
-foci :: Tree a -> Tree (Focused a (Tree a))
-foci = undefined
+indexes = (`evalState` 0). traverse \a -> state \(!i) -> ((i, a), i + 1)
 
 filter :: (a -> Bool) -> Tree a -> Tree0 a
-filter = undefined
+filter p = mapMaybe \a -> if p a then Just a else Nothing
 
 mapMaybe :: (a -> Maybe b) -> Tree a -> Tree0 b
 mapMaybe = undefined
@@ -52,7 +48,38 @@ push :: a -> Tree a -> Tree a
 push = undefined
 
 push0 :: a -> Tree0 a -> Tree a
-push0 = undefined
+push0 = liftA2 maybe Top push
+
+head :: Tree a -> a
+head = loop id where
+  loop :: (b -> a) -> Tree b -> a
+  loop k = \case
+    Top b -> k b
+    ta² :>- _ -> loop (k . fst) ta²
+
+last :: Tree a -> a
+last = loop id where
+  loop :: (b -> a) -> Tree b -> a
+  loop k = \case
+    Top b -> k b
+    ta² :>- Nothing -> loop (k . snd) ta²
+    _ :>- Just a -> k a
+
+(??) :: Tree a -> Natural -> Maybe a
+(??) = flip lookup
+infix 9 ??
+
+lookup :: Natural -> Tree a -> Maybe a
+lookup i = fmap getConst . at i Const
+
+put :: Natural -> a -> Tree a -> Maybe (Tree a)
+put i = modify i . const
+
+modify :: Natural -> (a -> a) -> Tree a -> Maybe (Tree a)
+modify i f = fmap runIdentity . at i (Identity . f)
+
+at :: Natural -> (forall f. Functor f => (a -> f a) -> Tree a -> Maybe (f (Tree a)))
+at i f t = fmap zipUp . focus f <$> zipDown t ?? i
 
 pop :: Tree a -> (Tree0 a, a)
 pop = undefined
@@ -107,3 +134,35 @@ replicate = undefined
 
 replicate0 :: Natural -> a -> Tree0 a
 replicate0 = undefined
+
+data Tree' a where
+  AtTop :: Tree' a
+  InLeaf :: Tree (Pair a) -> Tree' a
+  InFst :: Tree' (Pair a) -> a -> Maybe a -> Tree' a
+  InSnd :: Tree' (Pair a) -> a -> Maybe a -> Tree' a
+
+data Zipper a = Zipper
+  { context :: Tree' a
+  , value :: a
+  }
+
+focus :: Lens' a (Zipper a)
+focus f Zipper{context,value} = Zipper context <$> f value
+
+zipUp :: Zipper a -> Tree a
+zipUp = \Zipper{context,value} -> loop context value where
+  loop :: Tree' a -> a -> Tree a
+  loop = \case
+    AtTop -> Top
+    InLeaf ta² -> \a -> ta² :>- Just a
+    InFst fa² a₁ ma -> \a₀ -> loop fa² (a₀ :× a₁) :>- ma
+    InSnd fa² a₀ ma -> \a₁ -> loop fa² (a₀ :× a₁) :>- ma
+
+zipDown :: Tree a -> Tree (Zipper a)
+zipDown = undefined
+
+zipNext :: Zipper a -> Maybe (Zipper a)
+zipNext = undefined
+
+zipPrevious :: Zipper a -> Maybe (Zipper a)
+zipPrevious = undefined

@@ -1,4 +1,3 @@
-{-# LANGUAGE TypeOperators #-}
 module Pear.Opt where
 
 import Data.Kind (Type)

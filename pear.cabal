@@ -18,11 +18,15 @@ common library-setup
   if flag(development)
     ghc-options: -Wall -Wextra -Werror
   build-depends:        base >=4.16 && <4.20
+                      , mtl
   default-language:     GHC2021
-  default-extensions:   DataKinds
-                        ExplicitNamespaces
-                        TypeFamilies
+  default-extensions:   BlockArguments
+                        DataKinds
                         DerivingStrategies
+                        ExplicitNamespaces
+                        LambdaCase
+                        PatternSynonyms
+                        TypeFamilies
 
 library
   import:               library-setup
