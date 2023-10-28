@@ -7,6 +7,7 @@ import Data.Functor.Const (pattern Const, getConst)
 import Data.Functor.Identity (pattern Identity, runIdentity)
 import Data.Kind (Type)
 import Data.List.NonEmpty (NonEmpty)
+import Data.List.NonEmpty qualified as NonEmpty
 import Numeric.Natural (Natural)
 import Pear.Lens
 import Pear.Pair hiding (at)
@@ -45,7 +46,7 @@ size :: Tree a -> Positive
 size = undefined
 
 size0 :: Tree0 a -> Natural
-size0 = undefined
+size0 = maybe 0 (toNatural . size)
 
 head :: Tree a -> a
 head = loop id where
@@ -100,7 +101,7 @@ fuse :: Tree a -> Tree a -> Tree a
 fuse = undefined
 
 fuse0 :: Tree0 a -> Tree0 a -> Tree0 a
-fuse0 = undefined
+fuse0 = liftA2 fuse
 
 fiss :: Positive -> Tree a -> Maybe (Tree a, Tree a)
 fiss = undefined
@@ -112,38 +113,41 @@ fromNonEmpty :: NonEmpty a -> Tree a
 fromNonEmpty = undefined
 
 fromList :: [a] -> Tree0 a
-fromList = undefined
+fromList = fmap fromNonEmpty . NonEmpty.nonEmpty
 
 toNonEmpty :: Tree a -> NonEmpty a
 toNonEmpty = undefined
 
 toList :: Tree0 a -> [a]
-toList = undefined
+toList = maybe [] (NonEmpty.toList . toNonEmpty)
 
 generate :: Positive -> (Natural -> a) -> Tree a
 generate = undefined
 
 generate0 :: Natural -> (Natural -> a) -> Tree0 a
-generate0 = undefined
+generate0 = maybe (const Nothing) (fmap Just . generate) . fromNatural
 
 replicate :: Positive -> a -> Tree a
-replicate = undefined
+replicate n = generate n . const
 
 replicate0 :: Natural -> a -> Tree0 a
-replicate0 = undefined
+replicate0 n = generate0 n . const
 
+-- | one-hole contexts of 'Tree's
 type Tree' :: Type -> Type
 data Tree' a where
   AtTop :: Tree' a
   InLeaf :: Tree (Pair a) -> Tree' a
   InFst :: Tree' (Pair a) -> a -> Maybe a -> Tree' a
   InSnd :: Tree' (Pair a) -> a -> Maybe a -> Tree' a
+  deriving (Show, Eq)
 
 type Zipper :: Type -> Type
 data Zipper a = Zipper
   { context :: Tree' a
   , value :: a
   }
+  deriving (Show, Eq)
 
 focus :: Lens' a (Zipper a)
 focus f Zipper{context,value} = Zipper context <$> f value
