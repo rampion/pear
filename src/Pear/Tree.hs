@@ -35,20 +35,17 @@ reverse = undefined
 reverse0 :: Tree0 a -> Tree0 a
 reverse0 = fmap reverse
 
-indexes :: Tree a -> Tree (Natural, a)
-indexes = (`evalState` 0). traverse \a -> state \(!i) -> ((i, a), i + 1)
-
 filter :: (a -> Bool) -> Tree a -> Tree0 a
 filter p = mapMaybe \a -> if p a then Just a else Nothing
 
 mapMaybe :: (a -> Maybe b) -> Tree a -> Tree0 b
 mapMaybe = undefined
 
-push :: a -> Tree a -> Tree a
-push = undefined
+size :: Tree a -> Positive
+size = undefined
 
-push0 :: a -> Tree0 a -> Tree a
-push0 = liftA2 maybe Top push
+size0 :: Tree0 a -> Natural
+size0 = undefined
 
 head :: Tree a -> a
 head = loop id where
@@ -66,11 +63,8 @@ last = loop id where
     _ :>- Just a -> k a
 
 (??) :: Tree a -> Natural -> Maybe a
-(??) = flip lookup
+(??) = flip \i -> fmap getConst . at i Const
 infix 9 ??
-
-lookup :: Natural -> Tree a -> Maybe a
-lookup i = fmap getConst . at i Const
 
 put :: Natural -> a -> Tree a -> Maybe (Tree a)
 put i = modify i . const
@@ -81,17 +75,20 @@ modify i f = fmap runIdentity . at i (Identity . f)
 at :: Natural -> (forall f. Functor f => (a -> f a) -> Tree a -> Maybe (f (Tree a)))
 at i f t = fmap zipUp . focus f <$> zipDown t ?? i
 
+indexes :: Tree a -> Tree (Natural, a)
+indexes = (`evalState` 0). traverse \a -> state \(!i) -> ((i, a), i + 1)
+
+push :: a -> Tree a -> Tree a
+push = undefined
+
+push0 :: a -> Tree0 a -> Tree a
+push0 = liftA2 maybe Top push
+
 pop :: Tree a -> (Tree0 a, a)
 pop = undefined
 
 pop2 :: Tree (Pair a) -> (Tree a, a)
 pop2 = undefined
-
-size :: Tree a -> Positive
-size = undefined
-
-size0 :: Tree0 a -> Natural
-size0 = undefined
 
 split :: Positive -> Tree a -> Maybe (Tree a, Tree a)
 split = undefined
@@ -135,12 +132,14 @@ replicate = undefined
 replicate0 :: Natural -> a -> Tree0 a
 replicate0 = undefined
 
+type Tree' :: Type -> Type
 data Tree' a where
   AtTop :: Tree' a
   InLeaf :: Tree (Pair a) -> Tree' a
   InFst :: Tree' (Pair a) -> a -> Maybe a -> Tree' a
   InSnd :: Tree' (Pair a) -> a -> Maybe a -> Tree' a
 
+type Zipper :: Type -> Type
 data Zipper a = Zipper
   { context :: Tree' a
   , value :: a
