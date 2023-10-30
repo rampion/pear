@@ -163,17 +163,17 @@ replicate0 :: Natural -> a -> Tree0 a
 replicate0 n = generate0 n . const
 
 -- | one-hole contexts of 'Tree's
-type Tree' :: Type -> Type
-data Tree' a where
-  AtTop :: Tree' a
-  InLeaf :: Tree (Pair a) -> Tree' a
-  InFst :: Tree' (Pair a) -> a -> Maybe a -> Tree' a
-  InSnd :: Tree' (Pair a) -> a -> Maybe a -> Tree' a
+type Context :: Type -> Type
+data Context a where
+  AtTop :: Context a
+  InLeaf :: Tree (Pair a) -> Context a
+  InFst :: Context (Pair a) -> a -> Maybe a -> Context a
+  InSnd :: Context (Pair a) -> a -> Maybe a -> Context a
   deriving (Show, Eq)
 
 type Zipper :: Type -> Type
 data Zipper a = Zipper
-  { context :: Tree' a
+  { context :: Context a
   , value :: a
   }
   deriving (Show, Eq)
@@ -183,7 +183,7 @@ focus f Zipper{context,value} = Zipper context <$> f value
 
 zipUp :: Zipper a -> Tree a
 zipUp = \Zipper{context,value} -> loop context value where
-  loop :: Tree' a -> a -> Tree a
+  loop :: Context a -> a -> Tree a
   loop = \case
     AtTop -> Top
     InLeaf ta² -> \a -> ta² :>- Just a
