@@ -50,14 +50,30 @@ class (Functor t, Foldable t => Foldable (Zipper t), Traversable t => Traversabl
   -- | A @Context t a@ is the type of one-hole contexts for the type @t a@
   data Context t :: Type -> Type
 
-  -- | Create zippers for each position in a data structure
-  zipDown :: t a -> t (Zipper t a)
+  -- | map over the values and contexts
+  mapWithContext :: (Context t a -> a -> r) -> t a -> t r
 
-  -- | Create a value from the zipper
-  zipUp :: Zipper t a -> t a
+  -- | create a value by filling the hole in the context
+  fillContext :: Context t a -> a -> t a
 
   -- | Step to the next position
   zipNext :: Zipper t a -> Maybe (Zipper t a)
 
   -- | Step to the previous position
   zipPrevious :: Zipper t a -> Maybe (Zipper t a)
+
+{-
+instance Zipperable Maybe where
+  data Context Maybe = InJust
+
+  mapWithContext f = fmap (f InJust)
+  fillContext 
+-}
+
+-- | Create a value from the zipper
+zipUp :: Zipperable t => Zipper t a -> t a
+zipUp Zipper{context,value} = fillContext context value
+
+-- | Create zippers for each position in a data structure
+zipDown :: Zipperable t => t a -> t (Zipper t a)
+zipDown = mapWithContext Zipper

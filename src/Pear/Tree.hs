@@ -46,11 +46,16 @@ instance Zipperable Tree where
     (:\) :: Context Tree (Pair a) -> (Context Pair a, Maybe a)-> Context Tree a
     deriving (Show, Eq, Functor)
 
-  zipUp = \Zipper{context,value} -> loop context value where
-    loop :: Context Tree a -> a -> Tree a
-    loop = undefined
+  fillContext = \case
+    AtTop             -> \a -> Top a
+    ta² :\- Hole      -> \a -> ta² :>- Just a
+    cta² :\ (cpa, ma) -> \a -> fillContext cta² (fillContext cpa a) :>- ma
 
-  zipDown = undefined
+  mapWithContext f = \case
+    Top a -> Top (f AtTop a)
+    ta² :>- ma -> 
+      mapWithContext (\cta² -> mapWithContext \cpa -> f (cta² :\ (cpa, ma))) ta² 
+        :>- fmap (f (ta² :\- Hole)) ma
 
   zipNext = undefined
 

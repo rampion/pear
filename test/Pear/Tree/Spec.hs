@@ -74,7 +74,8 @@ spec = describe "Pear.Tree" do
   describe "instance Zipperable Tree" do
     describe "zipUp" do
       it "rezips a one-element tree correctly" do
-        zipUp (Zipper AtTop 'a') `shouldBe` Top 'a'
+        zipUp (Zipper AtTop 'a')
+          `shouldBe` Top 'a'
 
       it "rezips a two-element tree focused on the first element correctly" do
         zipUp (Zipper (AtTop :\ (Hole :< 'b', Nothing)) 'a')
@@ -101,34 +102,87 @@ spec = describe "Pear.Tree" do
           `shouldBe` Top (('a' :× 'b') :× ('c' :× 'd')) :>- Nothing :>- Nothing
 
       it "rezips a four-element tree focused on the second element correctly" do
-        pending
+        zipUp (Zipper (AtTop :\ (Hole :< ('c' :× 'd'), Nothing) :\ ('a' :> Hole, Nothing)) 'b')
+          `shouldBe` Top (('a' :× 'b') :× ('c' :× 'd')) :>- Nothing :>- Nothing
 
       it "rezips a four-element tree focused on the third element correctly" do
-        pending
+        zipUp (Zipper (AtTop :\ (('a' :× 'b') :> Hole, Nothing) :\ (Hole :< 'd', Nothing)) 'c')
+          `shouldBe` Top (('a' :× 'b') :× ('c' :× 'd')) :>- Nothing :>- Nothing
 
       it "rezips a four-element tree focused on the fourth element correctly" do
-        pending
+        zipUp (Zipper (AtTop :\ (('a' :× 'b') :> Hole, Nothing) :\ ('c' :> Hole, Nothing)) 'd')
+          `shouldBe` Top (('a' :× 'b') :× ('c' :× 'd')) :>- Nothing :>- Nothing
 
       it "rezips a seven-element tree focused on the first element correctly" do
-        pending
+        zipUp (Zipper (AtTop :\ (Hole :< ('c' :× 'd'), Just ('e' :× 'f')) :\ (Hole :< 'b', Just 'g')) 'a')
+          `shouldBe` Top (('a' :× 'b') :× ('c' :× 'd')) :>- Just ('e' :× 'f') :>- Just 'g'
+
       it "rezips a seven-element tree focused on the second element correctly" do
-        pending
+        zipUp (Zipper (AtTop :\ (Hole :< ('c' :× 'd'), Just ('e' :× 'f')) :\ ('a' :> Hole, Just 'g')) 'b')
+          `shouldBe` Top (('a' :× 'b') :× ('c' :× 'd')) :>- Just ('e' :× 'f') :>- Just 'g'
+
       it "rezips a seven-element tree focused on the third element correctly" do
-        pending
+        zipUp (Zipper (AtTop :\ (('a' :× 'b') :> Hole, Just ('e' :× 'f')) :\ (Hole :< 'd', Just 'g')) 'c')
+          `shouldBe` Top (('a' :× 'b') :× ('c' :× 'd')) :>- Just ('e' :× 'f') :>- Just 'g'
+
       it "rezips a seven-element tree focused on the fourth element correctly" do
-        pending
+        zipUp (Zipper (AtTop :\ (('a' :× 'b') :> Hole, Just ('e' :× 'f')) :\ ('c' :> Hole, Just 'g')) 'd')
+          `shouldBe` Top (('a' :× 'b') :× ('c' :× 'd')) :>- Just ('e' :× 'f') :>- Just 'g'
+
       it "rezips a seven-element tree focused on the fifth element correctly" do
-        pending
+        zipUp (Zipper (Top (('a' :× 'b') :× ('c' :× 'd')) :\- Hole :\ (Hole :< 'f', Just 'g')) 'e')
+          `shouldBe` Top (('a' :× 'b') :× ('c' :× 'd')) :>- Just ('e' :× 'f') :>- Just 'g'
+
       it "rezips a seven-element tree focused on the sixth element correctly" do
-        pending
+        zipUp (Zipper (Top (('a' :× 'b') :× ('c' :× 'd')) :\- Hole :\ ('e' :> Hole, Just 'g')) 'f')
+          `shouldBe` Top (('a' :× 'b') :× ('c' :× 'd')) :>- Just ('e' :× 'f') :>- Just 'g'
+
       it "rezips a seven-element tree focused on the seventh element correctly" do
-        pending
+        zipUp (Zipper (Top (('a' :× 'b') :× ('c' :× 'd')) :>- Just ('e' :× 'f') :\- Hole) 'g')
+          `shouldBe` Top (('a' :× 'b') :× ('c' :× 'd')) :>- Just ('e' :× 'f') :>- Just 'g'
 
-
-    xdescribe "zipDown" do
+    describe "zipDown" do
       it "unzips a one-element tree correctly" do
         zipDown (Top 'a') `shouldBe` Top (Zipper AtTop 'a')
 
       it "unzips a two-element tree correctly" do
-        pending
-        -- zipDown (Top ('a' :× 'b') :>- Nothing) `shouldBe` Top (Zipper (InFst AtTop 'b' Nothing) 'a' :× Zipper (InSnd AtTop 'a' Nothing) 'b') :>- Nothing
+        zipDown (Top ('a' :× 'b') :>- Nothing) `shouldBe` 
+          Top (  Zipper (AtTop :\ (Hole :< 'b', Nothing)) 'a' 
+              :× Zipper (AtTop :\ ('a' :> Hole, Nothing)) 'b'
+              ) :>- Nothing
+
+      it "unzips a three-element tree correctly" do
+        zipDown (Top ('a' :× 'b') :>- Just 'c') `shouldBe`
+          Top (  Zipper (AtTop :\ (Hole :< 'b', Just 'c')) 'a'
+              :× Zipper (AtTop :\ ('a' :> Hole, Just 'c')) 'b'
+              )
+            :>- Just (Zipper (Top ('a' :× 'b') :\- Hole) 'c')
+
+      it "unzips a four-element tree correctly" do
+        zipDown (Top (('a' :× 'b') :× ('c' :× 'd')) :>- Nothing :>- Nothing) `shouldBe`
+          Top 
+            (  (  Zipper (AtTop :\ (Hole :< ('c' :× 'd'), Nothing) :\ (Hole :< 'b', Nothing)) 'a'
+               :× Zipper (AtTop :\ (Hole :< ('c' :× 'd'), Nothing) :\ ('a' :> Hole, Nothing)) 'b'
+               )
+            :× (  Zipper (AtTop :\ (('a' :× 'b') :> Hole, Nothing) :\ (Hole :< 'd', Nothing)) 'c'
+               :× Zipper (AtTop :\ (('a' :× 'b') :> Hole, Nothing) :\ ('c' :> Hole, Nothing)) 'd'
+               )
+            ) :>- Nothing :>- Nothing
+
+      it "unzips a seven-element tree correctly" do
+        zipDown (Top (('a' :× 'b') :× ('c' :× 'd')) :>- Just ('e' :× 'f') :>- Just 'g') `shouldBe` 
+          Top
+            (  (  Zipper (AtTop :\ (Hole :< ('c' :× 'd'), Just ('e' :× 'f')) :\ (Hole :< 'b', Just 'g')) 'a'
+               :× Zipper (AtTop :\ (Hole :< ('c' :× 'd'), Just ('e' :× 'f')) :\ ('a' :> Hole, Just 'g')) 'b'
+               )
+            :× (  Zipper (AtTop :\ (('a' :× 'b') :> Hole, Just ('e' :× 'f')) :\ (Hole :< 'd', Just 'g')) 'c'
+               :× Zipper (AtTop :\ (('a' :× 'b') :> Hole, Just ('e' :× 'f')) :\ ('c' :> Hole, Just 'g')) 'd'
+               )
+            )
+            :>- Just
+              (  Zipper (Top (('a' :× 'b') :× ('c' :× 'd')) :\- Hole :\ (Hole :< 'f', Just 'g')) 'e'
+              :× Zipper (Top (('a' :× 'b') :× ('c' :× 'd')) :\- Hole :\ ('e' :> Hole, Just 'g')) 'f'
+              )
+            :>- Just
+              ( Zipper (Top (('a' :× 'b') :× ('c' :× 'd')) :>- Just ('e' :× 'f') :\- Hole) 'g'
+              )

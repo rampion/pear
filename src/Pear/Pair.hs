@@ -22,11 +22,12 @@ instance Zipperable Pair where
   data Context Pair a = Hole :< a | a :> Hole
     deriving (Show, Eq, Functor, Foldable, Traversable)
 
-  zipUp Zipper{context,value} = case context of
-    Hole :< a₁ -> value :× a₁
-    a₀ :> Hole -> a₀ :× value
+  fillContext = \case
+    Hole :< a₁ -> \a₀ -> a₀ :× a₁
+    a₀ :> Hole -> \a₁ -> a₀ :× a₁
 
-  zipDown (a₀ :× a₁) = Zipper (Hole :< a₁) a₀ :× Zipper (a₀ :> Hole) a₁
+  mapWithContext f (a₀ :× a₁) = 
+    f (Hole :< a₁) a₀ :× f (a₀ :> Hole) a₁
 
   zipNext Zipper{context,value} = case context of
     Hole :< a₁ -> Just do Zipper (value :> Hole) a₁
