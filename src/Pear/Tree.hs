@@ -12,10 +12,11 @@ import Data.Functor.Identity (pattern Identity, runIdentity)
 import Data.Kind (Type)
 import Data.List.NonEmpty (NonEmpty)
 import Data.List.NonEmpty qualified as NonEmpty
+import Data.Traversable (foldMapDefault)
 import Numeric.Natural (Natural)
-import Pear.Lens
 import Pear.Pair hiding (at)
 import Pear.Positive
+import Pear.Zipper
 
 type Tree :: Type -> Type
 data Tree a = Top a | Tree (Pair a) :>- Maybe a
@@ -36,6 +37,32 @@ instance Show a => Show (Tree a) where
     showsTree = \case
       Top a -> showString "Top " . showsPrec 10 a
       t :>- ma -> showsTree t . showString " :>- " . showsPrec 4 ma
+
+-- | one-hole contexts of 'Tree's
+instance Zipperable Tree where
+  data Context Tree a where
+    AtTop :: Context Tree a
+    (:\-) :: Tree (Pair a) -> Hole -> Context Tree a
+    (:\) :: Context Tree (Pair a) -> (Context Pair a, Maybe a)-> Context Tree a
+    deriving (Show, Eq, Functor)
+
+  zipUp = \Zipper{context,value} -> loop context value where
+    loop :: Context Tree a -> a -> Tree a
+    loop = undefined
+
+  zipDown = undefined
+
+  zipNext = undefined
+
+  zipPrevious = undefined
+
+infixl 4 :\, :\-
+
+instance Foldable (Zipper Tree) where
+  foldMap = foldMapDefault
+
+instance Traversable (Zipper Tree) where
+  traverse = undefined
 
 instance Semigroup (Tree a) where
   (<>) = undefined
@@ -161,40 +188,3 @@ replicate n = generate n . const
 
 replicate0 :: Natural -> a -> Tree0 a
 replicate0 n = generate0 n . const
-
--- | one-hole contexts of 'Tree's
-type Context :: Type -> Type
-data Context a where
-  AtTop :: Context a
-  InLeaf :: Tree (Pair a) -> Context a
-  InFst :: Context (Pair a) -> a -> Maybe a -> Context a
-  InSnd :: Context (Pair a) -> a -> Maybe a -> Context a
-  deriving (Show, Eq)
-
-type Zipper :: Type -> Type
-data Zipper a = Zipper
-  { context :: Context a
-  , value :: a
-  }
-  deriving (Show, Eq)
-
-focus :: Lens' a (Zipper a)
-focus f Zipper{context,value} = Zipper context <$> f value
-
-zipUp :: Zipper a -> Tree a
-zipUp = \Zipper{context,value} -> loop context value where
-  loop :: Context a -> a -> Tree a
-  loop = \case
-    AtTop -> Top
-    InLeaf ta² -> \a -> ta² :>- Just a
-    InFst fa² a₁ ma -> \a₀ -> loop fa² (a₀ :× a₁) :>- ma
-    InSnd fa² a₀ ma -> \a₁ -> loop fa² (a₀ :× a₁) :>- ma
-
-zipDown :: Tree a -> Tree (Zipper a)
-zipDown = undefined
-
-zipNext :: Zipper a -> Maybe (Zipper a)
-zipNext = undefined
-
-zipPrevious :: Zipper a -> Maybe (Zipper a)
-zipPrevious = undefined

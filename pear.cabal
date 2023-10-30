@@ -26,7 +26,9 @@ common library-setup
                         ExplicitNamespaces
                         LambdaCase
                         PatternSynonyms
+                        QuantifiedConstraints
                         TypeFamilies
+                        UndecidableInstances
 
 library
   import:               library-setup
@@ -42,6 +44,7 @@ library
                         Pear.Positive.Kind
                         Pear.Tree
                         Pear.Tree.Indexed
+                        Pear.Zipper
 test-suite pear-spec
   import:               library-setup
   hs-source-dirs:       test
