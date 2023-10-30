@@ -1,18 +1,11 @@
-{-# LANGUAGE BlockArguments #-}
-module Main (main) where
+module Main where
 
-import Pear()
-import Pear.Bit.Spec
-import Pear.Binary.Spec
-import Pear.Binary.Finite.Spec
-import Pear.Vec.Spec
-
+import Pear.Positive.Spec qualified as Positive
+import Pear.Tree.Spec qualified as Tree
 import Test.Hspec
 
 main :: IO ()
 main = do
   hspec do
-    bitSpec
-    binarySpec
-    fbinarySpec
-    vecSpec
+    Tree.spec
+    Positive.spec

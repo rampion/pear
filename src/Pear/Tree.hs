@@ -1,4 +1,8 @@
-module Pear.Tree where
+module Pear.Tree 
+  ( module Pear.Tree
+  , module Pear.Positive
+  , module Pear.Pair
+  ) where
 
 import Prelude hiding (lookup, fst, snd, reverse)
 import Control.Applicative (liftA2)
@@ -15,6 +19,7 @@ import Pear.Positive
 
 type Tree :: Type -> Type
 data Tree a = Top a | Tree (Pair a) :>- Maybe a
+infixl 4 :>-
 
 deriving instance Eq a => Eq (Tree a)
 deriving instance Functor Tree
@@ -22,7 +27,15 @@ deriving instance Foldable Tree
 deriving instance Traversable Tree
 
 instance Show a => Show (Tree a) where
-  showsPrec = undefined
+  showsPrec p = showParen (p >= 4) . showsTree where
+    -- *almost* equivalent to the derived instance, but the derived instance inserts
+    -- unnecessary parentheses e.g.
+    --
+    --  (Top (('a' :× 'b') :× ('c' :× 'd')) :>- Nothing) :>- Just 'e'
+    showsTree :: forall a. Show a => Tree a -> ShowS
+    showsTree = \case
+      Top a -> showString "Top " . showsPrec 10 a
+      t :>- ma -> showsTree t . showString " :>- " . showsPrec 4 ma
 
 instance Semigroup (Tree a) where
   (<>) = undefined
@@ -43,7 +56,9 @@ mapMaybe :: (a -> Maybe b) -> Tree a -> Tree0 b
 mapMaybe = undefined
 
 size :: Tree a -> Positive
-size = undefined
+size =  \case
+  Top _ -> ObI
+  ta² :>- ma -> size ta² :. maybe O (const I) ma
 
 size0 :: Tree0 a -> Natural
 size0 = maybe 0 (toNatural . size)
@@ -79,8 +94,14 @@ at i f t = fmap zipUp . focus f <$> zipDown t ?? i
 indexes :: Tree a -> Tree (Natural, a)
 indexes = (`evalState` 0). traverse \a -> state \(!i) -> ((i, a), i + 1)
 
+singleton :: a -> Tree a
+singleton = Top
+
 push :: a -> Tree a -> Tree a
-push = undefined
+push a = \case
+  Top a₀ -> Top (a₀ :× a) :>- Nothing
+  ta² :>- Nothing -> ta² :>- Just a
+  ta² :>- Just a₀ -> push (a₀ :× a) ta² :>- Nothing
 
 push0 :: a -> Tree0 a -> Tree a
 push0 = liftA2 maybe Top push

@@ -16,7 +16,7 @@ flag Development
 
 common library-setup
   if flag(development)
-    ghc-options: -Wall -Wextra -Werror
+    ghc-options: -Wall -Wextra -Werror -Wno-name-shadowing
   build-depends:        base >=4.16 && <4.20
                       , mtl
   default-language:     GHC2021
@@ -42,3 +42,13 @@ library
                         Pear.Positive.Kind
                         Pear.Tree
                         Pear.Tree.Indexed
+test-suite pear-spec
+  import:               library-setup
+  hs-source-dirs:       test
+  ghc-options:          -threaded
+  type:                 exitcode-stdio-1.0
+  main-is:              Pear/Spec.hs
+  other-modules:        Pear.Positive.Spec
+                        Pear.Tree.Spec
+  build-depends:        hspec
+                      , pear

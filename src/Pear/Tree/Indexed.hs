@@ -58,6 +58,9 @@ at _ = undefined
 ats :: Tree n a -> Tree n (ALens' a (Tree n a))
 ats = undefined
 
+singleton :: a -> Tree 'ObI a
+singleton = Top
+
 push :: a -> Tree n a -> Tree (Succ n) a
 push = undefined
 
