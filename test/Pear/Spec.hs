@@ -7,5 +7,5 @@ import Test.Hspec
 main :: IO ()
 main = do
   hspec do
-    Tree.spec
     Positive.spec
+    Tree.spec

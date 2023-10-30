@@ -107,10 +107,18 @@ push0 :: a -> Tree0 a -> Tree a
 push0 = liftA2 maybe Top push
 
 pop :: Tree a -> (Tree0 a, a)
-pop = undefined
+pop = \case 
+  Top a -> (Nothing, a)
+  ta² :>- Just a -> (Just (ta² :>- Nothing), a)
+  ta² :>- Nothing ->
+    let ~(ta, a) = pop2 ta² in (Just ta, a)
 
 pop2 :: Tree (Pair a) -> (Tree a, a)
-pop2 = undefined
+pop2 = \case
+  Top (a₀ :× a₁) -> (Top a₀, a₁)
+  ta⁴ :>- Just (a₀ :× a₁) -> (ta⁴ :>- Nothing :>- Just a₀, a₁)
+  ta⁴ :>- Nothing -> 
+    let ~(ta², a₀ :× a₁) = pop2 ta⁴ in (ta² :>- Just a₀, a₁)
 
 split :: Positive -> Tree a -> Maybe (Tree a, Tree a)
 split = undefined

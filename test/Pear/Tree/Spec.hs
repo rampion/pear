@@ -22,13 +22,13 @@ spec = describe "Pear.Tree" do
     it "measures a tree with one element correctly" do
       size (Top 'a') `shouldBe` ObI
 
-    it "measures a a tree with two elements correctly" do
+    it "measures a tree with two elements correctly" do
       size (Top ('a' :× 'b') :>- Nothing) `shouldBe` ObI :. O
 
-    it "measures a a tree with three elements correctly" do
+    it "measures a tree with three elements correctly" do
       size (Top ('a' :× 'b') :>- Just 'c') `shouldBe` ObI :. I
 
-    it "measures a a tree with five elements correctly" do
+    it "measures a tree with five elements correctly" do
       size (Top (('a' :× 'b') :× ('c' :× 'd')) :>- Nothing :>- Just 'e') `shouldBe` ObI :. O :. I
 
   describe "push" do
@@ -44,3 +44,28 @@ spec = describe "Pear.Tree" do
     it "appends to a tree with seven elements correctly" do
       push 'h' (Top (('a' :× 'b') :× ('c' :× 'd')) :>- Just ('e' :× 'f') :>- Just 'g') `shouldBe` Top ((('a' :× 'b') :× ('c' :× 'd')) :× (('e' :× 'f') :× ('g' :× 'h'))) :>- Nothing :>- Nothing :>- Nothing
 
+  describe "pop" do
+    it "splits a tree with one element correctly" do
+      pop (Top 'a') `shouldBe` (Nothing, 'a')
+
+    it "splits a tree with two elements correctly" do
+      pop (Top ('a' :× 'b') :>- Nothing) `shouldBe` (Just (Top 'a'), 'b')
+
+    it "splits a tree with five elements correctly" do
+      pop (Top (('a' :× 'b') :× ('c' :× 'd')) :>- Nothing :>- Just 'e') `shouldBe` (Just (Top (('a' :× 'b') :× ('c' :× 'd')) :>- Nothing :>- Nothing), 'e')
+
+    it "splits a tree with six elements correctly" do
+      pop (Top (('a' :× 'b') :× ('c' :× 'd')) :>- Just ('e' :× 'f') :>- Nothing) `shouldBe` (Just (Top (('a' :× 'b') :× ('c' :× 'd')) :>- Nothing :>- Just 'e'), 'f')
+
+    it "splits a tree with eight elements correctly" do
+      pop (Top ((('a' :× 'b') :× ('c' :× 'd')) :× (('e' :× 'f') :× ('g' :× 'h'))) :>- Nothing :>- Nothing :>- Nothing) `shouldBe` (Just (Top (('a' :× 'b') :× ('c' :× 'd')) :>- Just ('e' :× 'f') :>- Just 'g'), 'h')
+
+  describe "pop2" do
+    it "splits a tree with two elements correctly" do
+      pop2 (Top ('a' :× 'b')) `shouldBe` (Top 'a', 'b')
+
+    it "splits a tree with six elements correctly" do
+      pop2 (Top (('a' :× 'b') :× ('c' :× 'd')) :>- Just ('e' :× 'f')) `shouldBe` (Top (('a' :× 'b') :× ('c' :× 'd')) :>- Nothing :>- Just 'e', 'f')
+
+    it "splits a tree with eight elements correctly" do
+      pop2 (Top ((('a' :× 'b') :× ('c' :× 'd')) :× (('e' :× 'f') :× ('g' :× 'h'))) :>- Nothing :>- Nothing) `shouldBe` (Top (('a' :× 'b') :× ('c' :× 'd')) :>- Just ('e' :× 'f') :>- Just 'g', 'h')
