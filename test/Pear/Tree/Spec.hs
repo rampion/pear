@@ -2,7 +2,6 @@ module Pear.Tree.Spec where
 
 import Test.Hspec
 import Pear.Tree
-import Pear.Zipper
 
 spec :: Spec
 spec = describe "Pear.Tree" do

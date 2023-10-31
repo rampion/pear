@@ -1,7 +1,8 @@
 module Pear.Tree 
   ( module Pear.Tree
   , module Pear.Positive
-  , module Pear.Pair
+  , module Pear.Pair.LinkToModuleDocumentation
+  , module Pear.Zipper
   ) where
 
 import Prelude hiding (lookup, fst, snd, reverse)
@@ -15,6 +16,7 @@ import Data.List.NonEmpty (NonEmpty)
 import Data.List.NonEmpty qualified as NonEmpty
 import Numeric.Natural (Natural)
 import Pear.Pair hiding (at)
+import Pear.Pair qualified as Pear.Pair.LinkToModuleDocumentation -- avoid transcluding definitions from Pear.Pair when generating the documentation
 import Pear.Positive
 import Pear.Zipper
 

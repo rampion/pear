@@ -1,7 +1,15 @@
 cabal-version:       2.2
 name:                pear
 version:             1.0.0.0
-synopsis:            PearTree data structure
+synopsis:            Pear Tree data structure
+description:
+  This is the paragraph line of the description.
+  .
+  This is the second paragraph.
+  .
+  [This is a bold section header] This is an indented section.
+  .
+  This is the last paragraph.
 homepage:            github.com/rampion/pear
 license:             CC0-1.0
 author:              Noah Luck Easterly
