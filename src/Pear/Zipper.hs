@@ -37,12 +37,21 @@ zipDown :: Zipperable t => t a -> t (Zipper t a)
 zipDown = mapWithContext Zipper
 
 -- | Step to the next position
-zipNext :: Zipperable t => Zipper t a -> Maybe (Zipper t a)
-zipNext Zipper{context,value} = nextContext 
+zipForward :: Zipperable t => Zipper t a -> Maybe (Zipper t a)
+zipForward Zipper{context,value} = stepForward 
   do \_ -> Nothing
   do \cta -> Just . Zipper cta
   do context
   do value
+
+-- | Step to the previous position
+zipBackward :: Zipperable t => Zipper t a -> Maybe (Zipper t a)
+zipBackward Zipper{context,value} = stepBackward 
+  do \_ -> Nothing
+  do \cta -> Just . Zipper cta
+  do context
+  do value
+
 
 -- | Basic operations for a zipper
 --
@@ -56,15 +65,15 @@ zipNext Zipper{context,value} = nextContext
 --
 --      zipUp <$> zipDown t = const t <$> t
 --
---  3) zipNext and zipPrevious are opposites
+--  3) zipForward and zipBackward are opposites
 --
---      zipNext za = Just zb ↔ Just za = zipPrevious zb
+--      zipForward za = Just zb ↔ Just za = zipBackward zb
 --
 --  4) t and Zipper t are traversed/folded in the same order
 --
---  5) zipNext obeys traversal order
+--  5) zipForward obeys traversal order
 --
---      fmap value . zipNext <$> zipDown t 
+--      fmap value . zipForward <$> zipDown t 
 --        = forwards (traverse (\a -> (Backwards . State) \s -> (s, Just a)) t) `evalState` Nothing
 --
 type Zipperable :: (Type -> Type) -> Constraint
@@ -79,12 +88,12 @@ class (Traversable t, Traversable (Zipper t), Functor (Context t)) => Zipperable
   fillContext :: Context t a -> a -> t a
 
   -- | advance to the next context if available
-  nextContext :: (t a -> r) -> (Context t a -> a -> r) -> Context t a -> a -> r
-  nextContext k _ cta = k . fillContext cta
+  stepForward :: (t a -> r) -> (Context t a -> a -> r) -> Context t a -> a -> r
+  stepForward k _ cta = k . fillContext cta
 
-  -- | Step to the previous position
-  zipPrevious :: Zipper t a -> Maybe (Zipper t a)
-  zipPrevious _ = Nothing
+  -- | advance to the previous context if available
+  stepBackward :: (t a -> r) -> (Context t a -> a -> r) -> Context t a -> a -> r
+  stepBackward k _ cta = k . fillContext cta
 
 instance Zipperable Maybe where
   data Context Maybe a = InJust
@@ -127,13 +136,13 @@ instance Zipperable [] where
 
   fillContext ListContext{before,after} a = reverse before ++ a : after
 
-  nextContext withList withZipper ListContext{before,after} = case after of
+  stepForward withList withZipper ListContext{before,after} = case after of
     next : after -> \here -> withZipper (ListContext (here:before) after) next
-    _ -> \here -> withList (reverse (here:before))
+    [] -> \here -> withList (reverse (here:before))
 
-  zipPrevious (Zipper ListContext{before,after} a) = case before of
-    a' : before' -> Just (Zipper (ListContext before' (a:after)) a')
-    _ -> Nothing
+  stepBackward withList withZipper ListContext{before,after} = case before of
+    prev : before -> \here -> withZipper (ListContext before (here:after)) prev
+    [] -> \here -> withList (here:after)
 
 instance Traversable (Zipper []) where
   traverse f (Zipper ListContext{before,after} a) = 

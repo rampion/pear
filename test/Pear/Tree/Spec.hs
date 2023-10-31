@@ -186,68 +186,68 @@ spec = describe "Pear.Tree" do
               ( Zipper (Top (('a' :× 'b') :× ('c' :× 'd')) :>- Just ('e' :× 'f') :\- Hole) 'g'
               )
 
-    describe "zipNext" do
+    describe "zipForward" do
       it "moves from the first to the second element of a two-element tree" do
-        zipNext (Zipper (AtTop :\ (Hole :< 'b', Nothing)) 'a') `shouldBe`
+        zipForward (Zipper (AtTop :\ (Hole :< 'b', Nothing)) 'a') `shouldBe`
           Just (Zipper (AtTop :\ ('a' :> Hole, Nothing)) 'b')
           
       it "moves from the second to the third element of a three-element tree" do
-        zipNext (Zipper (AtTop :\ ('a' :> Hole, Just 'c')) 'b') `shouldBe`
+        zipForward (Zipper (AtTop :\ ('a' :> Hole, Just 'c')) 'b') `shouldBe`
           Just (Zipper (Top ('a' :× 'b') :\- Hole) 'c')
           
       it "moves from the first to the second element of a four-element tree" do
-        zipNext (Zipper (AtTop :\ (Hole :< ('c' :× 'd'), Nothing) :\ (Hole :< 'b', Nothing)) 'a') `shouldBe`
+        zipForward (Zipper (AtTop :\ (Hole :< ('c' :× 'd'), Nothing) :\ (Hole :< 'b', Nothing)) 'a') `shouldBe`
           Just (Zipper (AtTop :\ (Hole :< ('c' :× 'd'), Nothing) :\ ('a' :> Hole, Nothing)) 'b')
 
       it "moves from the second to the third element of a four-element tree" do
-        zipNext (Zipper (AtTop :\ (Hole :< ('c' :× 'd'), Nothing) :\ ('a' :> Hole, Nothing)) 'b') `shouldBe`
+        zipForward (Zipper (AtTop :\ (Hole :< ('c' :× 'd'), Nothing) :\ ('a' :> Hole, Nothing)) 'b') `shouldBe`
           Just (Zipper (AtTop :\ (('a' :× 'b') :> Hole, Nothing) :\ (Hole :< 'd', Nothing)) 'c')
 
       it "moves from the fourth to the fifth element of a five-element tree" do
-        zipNext (Zipper (AtTop :\ (('a' :× 'b') :> Hole, Nothing) :\ ('c' :> Hole, Just 'e')) 'd') `shouldBe`
+        zipForward (Zipper (AtTop :\ (('a' :× 'b') :> Hole, Nothing) :\ ('c' :> Hole, Just 'e')) 'd') `shouldBe`
           Just (Zipper (Top (('a' :× 'b') :× ('c' :× 'd')) :>- Nothing :\- Hole) 'e')
 
       it "moves from the fourth to the fifth element of a six-element tree" do
-        zipNext (Zipper (AtTop :\ (('a' :× 'b') :> Hole, Just ('e' :× 'f')) :\ ('c' :> Hole, Nothing)) 'd') `shouldBe`
+        zipForward (Zipper (AtTop :\ (('a' :× 'b') :> Hole, Just ('e' :× 'f')) :\ ('c' :> Hole, Nothing)) 'd') `shouldBe`
           Just (Zipper (Top (('a' :× 'b') :× ('c' :× 'd')) :\- Hole :\ (Hole :< 'f', Nothing)) 'e')
 
       it "moves from the fifth to the sixth element of a six-element tree" do
-        zipNext (Zipper (Top (('a' :× 'b') :× ('c' :× 'd')) :\- Hole :\ (Hole :< 'f', Nothing)) 'e') `shouldBe`
+        zipForward (Zipper (Top (('a' :× 'b') :× ('c' :× 'd')) :\- Hole :\ (Hole :< 'f', Nothing)) 'e') `shouldBe`
           Just (Zipper (Top (('a' :× 'b') :× ('c' :× 'd')) :\- Hole :\ ('e' :> Hole, Nothing)) 'f')
 
       it "moves from the six to the seventh element of a seven-element tree" do
-        zipNext (Zipper (Top (('a' :× 'b') :× ('c' :× 'd')) :\- Hole :\ ('e' :> Hole, Just 'g')) 'f') `shouldBe`
+        zipForward (Zipper (Top (('a' :× 'b') :× ('c' :× 'd')) :\- Hole :\ ('e' :> Hole, Just 'g')) 'f') `shouldBe`
           Just (Zipper (Top (('a' :× 'b') :× ('c' :× 'd')) :>- Just ('e' :× 'f') :\- Hole) 'g')
 
-    describe "zipPrevious" do
+    describe "zipBackward" do
       it "moves from the second to the first element of a two-element tree" do
-        zipPrevious (Zipper (AtTop :\ ('a' :> Hole, Nothing)) 'b') `shouldBe`
+        zipBackward (Zipper (AtTop :\ ('a' :> Hole, Nothing)) 'b') `shouldBe`
           Just (Zipper (AtTop :\ (Hole :< 'b', Nothing)) 'a')
           
       it "moves from the third to the second element of a three-element tree" do
-        zipPrevious (Zipper (Top ('a' :× 'b') :\- Hole) 'c') `shouldBe`
+        zipBackward (Zipper (Top ('a' :× 'b') :\- Hole) 'c') `shouldBe`
           Just (Zipper (AtTop :\ ('a' :> Hole, Just 'c')) 'b')
           
       it "moves from the second to the first element of a four-element tree" do
-        zipPrevious (Zipper (AtTop :\ (Hole :< ('c' :× 'd'), Nothing) :\ ('a' :> Hole, Nothing)) 'b') `shouldBe`
+        zipBackward (Zipper (AtTop :\ (Hole :< ('c' :× 'd'), Nothing) :\ ('a' :> Hole, Nothing)) 'b') `shouldBe`
           Just (Zipper (AtTop :\ (Hole :< ('c' :× 'd'), Nothing) :\ (Hole :< 'b', Nothing)) 'a')
 
       it "moves from the third to the second element of a four-element tree" do
-        zipPrevious (Zipper (AtTop :\ (('a' :× 'b') :> Hole, Nothing) :\ (Hole :< 'd', Nothing)) 'c') `shouldBe`
+        zipBackward (Zipper (AtTop :\ (('a' :× 'b') :> Hole, Nothing) :\ (Hole :< 'd', Nothing)) 'c') `shouldBe`
           Just (Zipper (AtTop :\ (Hole :< ('c' :× 'd'), Nothing) :\ ('a' :> Hole, Nothing)) 'b')
 
       it "moves from the fifth to the fourth element of a five-element tree" do
-        zipPrevious (Zipper (Top (('a' :× 'b') :× ('c' :× 'd')) :>- Nothing :\- Hole) 'e') `shouldBe`
+        zipBackward (Zipper (Top (('a' :× 'b') :× ('c' :× 'd')) :>- Nothing :\- Hole) 'e') `shouldBe`
           Just (Zipper (AtTop :\ (('a' :× 'b') :> Hole, Nothing) :\ ('c' :> Hole, Just 'e')) 'd')
 
       it "moves from the fifth to the fourth element of a six-element tree" do
-        zipPrevious (Zipper (Top (('a' :× 'b') :× ('c' :× 'd')) :\- Hole :\ (Hole :< 'f', Nothing)) 'e') `shouldBe`
+        zipBackward (Zipper (Top (('a' :× 'b') :× ('c' :× 'd')) :\- Hole :\ (Hole :< 'f', Nothing)) 'e') `shouldBe`
           Just (Zipper (AtTop :\ (('a' :× 'b') :> Hole, Just ('e' :× 'f')) :\ ('c' :> Hole, Nothing)) 'd')
 
       it "moves from the sixth to the fifth element of a six-element tree" do
-        zipPrevious (Zipper (Top (('a' :× 'b') :× ('c' :× 'd')) :\- Hole :\ ('e' :> Hole, Nothing)) 'f') `shouldBe`
+        zipBackward (Zipper (Top (('a' :× 'b') :× ('c' :× 'd')) :\- Hole :\ ('e' :> Hole, Nothing)) 'f') `shouldBe`
           Just (Zipper (Top (('a' :× 'b') :× ('c' :× 'd')) :\- Hole :\ (Hole :< 'f', Nothing)) 'e')
 
       it "moves from the seventh to the six element of a seven-element tree" do
-        zipPrevious (Zipper (Top (('a' :× 'b') :× ('c' :× 'd')) :>- Just ('e' :× 'f') :\- Hole) 'g') `shouldBe`
+        zipBackward (Zipper (Top (('a' :× 'b') :× ('c' :× 'd')) :>- Just ('e' :× 'f') :\- Hole) 'g') `shouldBe`
           Just (Zipper (Top (('a' :× 'b') :× ('c' :× 'd')) :\- Hole :\ ('e' :> Hole, Just 'g')) 'f')
