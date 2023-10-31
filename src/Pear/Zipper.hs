@@ -134,3 +134,38 @@ instance Traversable (Zipper []) where
       do forwards (traverse (Backwards . f) before) 
       do f a
       do traverse f after
+
+{-
+An alternate representation of contexts could use a type family that
+was parameterized by the type of the hole and the type of the value
+
+  data family Ctx x a
+  data instance Ctx a a = H
+  data instance Ctx x (Pair a) = Ctx x a :< a | a :> Ctx x a
+  data instance Ctx x (Tree a) where
+    AtTop :: Ctx x a -> Ctx x (Tree a)
+    (:\-) :: Ctx x (Tree (Pair a)) -> Maybe a -> Ctx x (Tree a)
+    (:/-) :: Tree (Pair a) -> Ctx x a -> Ctx x (Tree a)
+
+Though this would give very pretty contexts for trees, e.g.
+
+  AtTop (((a :× b) :> (H :< d)) :< ((e :× f) :× (g × h))) 
+    :\- Nothing :\- Just (i :× j) :\- Nothing
+
+  Top (((a :× b) :× (c :× d)) :× ((e :× f) :× (g × h))) 
+    :>- Nothing :/- (H :< j) :\- Nothing
+
+It's not spiritually compatible with a classic zipper; moving the hole would
+require acting at depth, rather than acting near the top of the syntax tree.
+
+There's an isomorphism between `Context t a` and `Ctx a (t a)`, and both
+are derivatives of `t a` in terms of a.  `Ctx` does allow for a little
+more flexibility in terms of differentiation: `Ctx x a` is equivalent to da/dx.
+
+As a category, `Ctx` also lends itself to composition via substitution
+
+  (.) :: Ctx y z -> Ctx x y -> Ctx x z
+
+Though `Context` is sufficient for the currentl implementation of this library,
+it mayb be worth considering `Ctx` as a replacement in the future.
+ -}
