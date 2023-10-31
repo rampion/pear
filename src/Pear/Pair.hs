@@ -28,9 +28,9 @@ instance Zipperable Pair where
   mapWithContext f (a₀ :× a₁) = 
     f (Hole :< a₁) a₀ :× f (a₀ :> Hole) a₁
 
-  zipNext Zipper{context,value} = case context of
-    Hole :< a₁ -> Just do Zipper (value :> Hole) a₁
-    _₀ :> Hole -> Nothing
+  nextContext withPair withZipper = \case
+    Hole :< a₁ -> \a₀ -> withZipper (a₀ :> Hole) a₁
+    a₀ :> Hole -> \a₁ -> withPair (a₀ :× a₁)
 
   zipPrevious Zipper{context,value} = case context of
     Hole :< _₁ -> Nothing

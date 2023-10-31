@@ -36,6 +36,14 @@ zipUp Zipper{context,value} = fillContext context value
 zipDown :: Zipperable t => t a -> t (Zipper t a)
 zipDown = mapWithContext Zipper
 
+-- | Step to the next position
+zipNext :: Zipperable t => Zipper t a -> Maybe (Zipper t a)
+zipNext Zipper{context,value} = nextContext 
+  do \_ -> Nothing
+  do \cta -> Just . Zipper cta
+  do context
+  do value
+
 -- | Basic operations for a zipper
 --
 -- laws:
@@ -70,9 +78,9 @@ class (Traversable t, Traversable (Zipper t), Functor (Context t)) => Zipperable
   -- | create a value by filling the hole in the context
   fillContext :: Context t a -> a -> t a
 
-  -- | Step to the next position
-  zipNext :: Zipper t a -> Maybe (Zipper t a)
-  zipNext _ = Nothing
+  -- | advance to the next context if available
+  nextContext :: (t a -> r) -> (Context t a -> a -> r) -> Context t a -> a -> r
+  nextContext k _ cta = k . fillContext cta
 
   -- | Step to the previous position
   zipPrevious :: Zipper t a -> Maybe (Zipper t a)
@@ -119,9 +127,9 @@ instance Zipperable [] where
 
   fillContext ListContext{before,after} a = reverse before ++ a : after
 
-  zipNext (Zipper ListContext{before,after} a) = case after of
-    a' : after' -> Just (Zipper (ListContext (a:before) after') a')
-    _ -> Nothing
+  nextContext withList withZipper ListContext{before,after} = case after of
+    next : after -> \here -> withZipper (ListContext (here:before) after) next
+    _ -> \here -> withList (reverse (here:before))
 
   zipPrevious (Zipper ListContext{before,after} a) = case before of
     a' : before' -> Just (Zipper (ListContext before' (a:after)) a')

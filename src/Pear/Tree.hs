@@ -7,6 +7,7 @@ module Pear.Tree
 import Prelude hiding (lookup, fst, snd, reverse)
 import Control.Applicative (liftA2)
 import Control.Monad.State (evalState, state)
+import Data.Function ((&))
 import Data.Functor.Const (pattern Const, getConst)
 import Data.Functor.Identity (pattern Identity, runIdentity)
 import Data.Kind (Type)
@@ -37,12 +38,37 @@ instance Show a => Show (Tree a) where
       Top a -> showString "Top " . showsPrec 10 a
       t :>- ma -> showsTree t . showString " :>- " . showsPrec 4 ma
 
--- | one-hole contexts of 'Tree's
 instance Zipperable Tree where
+  -- | one-hole contexts of 'Tree's
   data Context Tree a where
+  -- Per Conor McBride, the one-hole context for a type is isomorphic to the
+  -- derivative of the algebraic representation of a type.
+  --
+  -- @
+  --  Maybe a                         ↔   1 + a
+  --  Hole                            ↔   1
+  --
+  --  Top a                           ↔   a
+  --  Tree (Pair a) :>- Maybe a       ↔   Tree (Pair a) · (1 + a)
+  --  Tree a                          ↔   a + Tree (Pair a) · (1 + a)
+  --
+  --  Context Tree a                  ↔   d(Tree a)/da
+  --                                  ↔   da/da + d(Tree (Pair a))/da · (1 + a) + Tree (Pair a) . d(1 + a)/da
+  --
+  --  da/da                           ↔   1
+  --                                  ↔   AtTop
+  --
+  --  d(Tree (Pair a))/da · (1 + a)   ↔   Context Tree a² · Context Pair a · (1 + a)
+  --                                  ↔   Context Tree a² :\ (Context Pair a, Maybe a)
+  --
+  --  Tree (Pair a) . d(1 + a)/da     ↔   Tree (Pair a) · 1
+  --                                  ↔   Tree a² :\- Hole
+  -- @
+  --
+  -- The chain rule is your friend
     AtTop :: Context Tree a
-    (:\-) :: Tree (Pair a) -> Hole -> Context Tree a
     (:\) :: Context Tree (Pair a) -> (Context Pair a, Maybe a)-> Context Tree a
+    (:\-) :: Tree (Pair a) -> Hole -> Context Tree a
     deriving (Show, Eq, Functor)
 
   fillContext = \case
@@ -55,10 +81,16 @@ instance Zipperable Tree where
     ta² :>- ma -> 
       mapWithContext (\cta² -> mapWithContext \cpa -> f (cta² :\ (cpa, ma))) ta² 
         :>- fmap (f (ta² :\- Hole)) ma
-
-  zipNext = undefined
-
-  zipPrevious = undefined
+    
+  nextContext withTree withZipper = \case
+    AtTop -> withTree . Top
+    ta²  :\- Hole -> withTree . \a -> ta² :>- Just a
+    cta² :\ (cpa, ma) -> 
+      cpa & nextContext
+        do cta² & nextContext
+            do \ta² -> maybe (withTree (ta² :>- Nothing)) (withZipper (ta² :\- Hole)) ma
+            do \cta² (a₂ :× a₃) -> withZipper (cta² :\ (Hole :< a₃, ma)) a₂
+        do \cpa -> withZipper (cta² :\ (cpa, ma))
 
 infixl 4 :\, :\-
 
