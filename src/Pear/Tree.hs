@@ -12,7 +12,6 @@ import Data.Functor.Identity (pattern Identity, runIdentity)
 import Data.Kind (Type)
 import Data.List.NonEmpty (NonEmpty)
 import Data.List.NonEmpty qualified as NonEmpty
-import Data.Traversable (foldMapDefault)
 import Numeric.Natural (Natural)
 import Pear.Pair hiding (at)
 import Pear.Positive
@@ -47,7 +46,7 @@ instance Zipperable Tree where
     deriving (Show, Eq, Functor)
 
   fillContext = \case
-    AtTop             -> \a -> Top a
+    AtTop             -> Top
     ta² :\- Hole      -> \a -> ta² :>- Just a
     cta² :\ (cpa, ma) -> \a -> fillContext cta² (fillContext cpa a) :>- ma
 
@@ -62,9 +61,6 @@ instance Zipperable Tree where
   zipPrevious = undefined
 
 infixl 4 :\, :\-
-
-instance Foldable (Zipper Tree) where
-  foldMap = foldMapDefault
 
 instance Traversable (Zipper Tree) where
   traverse = undefined

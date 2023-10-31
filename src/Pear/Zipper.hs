@@ -1,6 +1,9 @@
 module Pear.Zipper where
 
+import Control.Applicative (liftA3)
+import Control.Applicative.Backwards (pattern Backwards, forwards)
 import Data.Kind (Type, Constraint)
+import Data.Traversable (foldMapDefault)
 import Pear.Lens
 
 -- | Stand in for misssing value in a context
@@ -18,9 +21,20 @@ deriving instance (Show (Context t a), Show a) => Show (Zipper t a)
 deriving instance (Eq (Context t a), Eq a) => Eq (Zipper t a)
 deriving instance Functor (Context t) => Functor (Zipper t)
 
+instance Zipperable t => Foldable (Zipper t) where
+  foldMap = foldMapDefault
+
 -- | A lens for the focused value of a zipper
 focus :: Lens' a (Zipper t a)
 focus f Zipper{context,value} = Zipper context <$> f value
+
+-- | Create a value from the zipper
+zipUp :: Zipperable t => Zipper t a -> t a
+zipUp Zipper{context,value} = fillContext context value
+
+-- | Create zippers for each position in a data structure
+zipDown :: Zipperable t => t a -> t (Zipper t a)
+zipDown = mapWithContext Zipper
 
 -- | Basic operations for a zipper
 --
@@ -46,7 +60,7 @@ focus f Zipper{context,value} = Zipper context <$> f value
 --        = forwards (traverse (\a -> (Backwards . State) \s -> (s, Just a)) t) `evalState` Nothing
 --
 type Zipperable :: (Type -> Type) -> Constraint
-class (Functor t, Foldable t => Foldable (Zipper t), Traversable t => Traversable (Zipper t)) => Zipperable t where
+class (Traversable t, Traversable (Zipper t), Functor (Context t)) => Zipperable t where
   -- | A @Context t a@ is the type of one-hole contexts for the type @t a@
   data Context t :: Type -> Type
 
@@ -58,22 +72,65 @@ class (Functor t, Foldable t => Foldable (Zipper t), Traversable t => Traversabl
 
   -- | Step to the next position
   zipNext :: Zipper t a -> Maybe (Zipper t a)
+  zipNext _ = Nothing
 
   -- | Step to the previous position
   zipPrevious :: Zipper t a -> Maybe (Zipper t a)
+  zipPrevious _ = Nothing
 
-{-
 instance Zipperable Maybe where
-  data Context Maybe = InJust
+  data Context Maybe a = InJust
+    deriving (Show, Eq, Functor)
 
   mapWithContext f = fmap (f InJust)
-  fillContext 
--}
+  fillContext InJust = Just
 
--- | Create a value from the zipper
-zipUp :: Zipperable t => Zipper t a -> t a
-zipUp Zipper{context,value} = fillContext context value
+instance Traversable (Zipper Maybe) where
+  traverse f = fmap (Zipper InJust) . f . value
 
--- | Create zippers for each position in a data structure
-zipDown :: Zipperable t => t a -> t (Zipper t a)
-zipDown = mapWithContext Zipper
+instance Zipperable (Either e) where
+  data Context (Either e) a = InRight
+    deriving (Show, Eq, Functor)
+
+  mapWithContext f = fmap (f InRight)
+  fillContext InRight = Right
+
+instance Traversable (Zipper (Either e)) where
+  traverse f = fmap (Zipper InRight) . f . value
+
+instance Zipperable ((,) e) where
+  data Context ((,) e) a = InSnd e
+    deriving (Show, Eq, Functor)
+
+  mapWithContext f (e, a)= (e, f (InSnd e) a) 
+  fillContext (InSnd e) a = (e, a)
+
+instance Traversable (Zipper ((,) e)) where
+  traverse f (Zipper (InSnd e) a) = Zipper (InSnd e) <$> f a
+
+instance Zipperable [] where
+  data Context [] a = ListContext { before :: [a], after :: [a] }
+    deriving (Show, Eq, Functor)
+
+  mapWithContext f = loop [] where 
+    loop before = \case
+      a : after -> f ListContext{before,after} a : loop (a:before) after
+      [] -> []
+
+  fillContext ListContext{before,after} a = reverse before ++ a : after
+
+  zipNext (Zipper ListContext{before,after} a) = case after of
+    a' : after' -> Just (Zipper (ListContext (a:before) after') a')
+    _ -> Nothing
+
+  zipPrevious (Zipper ListContext{before,after} a) = case before of
+    a' : before' -> Just (Zipper (ListContext before' (a:after)) a')
+    _ -> Nothing
+
+instance Traversable (Zipper []) where
+  traverse f (Zipper ListContext{before,after} a) = 
+    liftA3
+      do \before b after -> Zipper ListContext{before,after} b
+      do forwards (traverse (Backwards . f) before) 
+      do f a
+      do traverse f after

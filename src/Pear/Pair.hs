@@ -1,7 +1,6 @@
 module Pear.Pair where
 
 import Data.Kind (Type)
-import Data.Traversable (foldMapDefault)
 import Pear.Bit
 import Pear.Zipper
 
@@ -23,8 +22,8 @@ instance Zipperable Pair where
     deriving (Show, Eq, Functor, Foldable, Traversable)
 
   fillContext = \case
-    Hole :< a₁ -> \a₀ -> a₀ :× a₁
-    a₀ :> Hole -> \a₁ -> a₀ :× a₁
+    Hole :< a₁ -> (:× a₁)
+    a₀ :> Hole -> (a₀ :×)
 
   mapWithContext f (a₀ :× a₁) = 
     f (Hole :< a₁) a₀ :× f (a₀ :> Hole) a₁
@@ -38,9 +37,6 @@ instance Zipperable Pair where
     a₀ :> Hole -> Just do Zipper (Hole :< value) a₀
 
 infix 5 :<, :>
-
-instance Foldable (Zipper Pair) where
-  foldMap = foldMapDefault
 
 instance Traversable (Zipper Pair) where
   traverse f = \case

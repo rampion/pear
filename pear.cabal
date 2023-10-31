@@ -19,6 +19,7 @@ common library-setup
     ghc-options: -Wall -Wextra -Werror -Wno-name-shadowing
   build-depends:        base >=4.16 && <4.20
                       , mtl
+                      , transformers
   default-language:     GHC2021
   default-extensions:   BlockArguments
                         DataKinds
