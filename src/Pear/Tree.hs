@@ -6,7 +6,7 @@ module Pear.Tree
   ) where
 
 import Prelude hiding (lookup, fst, snd, reverse)
-import Control.Applicative (liftA2)
+import Control.Applicative (liftA2, liftA3, (<**>))
 import Control.Monad.State (evalState, state)
 import Data.Function ((&))
 import Data.Functor.Const (pattern Const, getConst)
@@ -43,31 +43,31 @@ instance Show a => Show (Tree a) where
 instance Zipperable Tree where
   -- | one-hole contexts of 'Tree's
   data Context Tree a where
-  -- Per Conor McBride, the one-hole context for a type is isomorphic to the
-  -- derivative of the algebraic representation of a type.
-  --
-  -- @
-  --  Maybe a                         ↔   1 + a
-  --  Hole                            ↔   1
-  --
-  --  Top a                           ↔   a
-  --  Tree (Pair a) :>- Maybe a       ↔   Tree (Pair a) · (1 + a)
-  --  Tree a                          ↔   a + Tree (Pair a) · (1 + a)
-  --
-  --  Context Tree a                  ↔   d(Tree a)/da
-  --                                  ↔   da/da + d(Tree (Pair a))/da · (1 + a) + Tree (Pair a) . d(1 + a)/da
-  --
-  --  da/da                           ↔   1
-  --                                  ↔   AtTop
-  --
-  --  d(Tree (Pair a))/da · (1 + a)   ↔   Context Tree a² · Context Pair a · (1 + a)
-  --                                  ↔   Context Tree a² :\ (Context Pair a, Maybe a)
-  --
-  --  Tree (Pair a) . d(1 + a)/da     ↔   Tree (Pair a) · 1
-  --                                  ↔   Tree a² :\- Hole
-  -- @
-  --
-  -- The chain rule is your friend
+    -- Per Conor McBride, the one-hole context for a type is isomorphic to the
+    -- derivative of the algebraic representation of a type.
+    --
+    -- @
+    --  Maybe a                         ↔   1 + a
+    --  Hole                            ↔   1
+    --
+    --  Top a                           ↔   a
+    --  Tree (Pair a) :>- Maybe a       ↔   Tree (Pair a) · (1 + a)
+    --  Tree a                          ↔   a + Tree (Pair a) · (1 + a)
+    --
+    --  Context Tree a                  ↔   d(Tree a)/da
+    --                                  ↔   da/da + d(Tree (Pair a))/da · (1 + a) + Tree (Pair a) . d(1 + a)/da
+    --
+    --  da/da                           ↔   1
+    --                                  ↔   AtTop
+    --
+    --  d(Tree (Pair a))/da · (1 + a)   ↔   Context Tree a² · Context Pair a · (1 + a)
+    --                                  ↔   Context Tree a² :\ (Context Pair a, Maybe a)
+    --
+    --  Tree (Pair a) . d(1 + a)/da     ↔   Tree (Pair a) · 1
+    --                                  ↔   Tree a² :\- Hole
+    -- @
+    --
+    -- The chain rule is your friend
     AtTop :: Context Tree a
     (:\) :: Context Tree (Pair a) -> (Context Pair a, Maybe a)-> Context Tree a
     (:\-) :: Tree (Pair a) -> Hole -> Context Tree a
@@ -116,7 +116,62 @@ instance Zipperable Tree where
 infixl 4 :\, :\-
 
 instance Traversable (Zipper Tree) where
-  traverse = undefined
+  traverse = initial where 
+
+    initial :: Applicative f => (a -> f b) -> Zipper Tree a -> f (Zipper Tree b)
+    initial g Zipper{context,value} = loop g 
+      do \() b () ctb -> Zipper ctb b
+      do pure ()
+      do g value 
+      do pure ()
+      do context 
+
+    loop 
+      :: Applicative f 
+      => (a -> f b) 
+      -> (x -> y -> z -> Context Tree b -> r) 
+      -> f x -> f y -> f z -> Context Tree a -> f r 
+    loop g p fx fy fz = \case
+      AtTop -> 
+        liftA3 (\x y z -> p x y z AtTop) fx fy fz
+      ta² :\- Hole -> 
+        traverse (both g) ta² <**> liftA3 (\x y z tb² -> p x y z (tb² :\- Hole)) fx fy fz
+      cta² :\ (ca², ma) -> 
+        divide g 
+          do \x y cb² z mb ctb² -> p x y z (ctb² :\ (cb², mb))
+          do \p fx fy -> retain g p (\p fz -> loop (both g) p fx fy fz cta²) fz ma
+          do fx 
+          do fy 
+          do ca²
+
+    both :: Applicative f => (a -> f b) -> Pair a -> f (Pair b)
+    both g (a₀ :× a₁) = liftA2 (:×) (g a₀) (g a₁)
+
+    divide 
+      :: Applicative f 
+      => (a -> f b) 
+      -> (x -> y -> Context Pair b -> z -> Maybe b -> Context Tree (Pair b) -> r) 
+      -> (forall x' y'. (x' -> y' -> z -> Maybe b -> Context Tree (Pair b) -> r) -> f x' -> f y' -> f r)
+      -> f x -> f y -> Context Pair a -> f r
+    divide g p q fx fy = \case
+      Hole :< a₁ -> 
+        let comma = liftA2 \y b₁ x -> p x y (Hole :< b₁)
+        in q (&) fx (fy `comma` g a₁)
+      a₀ :> Hole -> 
+        let comma = liftA2 \b₀ x y -> p x y (b₀ :> Hole)
+        in q ($) (g a₀ `comma` fx) fy
+
+    retain 
+      :: Applicative f
+      => (a -> f b)
+      -> (x -> y -> z -> Maybe b -> Context Tree (Pair b) -> r)
+      -> (forall z'. (x -> y -> z' -> Context Tree (Pair b) -> r) -> f z' -> f r)
+      -> f z -> Maybe a -> f r
+    retain g p q fz = \case
+      Nothing -> q (\x y z -> p x y z Nothing) fz
+      Just a -> 
+        let comma = liftA2 \b z x y -> p x y z (Just b)
+        in q (\x y p -> p x y) (g a `comma` fz)
 
 instance Semigroup (Tree a) where
   (<>) = undefined

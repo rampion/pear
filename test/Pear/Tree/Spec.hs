@@ -1,7 +1,8 @@
 module Pear.Tree.Spec where
 
-import Test.Hspec
+import Data.Foldable qualified as Foldable
 import Pear.Tree
+import Test.Hspec
 
 spec :: Spec
 spec = describe "Pear.Tree" do
@@ -251,3 +252,33 @@ spec = describe "Pear.Tree" do
       it "moves from the seventh to the six element of a seven-element tree" do
         zipBackward (Zipper (Top (('a' :× 'b') :× ('c' :× 'd')) :>- Just ('e' :× 'f') :\- Hole) 'g') `shouldBe`
           Just (Zipper (Top (('a' :× 'b') :× ('c' :× 'd')) :\- Hole :\ ('e' :> Hole, Just 'g')) 'f')
+
+  describe "instance Traversable (Zipper Tree)" do
+    it "traverses a seven-element zipper focused on the first element in the correct order" do
+      Foldable.toList (Zipper (AtTop :\ (Hole :< ('c' :× 'd'), Just ('e' :× 'f')) :\ (Hole :< 'b', Just 'g')) 'a')
+        `shouldBe` "abcdefg"
+
+    it "traverses a seven-element zipper focused on the second element in the correct order" do
+      Foldable.toList (Zipper (AtTop :\ (Hole :< ('c' :× 'd'), Just ('e' :× 'f')) :\ ('a' :> Hole, Just 'g')) 'b')
+        `shouldBe` "abcdefg"
+
+    it "traverses a seven-element zipper focused on the third element in the correct order" do
+      Foldable.toList (Zipper (AtTop :\ (('a' :× 'b') :> Hole, Just ('e' :× 'f')) :\ (Hole :< 'd', Just 'g')) 'c')
+        `shouldBe` "abcdefg"
+
+    it "traverses a seven-element zipper focused on the fourth element in the correct order" do
+      Foldable.toList (Zipper (AtTop :\ (('a' :× 'b') :> Hole, Just ('e' :× 'f')) :\ ('c' :> Hole, Just 'g')) 'd')
+        `shouldBe` "abcdefg"
+
+    it "traverses a seven-element zipper focused on the fifth element in the correct order" do
+      Foldable.toList (Zipper (Top (('a' :× 'b') :× ('c' :× 'd')) :\- Hole :\ (Hole :< 'f', Just 'g')) 'e')
+        `shouldBe` "abcdefg"
+
+    it "traverses a seven-element zipper focused on the sixth element in the correct order" do
+      Foldable.toList (Zipper (Top (('a' :× 'b') :× ('c' :× 'd')) :\- Hole :\ ('e' :> Hole, Just 'g')) 'f')
+        `shouldBe` "abcdefg"
+
+    it "traverses a seven-element zipper focused on the seventh element in the correct order" do
+      Foldable.toList (Zipper (Top (('a' :× 'b') :× ('c' :× 'd')) :>- Just ('e' :× 'f') :\- Hole) 'g')
+        `shouldBe` "abcdefg"
+
