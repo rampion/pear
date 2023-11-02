@@ -6,9 +6,10 @@ module Pear.Tree
   ) where
 
 import Prelude hiding (lookup, fst, snd, reverse)
-import Control.Applicative (liftA2, liftA3, (<**>))
+import Control.Applicative (liftA2, liftA3)
 import Control.Monad.State (evalState, state)
 import Data.Function ((&))
+import Data.Functor ((<&>))
 import Data.Functor.Const (pattern Const, getConst)
 import Data.Functor.Identity (pattern Identity, runIdentity)
 import Data.Kind (Type)
@@ -116,62 +117,94 @@ instance Zipperable Tree where
 infixl 4 :\, :\-
 
 instance Traversable (Zipper Tree) where
-  traverse = initial where 
+  traverse = setup where 
 
-    initial :: Applicative f => (a -> f b) -> Zipper Tree a -> f (Zipper Tree b)
-    initial g Zipper{context,value} = loop g 
-      do \() b () ctb -> Zipper ctb b
-      do pure ()
-      do g value 
-      do pure ()
+    setup :: Applicative f => (a -> f b) -> Zipper Tree a -> f (Zipper Tree b)
+    setup g Zipper{context,value} = loop g 
+      do g value <&> \b ctb² () -> Zipper ctb² b
       do context 
+      do pure ()
 
+    -- aggregate the effects so that the elements are traversed in the proper order
     loop 
       :: Applicative f 
       => (a -> f b) 
-      -> (x -> y -> z -> Context Tree b -> r) 
-      -> f x -> f y -> f z -> Context Tree a -> f r 
-    loop g p fx fy fz = \case
-      AtTop -> 
-        liftA3 (\x y z -> p x y z AtTop) fx fy fz
-      ta² :\- Hole -> 
-        traverse (both g) ta² <**> liftA3 (\x y z tb² -> p x y z (tb² :\- Hole)) fx fy fz
-      cta² :\ (ca², ma) -> 
-        divide g 
-          do \x y cb² z mb ctb² -> p x y z (ctb² :\ (cb², mb))
-          do \p fx fy -> retain g p (\p fz -> loop (both g) p fx fy fz cta²) fz ma
-          do fx 
-          do fy 
-          do ca²
+      -> f (Context Tree b -> x -> r) 
+      -> Context Tree a -> f x -> f r 
+    loop g fh = \case
+      -- fh - Seeded with the focused element; used to grow the effects *out* around
+      --      that point as we ascend through the balanced binary tree until we hit
+      --      Top or a (:>-). 
+      --
+      --      For example consider the following partial context:
+      --      
+      --      … :\ (((A :× B) :× (C :× D)) :> Hole, _) 
+      --        :\ (Hole :< (G :× H), _) 
+      --        :\ (E :> Hole, _)
+      --
+      --      This can also be drawn as a tree diagram:
+      --
+      --                           :<
+      --                 :>                     :×
+      --          A :× B    C :> D    E :× Hole    G :× H
+      --
+      --      In this case, fh would be seeded with the focused element,
+      --      then the effects of `E` would be placed before it,
+      --      then the effects of `G :× H` placed after,
+      --      then the effects of `(A :× B) :× (C :× D)` placed before
+      --
+      --      We use the function value to rearrange the values obtained
+      --      from the effects in the order needed to recreate a Zipper.
+      --
+      -- fx - Offshoots from (:>-) below the focused balanced binary tree,
+      --      effects are aggregated leftward
+      --
+      --      For example consider the following partial context:
+      --
+      --      … :\ (_, Just ((I :× J) :× (K :× L))) 
+      --        :\ (_, Nothing)
+      --        :\ (_, Just M)
+      --
+      --      This can also be drawn as a set of tree diagrams.
+      --      
+      --               Just         Nothing         Just
+      --               :×
+      --        I :× J    K :× L                    M
+      --
+      --      In this case, fx would start out empty,
+      --      then the effects of `M` would be prepended to it,
+      --      then the effects of `(I :× J) :× (K :× L)` would be prepended to
+      --      it.
+      --
+      AtTop -> liftA2 
+        do \h -> h AtTop
+        do fh
+      ta² :\- Hole -> liftA3 
+        do \tb² h -> h (tb² :\- Hole)
+        do traverse (both g) ta²
+        do fh
+      cta² :\ (Hole :< a₁, Nothing) -> loop (both g) 
+        do (fh ? g a₁) \h b₁ ctb² -> h (ctb² :\ (Hole :< b₁, Nothing))
+        do cta²
+      cta² :\ (Hole :< a₁, Just a) -> \fx -> loop (both g)
+        do (fh ? g a₁) \h b₁ ctb² k -> k h b₁ ctb²
+        do cta²
+        do (g a ? fx) \b x h b₁ ctb² -> h (ctb² :\ (Hole :< b₁, Just b)) x
+      cta² :\ (a₀ :> Hole, Nothing) -> loop (both g)
+        do (g a₀ ? fh) \b₀ h ctb² -> h (ctb² :\ (b₀ :> Hole, Nothing))
+        do cta²
+      cta² :\ (a₀ :> Hole, Just a) -> \fx -> loop (both g)
+        do (g a₀ ? fh) \b₀ h ctb² k -> k b₀ h ctb²
+        do cta²
+        do (g a ? fx) \b x b₀ h ctb² -> h (ctb² :\ (b₀ :> Hole, Just b)) x
 
+    -- infix version of liftA2
+    (?) :: Applicative f => f a -> f b -> (a -> b -> c) -> f c
+    (?) fa fb g = liftA2 g fa fb
+
+    -- raises a kleisli arrow to operate on pairs
     both :: Applicative f => (a -> f b) -> Pair a -> f (Pair b)
     both g (a₀ :× a₁) = liftA2 (:×) (g a₀) (g a₁)
-
-    divide 
-      :: Applicative f 
-      => (a -> f b) 
-      -> (x -> y -> Context Pair b -> z -> Maybe b -> Context Tree (Pair b) -> r) 
-      -> (forall x' y'. (x' -> y' -> z -> Maybe b -> Context Tree (Pair b) -> r) -> f x' -> f y' -> f r)
-      -> f x -> f y -> Context Pair a -> f r
-    divide g p q fx fy = \case
-      Hole :< a₁ -> 
-        let comma = liftA2 \y b₁ x -> p x y (Hole :< b₁)
-        in q (&) fx (fy `comma` g a₁)
-      a₀ :> Hole -> 
-        let comma = liftA2 \b₀ x y -> p x y (b₀ :> Hole)
-        in q ($) (g a₀ `comma` fx) fy
-
-    retain 
-      :: Applicative f
-      => (a -> f b)
-      -> (x -> y -> z -> Maybe b -> Context Tree (Pair b) -> r)
-      -> (forall z'. (x -> y -> z' -> Context Tree (Pair b) -> r) -> f z' -> f r)
-      -> f z -> Maybe a -> f r
-    retain g p q fz = \case
-      Nothing -> q (\x y z -> p x y z Nothing) fz
-      Just a -> 
-        let comma = liftA2 \b z x y -> p x y z (Just b)
-        in q (\x y p -> p x y) (g a `comma` fz)
 
 instance Semigroup (Tree a) where
   (<>) = undefined
