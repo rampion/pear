@@ -1,5 +1,6 @@
 module Pear.Tree.Spec where
 
+import Prelude hiding (reverse)
 import Data.Foldable qualified as Foldable
 import Pear.Tree
 import Test.Hspec
@@ -282,3 +283,21 @@ spec = describe "Pear.Tree" do
       Foldable.toList (Zipper (Top (('a' :× 'b') :× ('c' :× 'd')) :>- Just ('e' :× 'f') :\- Hole) 'g')
         `shouldBe` "abcdefg"
 
+  describe "instance Semigroup Tree" do
+    it "concatenates the trees" do
+      (Top 'a' <> Top 'b' <> Top 'c') `shouldBe`
+        (Top ('a' :× 'b') :>- Just 'c')
+        
+    it "is associative" do
+      (Top 'a' <> (Top 'b' <> Top 'c')) `shouldBe`
+        ((Top 'a' <> Top 'b') <> Top 'c')
+
+  describe "reverse" do
+    it "reverses a four element tree" do
+      reverse (Top (('a' :× 'b') :× ('c' :× 'd')) :>- Nothing :>- Nothing)
+        `shouldBe` Top (('d' :× 'c') :× ('b' :× 'a')) :>- Nothing :>- Nothing
+
+    it "reverses a seven element tree" do
+      reverse (Top (('a' :× 'b') :× ('c' :× 'd')) :>- Just ('e' :× 'f') :>- Just 'g')
+        `shouldBe` Top (('g' :× 'f') :× ('e' :× 'd')) :>- Just ('c' :× 'b') :>- Just 'a'
+    

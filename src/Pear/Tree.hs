@@ -207,13 +207,25 @@ instance Traversable (Zipper Tree) where
     both g (a₀ :× a₁) = liftA2 (:×) (g a₀) (g a₁)
 
 instance Semigroup (Tree a) where
-  (<>) = undefined
+  t₀ <> t₁ = foldl (flip push) t₀ t₁
 
 type Tree0 :: Type -> Type
 type Tree0 a = Maybe (Tree a)
 
 reverse :: Tree a -> Tree a
-reverse = undefined
+reverse = loop id id where
+  loop  :: ((a -> r) -> a -> r) -> (Tree a -> r) -> Tree a -> r
+  loop f k = \case
+    Top a -> f (k . Top) a
+    ta² :>- Nothing -> loop
+      do \g (a₀ :× a₁) -> f (\a₁ -> f (g . (a₁ :×)) a₀) a₁
+      do \ta² -> k (ta² :>- Nothing)
+      do ta²
+    ta² :>- Just a -> loop
+      do \g (a₀ :× a₁) -> f \a₂ -> f (\a₁ -> g (a₂ :× a₁) a₀) a₁
+      do \ta² -> f \a -> k (ta² :>- Just a)
+      do ta²
+      do a
 
 reverse0 :: Tree0 a -> Tree0 a
 reverse0 = fmap reverse
