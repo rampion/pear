@@ -25,9 +25,10 @@ flag Development
 common library-setup
   if flag(development)
     ghc-options: -Wall -Wextra -Werror -Wno-name-shadowing
-  build-depends:        base >=4.16 && <4.20
+  build-depends:        base >=4.18 && <4.20
                       , mtl
                       , transformers
+                      , these
   default-language:     GHC2021
   default-extensions:   BlockArguments
                         DataKinds
@@ -53,6 +54,7 @@ library
                         Pear.Positive.Kind
                         Pear.Tree
                         Pear.Tree.Indexed
+                        Pear.Those
                         Pear.Zipper
 test-suite pear-spec
   import:               library-setup

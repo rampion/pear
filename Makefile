@@ -10,6 +10,10 @@ ghcid-article:
 	ghcid --test=":! make doctest-article"
 .PHONY: ghcid-article
 
+ghcid:
+	ghcid --target pear --run=":! ghcid --target pear-spec --run"
+.PHONY: ghcid
+
 doc/%.html: doc/%.md
 	pandoc --standalone $(addprefix --css ../,$(wildcard doc/css/*)) --from gfm --to html --metadata=title:$* $< -o $@
 
