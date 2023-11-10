@@ -1,6 +1,6 @@
 module Pear.Tree.Spec where
 
-import Prelude hiding (reverse)
+import Prelude hiding (reverse, span, splitAt)
 import Data.Foldable qualified as Foldable
 import Pear.Tree
 import Test.Hspec
@@ -35,16 +35,16 @@ spec = describe "Pear.Tree" do
 
   describe "push" do
     it "appends to a one-element tree correctly" do
-      push 'b' (Top 'a') `shouldBe` Top ('a' :× 'b') :>- Nothing
+      push (Top 'a') 'b' `shouldBe` Top ('a' :× 'b') :>- Nothing
 
     it "appends to a two-element tree correctly" do
-      push 'c' (Top ('a' :× 'b') :>- Nothing) `shouldBe` Top ('a' :× 'b') :>- Just 'c'
+      push (Top ('a' :× 'b') :>- Nothing) 'c' `shouldBe` Top ('a' :× 'b') :>- Just 'c'
 
     it "appends to a five-element tree correctly" do
-      push 'f' (Top (('a' :× 'b') :× ('c' :× 'd')) :>- Nothing :>- Just 'e') `shouldBe` Top (('a' :× 'b') :× ('c' :× 'd')) :>- Just ('e' :× 'f') :>- Nothing
+      push (Top (('a' :× 'b') :× ('c' :× 'd')) :>- Nothing :>- Just 'e') 'f' `shouldBe` Top (('a' :× 'b') :× ('c' :× 'd')) :>- Just ('e' :× 'f') :>- Nothing
 
     it "appends to a seven-element tree correctly" do
-      push 'h' (Top (('a' :× 'b') :× ('c' :× 'd')) :>- Just ('e' :× 'f') :>- Just 'g') `shouldBe` Top ((('a' :× 'b') :× ('c' :× 'd')) :× (('e' :× 'f') :× ('g' :× 'h'))) :>- Nothing :>- Nothing :>- Nothing
+      push (Top (('a' :× 'b') :× ('c' :× 'd')) :>- Just ('e' :× 'f') :>- Just 'g') 'h' `shouldBe` Top ((('a' :× 'b') :× ('c' :× 'd')) :× (('e' :× 'f') :× ('g' :× 'h'))) :>- Nothing :>- Nothing :>- Nothing
 
   describe "pop" do
     it "splits a one-element tree correctly" do
@@ -301,3 +301,177 @@ spec = describe "Pear.Tree" do
       reverse (Top (('a' :× 'b') :× ('c' :× 'd')) :>- Just ('e' :× 'f') :>- Just 'g')
         `shouldBe` Top (('g' :× 'f') :× ('e' :× 'd')) :>- Just ('c' :× 'b') :>- Just 'a'
     
+  describe "partition" do
+    it "partitions a list of seven elements correctly" do
+      let rejectVowel x 
+            | x `elem` "aeiouyAEIOUY" = Left x
+            | otherwise = Right x
+      partition rejectVowel 
+        do Top (('a' :× 'b') :× ('c' :× 'd')) :>- Just ('e' :× 'f') :>- Just 'g'
+        `shouldBe` 
+          These
+            do Top ('a' :× 'e') :>- Nothing
+            do Top (('b' :× 'c') :× ('d' :× 'f')) :>- Nothing :>- Just 'g'
+
+  describe "span" do
+    it "breaks two trees before the first false test" do 
+        span (< 'g') (Top (('a' :× 'b') :× ('c' :× 'g')) :>- Just ('f' :× 'e') :>- Just 'd')
+          `shouldBe`
+            These
+              do Top ('a' :× 'b') :>- Just 'c'
+              do Top (('g' :× 'f') :× ('e' :× 'd')) :>- Nothing :>- Nothing
+      
+    it "returns the entire tree as This if all elements are true" do 
+        span (< 'h') (Top (('a' :× 'b') :× ('c' :× 'd')) :>- Just ('e' :× 'f') :>- Just 'g')
+          `shouldBe`
+            This (Top (('a' :× 'b') :× ('c' :× 'd')) :>- Just ('e' :× 'f') :>- Just 'g')
+      
+    it "returns the entire tree as That if the first element is false" do 
+        span (> 'a') (Top (('a' :× 'b') :× ('c' :× 'd')) :>- Just ('e' :× 'f') :>- Just 'g')
+          `shouldBe`
+            That (Top (('a' :× 'b') :× ('c' :× 'd')) :>- Just ('e' :× 'f') :>- Just 'g')
+
+  describe "unshift" do
+    it "prepends an element to a singleton tree" do
+      unshift 'c' (Top 'd')
+        `shouldBe` Top ('c' :× 'd') :>- Nothing
+    it "prepends an element to a three-element tree" do
+      unshift 'a' (Top ('b' :× 'c') :>- Just 'd')
+        `shouldBe` Top (('a' :× 'b') :× ('c' :× 'd')) :>- Nothing :>- Nothing
+
+  describe "shift" do
+    it "removes the first element from a singleton tree" do
+      shift (Top 'd')
+        `shouldBe` ('d', Nothing)
+
+    it "removes the first element from a four-element tree" do
+      shift (Top (('a' :× 'b') :× ('c' :× 'd')) :>- Nothing :>- Nothing)
+        `shouldBe` ('a', Just (Top ('b' :× 'c') :>- Just 'd'))
+
+  describe "zipSplit" do
+    describe "for a zipper of a one-element tree" do
+      it "splits into the proper trees when focused on the only element" do
+        zipSplit (Zipper AtTop 'a')
+          `shouldBe` (Nothing, Top 'a')
+
+    describe "for a zipper of a two-element tree" do
+      it "splits into the proper trees when focused on the first element" do
+        zipSplit (Zipper (AtTop :\ (Hole :< 'b', Nothing)) 'a')
+          `shouldBe` (Nothing, Top ('a' :× 'b') :>- Nothing)
+
+      it "splits into the proper trees when focused on the second element" do
+        zipSplit (Zipper (AtTop :\ ('a' :> Hole, Nothing)) 'b')
+          `shouldBe` (Just (Top 'a'), Top 'b')
+
+    describe "for a zipper of a three-element tree" do
+      it "splits into the proper trees when focused on the first element" do
+        zipSplit (Zipper (AtTop :\ (Hole :< 'b', Just 'c')) 'a')
+          `shouldBe` (Nothing, Top ('a' :× 'b') :>- Just 'c')
+
+      it "splits into the proper trees when focused on the second element" do
+        zipSplit (Zipper (AtTop :\ ('a' :> Hole, Just 'c')) 'b')
+          `shouldBe` (Just (Top 'a'), Top ('b' :× 'c') :>- Nothing)
+
+      it "splits into the proper trees when focused on the third element" do
+        zipSplit (Zipper (Top ('a' :× 'b') :\- Hole) 'c')
+          `shouldBe` (Just (Top ('a' :× 'b') :>- Nothing), Top 'c')
+
+    describe "for a zipper of a four-element tree" do
+      it "splits into the proper trees when focused on the first element" do
+        zipSplit (Zipper (AtTop :\ (Hole :< ('c' :× 'd'), Nothing) :\ (Hole :< 'b', Nothing)) 'a')
+          `shouldBe` (Nothing, Top (('a' :× 'b') :× ('c' :× 'd')) :>- Nothing :>- Nothing)
+
+      it "splits into the proper trees when focused on the second element" do
+        zipSplit (Zipper (AtTop :\ (Hole :< ('c' :× 'd'), Nothing) :\ ('a' :> Hole, Nothing)) 'b')
+          `shouldBe` (Just (Top 'a'), Top ('b' :× 'c') :>- Just 'd')
+
+      it "splits into the proper trees when focused on the third element" do
+        zipSplit (Zipper (AtTop :\ (('a' :× 'b') :> Hole, Nothing) :\ (Hole :< 'd', Nothing)) 'c')
+          `shouldBe` (Just (Top ('a' :× 'b') :>- Nothing), Top ('c' :× 'd') :>- Nothing)
+
+      it "splits into the proper trees when focused on the fourth element" do
+        zipSplit (Zipper (AtTop :\ (('a' :× 'b') :> Hole, Nothing) :\ ('c' :> Hole, Nothing)) 'd')
+          `shouldBe` (Just (Top ('a' :× 'b') :>- Just 'c'), Top 'd')
+
+    describe "for a zipper of a seven-element tree" do
+      it "splits into the proper trees when focused on the first element" do
+        zipSplit (Zipper (AtTop :\ (Hole :< ('c' :× 'd'), Just ('e' :× 'f')) :\ (Hole :< 'b', Just 'g')) 'a')
+          `shouldBe` (Nothing, Top (('a' :× 'b') :× ('c' :× 'd')) :>- Just ('e' :× 'f') :>- Just 'g')
+
+      it "splits into the proper trees when focused on the second element" do
+        zipSplit (Zipper (AtTop :\ (Hole :< ('c' :× 'd'), Just ('e' :× 'f')) :\ ('a' :> Hole, Just 'g')) 'b')
+          `shouldBe` (Just (Top 'a'), Top (('b' :× 'c') :× ('d' :× 'e')) :>- Just ('f' :× 'g') :>- Nothing)
+
+      it "splits into the proper trees when focused on the third element" do
+        zipSplit (Zipper (AtTop :\ (('a' :× 'b') :> Hole, Just ('e' :× 'f')) :\ (Hole :< 'd', Just 'g')) 'c')
+          `shouldBe` (Just (Top ('a' :× 'b') :>- Nothing), Top (('c' :× 'd') :× ('e' :× 'f')) :>- Nothing :>- Just 'g')
+
+      it "splits into the proper trees when focused on the fourth element" do
+        zipSplit (Zipper (AtTop :\ (('a' :× 'b') :> Hole, Just ('e' :× 'f')) :\ ('c' :> Hole, Just 'g')) 'd')
+          `shouldBe` (Just (Top ('a' :× 'b') :>- Just 'c'), Top (('d' :× 'e') :× ('f' :× 'g')) :>- Nothing :>- Nothing)
+
+      it "splits into the proper trees when focused on the fifth element" do
+        zipSplit (Zipper (Top (('a' :× 'b') :× ('c' :× 'd')) :\- Hole :\ (Hole :< 'f', Just 'g')) 'e')
+          `shouldBe` (Just (Top (('a' :× 'b') :× ('c' :× 'd')) :>- Nothing :>- Nothing), Top ('e' :× 'f') :>- Just 'g')
+
+      it "splits into the proper trees when focused on the sixth element" do
+        zipSplit (Zipper (Top (('a' :× 'b') :× ('c' :× 'd')) :\- Hole :\ ('e' :> Hole, Just 'g')) 'f')
+          `shouldBe` (Just (Top (('a' :× 'b') :× ('c' :× 'd')) :>- Nothing :>- Just 'e'), Top ('f' :× 'g') :>- Nothing)
+
+      it "splits into the proper trees when focused on the seventh element" do
+        zipSplit (Zipper (Top (('a' :× 'b') :× ('c' :× 'd')) :>- Just ('e' :× 'f') :\- Hole) 'g')
+          `shouldBe` (Just (Top (('a' :× 'b') :× ('c' :× 'd')) :>- Just ('e' :× 'f') :>- Nothing), Top 'g')
+{-
+  xdescribe "splitAt" do
+    it "can split a seven-element tree into a one-element tree and a six-element tree" do
+      splitAt ObI (Top (('a' :× 'b') :× ('c' :× 'd')) :>- Just ('e' :× 'f') :>- Just 'g')
+        `shouldBe` 
+          Just 
+            ( Top 'a'
+            , Top (('b' :× 'c') :× ('d' :× 'e')) :>- Just ('f' :× 'g') :>- Nothing
+            )
+
+    it "can split a seven-element tree into a two-element tree and a five-element tree" do
+      splitAt (ObI :. O) (Top (('a' :× 'b') :× ('c' :× 'd')) :>- Just ('e' :× 'f') :>- Just 'g')
+        `shouldBe` 
+          Just 
+            ( Top ('a' :× 'b') :>- Nothing
+            , Top (('c' :× 'd') :× ('e' :× 'f')) :>- Nothing :>- Just 'g'
+            )
+
+    it "can split a seven-element tree into a three-element tree and a four-element tree" do
+      splitAt (ObI :. I) (Top (('a' :× 'b') :× ('c' :× 'd')) :>- Just ('e' :× 'f') :>- Just 'g')
+        `shouldBe` 
+          Just 
+            ( Top ('a' :× 'b') :>- Just 'c'
+            , Top (('d' :× 'e') :× ('f' :× 'g')) :>- Nothing :>- Nothing
+            )
+
+    it "can split a seven-element tree into a four-element tree and a three-element tree" do
+      splitAt (ObI :. O :. O) (Top (('a' :× 'b') :× ('c' :× 'd')) :>- Just ('e' :× 'f') :>- Just 'g')
+        `shouldBe` 
+          Just 
+            ( Top (('a' :× 'b') :× ('c' :× 'd')) :>- Nothing :>- Nothing
+            , Top ('e' :× 'f') :>- Just 'g'
+            )
+
+    it "can split a seven-element tree into a five-element tree and a two-element tree" do
+      splitAt (ObI :. O :. I) (Top (('a' :× 'b') :× ('c' :× 'd')) :>- Just ('e' :× 'f') :>- Just 'g')
+        `shouldBe` 
+          Just 
+            ( Top (('a' :× 'b') :× ('c' :× 'd')) :>- Nothing :>- Just 'e'
+            , Top ('f' :× 'g') :>- Nothing
+            )
+
+    it "can split a seven-element tree into a six-element tree and a one-element tree" do
+      splitAt (ObI :. I :. O) (Top (('a' :× 'b') :× ('c' :× 'd')) :>- Just ('e' :× 'f') :>- Just 'g')
+        `shouldBe` 
+          Just 
+            ( Top (('a' :× 'b') :× ('c' :× 'd')) :>- Just ('e' :× 'f') :>- Nothing
+            , Top 'g'
+            )
+
+    it "returns Nothing when given a size larger the tree" do
+      splitAt (ObI :. I :. I) (Top (('a' :× 'b') :× ('c' :× 'd')) :>- Just ('e' :× 'f') :>- Just 'g')
+        `shouldBe` Nothing
+-}

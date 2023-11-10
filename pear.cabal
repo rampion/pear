@@ -30,7 +30,8 @@ common library-setup
                       , transformers
                       , these
   default-language:     GHC2021
-  default-extensions:   BlockArguments
+  default-extensions:   AllowAmbiguousTypes
+                        BlockArguments
                         DataKinds
                         DerivingStrategies
                         ExplicitNamespaces

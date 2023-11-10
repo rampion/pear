@@ -1,5 +1,6 @@
 module Pear.Pair where
 
+import Data.Foldable1 (Foldable1(..))
 import Data.Kind (Type)
 import Pear.Bit
 import Pear.Zipper
@@ -7,6 +8,9 @@ import Pear.Zipper
 type Pair :: Type -> Type
 data Pair a = a :× a
   deriving stock (Eq, Show, Functor, Foldable, Traversable)
+
+instance Foldable1 Pair where
+  foldMap1 f (a₀ :× a₁) = f a₀ <> f a₁
 
 at :: Functor f => Bit -> (a -> f a) -> Pair a -> f (Pair a)
 at = undefined
