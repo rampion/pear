@@ -18,6 +18,7 @@ import Data.Functor.Identity (pattern Identity, runIdentity)
 import Data.Kind (Type)
 import Data.List.NonEmpty (NonEmpty)
 import Data.List.NonEmpty qualified as NonEmpty
+import Data.Monoid (pattern Alt, getAlt)
 import Data.Tuple (swap)
 import Numeric.Natural (Natural)
 import Pear.Pair hiding (at)
@@ -589,6 +590,9 @@ zipSplit = \Zipper{value,context} -> buildAfter id id value context where
   surround :: (Tree a -> y) -> a -> Maybe a -> Tree (Pair a) -> y
   surround g a ma = g . unshift a . (:>- ma)
 
+find :: (a -> Maybe b) -> Tree a -> Maybe b
+find p = getAlt . foldMap (Alt . p)
+
 -- | Given a tree and a predicate, find the longest prefix of 
 -- that tree's elements that satisfy that predicate
 --
@@ -597,13 +601,10 @@ zipSplit = \Zipper{value,context} -> buildAfter id id value context where
 -- >>> span (< 'g') (Top (('a' :× 'b') :× ('c' :× 'g')) :>- Just ('f' :× 'e') :>- Just 'd')
 -- These (Top ('a' :× 'b') :>- Just 'c') (Top (('g' :× 'f') :× ('e' :× 'd')) :>- Nothing :>- Nothing)
 span :: (a -> Bool) -> Tree a -> These (Tree a) (Tree a)
-span p = foldlMap1 
-  -- FIXME: use zippers
-  do \a -> if p a then This (Top a) else That (Top a)
-  do \case
-        This ta -> \a -> if p a then This (push ta a) else These ta (Top a)
-        That ta -> That . push ta
-        These ta₀ ta₁ -> These ta₀ . push ta₁
+span p ta = maybe
+  do This ta
+  do uncurry (maybe That These) . zipSplit
+  do find (\za -> if p (value za) then Nothing else Just za) (zipDown ta)
 
 -- | Given a tree and a predicate, find the longest prefix of 
 -- that tree's elements that do not satisfy that predicate
