@@ -15,34 +15,34 @@ spec = describe "Pear.Positive" do
     it "renders 5 correctly" do
       show (ObI :. O :. I) `shouldBe` "ObI :. O :. I"
 
-  describe "toNatural" do
+  describe "fromPositive" do
     it "accurately translates 1" do
-      toNatural ObI `shouldBe` 1
+      fromPositive ObI `shouldBe` 1
 
     it "accurately translates 2" do
-      toNatural (ObI :. O) `shouldBe` 2
+      fromPositive (ObI :. O) `shouldBe` 2
 
     it "accurately translates 3" do
-      toNatural (ObI :. I) `shouldBe` 3
+      fromPositive (ObI :. I) `shouldBe` 3
 
     it "accurately translates 10" do
-      toNatural (ObI :. O :. I :. O) `shouldBe` 10
+      fromPositive (ObI :. O :. I :. O) `shouldBe` 10
 
-  describe "fromNatural" do
+  describe "toPositive" do
     it "accurately translates 1" do
-      fromNatural 1 `shouldBe` Just ObI
+      toPositive 1 `shouldBe` Just ObI
 
     it "accurately translates 2" do
-      fromNatural 2 `shouldBe` Just (ObI :. O)
+      toPositive 2 `shouldBe` Just (ObI :. O)
 
     it "accurately translates 3" do
-      fromNatural 3 `shouldBe` Just (ObI :. I)
+      toPositive 3 `shouldBe` Just (ObI :. I)
 
     it "accurately translates 10" do
-      fromNatural 10 `shouldBe` Just (ObI :. O :. I :. O)
+      toPositive 10 `shouldBe` Just (ObI :. O :. I :. O)
 
     it "returns Nothing for 0" do
-      fromNatural 0 `shouldBe` Nothing
+      toPositive 0 `shouldBe` Nothing
 
   describe "literal" do
     it "accurately translates 1" do

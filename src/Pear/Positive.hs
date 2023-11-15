@@ -1,7 +1,7 @@
 module Pear.Positive 
   ( Positive(..)
-  , toNatural
-  , fromNatural
+  , fromPositive
+  , toPositive
   , literal
   , module Pear.Bit
   ) where
@@ -27,16 +27,16 @@ instance Show Positive where
 
 -- | Convert a number from its @Positive@ representation to its @Natural@
 -- representation
-toNatural :: Positive -> Natural
-toNatural = loop 1 0 where
+fromPositive :: Positive -> Natural
+fromPositive = loop 1 0 where
   loop !twoⁿ !total = \case
     ObI -> twoⁿ + total
     bs :. b -> loop (2*twoⁿ) (total + bit 0 twoⁿ b) bs
 
 -- | Convert a number from its @Natural@ representation to its @Positive@
 -- representation, if possible
-fromNatural :: Natural -> Maybe Positive
-fromNatural = \case
+toPositive :: Natural -> Maybe Positive
+toPositive = \case
   0 -> Nothing
   n -> Just (fromNonzero n)
 
@@ -49,7 +49,7 @@ fromNatural = \case
 literal :: forall n. (KnownNat n, 1 <= n) => Positive
 literal = fromNonzero (natVal (Proxy @n))
 
--- | Helper for 'fromNatural', 'literal'
+-- | Helper for 'toPositive', 'literal'
 fromNonzero :: Integral a => a -> Positive
 fromNonzero = loop id where
   loop k = \case

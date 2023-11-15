@@ -39,7 +39,7 @@ zipDown = mapWithContext Zipper
 -- | Step to the next position
 zipForward :: Zipperable t => Zipper t a -> Maybe (Zipper t a)
 zipForward Zipper{context,value} = stepForward 
-  do \_ -> Nothing
+  do const Nothing
   do \cta -> Just . Zipper cta
   do context
   do value
@@ -47,7 +47,7 @@ zipForward Zipper{context,value} = stepForward
 -- | Step to the previous position
 zipBackward :: Zipperable t => Zipper t a -> Maybe (Zipper t a)
 zipBackward Zipper{context,value} = stepBackward 
-  do \_ -> Nothing
+  do const Nothing
   do \cta -> Just . Zipper cta
   do context
   do value
@@ -78,6 +78,8 @@ zipBackward Zipper{context,value} = stepBackward
 --
 type Zipperable :: (Type -> Type) -> Constraint
 class (Traversable t, Traversable (Zipper t), Functor (Context t)) => Zipperable t where
+  -- Zipper t a should also be a comonad, but I don't want to add the dependency
+
   -- | A @Context t a@ is the type of one-hole contexts for the type @t a@
   data Context t :: Type -> Type
 
