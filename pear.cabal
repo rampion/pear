@@ -19,10 +19,8 @@ extra-source-files:  CHANGELOG.md, README.md
 build-type:          Custom
 
 custom-setup
-  setup-depends:
-      base           < 5
-    , Cabal          < 4
-    , cabal-doctest  >=1.0.9 && <1.1
+  setup-depends: base >= 4 && <5
+                ,cabal-doctest >= 1
 
 flag Development
   description: Enable all warnings and upgrade warnings to errors
