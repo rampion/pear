@@ -4,9 +4,12 @@ module Pear.Tree
   , module Pear.Pair
   , module Pear.Those
   , module Pear.Zipper
+  , head
+  , last
+  , toNonEmpty
   ) where
 
-import Prelude as X hiding (lookup, fst, snd, reverse, span, replicate)
+import Prelude as X hiding (lookup, fst, snd, reverse, span, replicate, break, last, head, filter)
 import Control.Applicative (liftA3, (<|>), pattern Const, getConst)
 import Control.Applicative.Backwards (pattern Backwards, forwards)
 import Control.Category ((>>>))
@@ -64,6 +67,37 @@ instance Foldable1 Tree where
     ta² :⊢ ma -> 
       let m = foldMap1 (foldMap1 f) ta²
       in maybe m (\a -> m <> f a) ma
+
+  -- | @head t@ is the first element of @t@
+  --
+  -- complexity: O(log |t|)
+  --
+  -- >>> head (Top 'a')
+  -- 'a'
+  -- >>> head (Top (('a' :× 'b') :× ('c' :× 'd')) :⊢ Just ('e' :× 'f') :⊢ Just 'g')
+  -- 'a'
+  head :: Tree a -> a
+  head = loop id where
+    loop :: (b -> a) -> Tree b -> a
+    loop k = \case
+      Top b -> k b
+      ta² :⊢ _ -> loop (k . fst) ta²
+
+  -- | @last t@ is the last element of @t@
+  --
+  -- complexity: O(log |t|)
+  --
+  -- >>> last (Top 'a')
+  -- 'a'
+  -- >>> last (Top (('a' :× 'b') :× ('c' :× 'd')) :⊢ Just ('e' :× 'f') :⊢ Just 'g')
+  -- 'g'
+  last :: Tree a -> a
+  last = loop id where
+    loop :: (b -> a) -> Tree b -> a
+    loop k = \case
+      Top b -> k b
+      ta² :⊢ Nothing -> loop (k . snd) ta²
+      _ :⊢ Just a -> k a
 
 instance Zipperable Tree where
   -- | one-hole contexts of 'Tree's
@@ -331,7 +365,7 @@ mapMaybe f ta = case partition (maybe (Left ()) Right . f) ta of
 -- complexity: O(|t| log |t|)
 --
 -- >>> partition @Int (\x -> if even x then Left x else Right x) (Top ((0 :× 1) :× (2 :× 3)) :⊢ Just (4 :× 5) :⊢ Just 6)
--- Just (These (Top ((0 :× 2) :× (4 :× 6)) :⊢ Nothing :⊢ Nothing) (Top (1 :× 3) :⊢ Just 5))
+-- These (Top ((0 :× 2) :× (4 :× 6)) :⊢ Nothing :⊢ Nothing) (Top (1 :× 3) :⊢ Just 5)
 partition :: (a -> Either b c) -> Tree a -> These (Tree b) (Tree c)
 partition f = foldMap1 (either (This . Top) (That . Top) . f)
 
@@ -340,11 +374,11 @@ partition f = foldMap1 (either (This . Top) (That . Top) . f)
 -- complexity: O(|t| log |t|)
 --
 -- >>> partition0 @Int (\x -> if even x then Left x else Right x) (Just (Top ((0 :× 1) :× (2 :× 3)) :⊢ Just (4 :× 5) :⊢ Just 6))
--- (Just (Top ((0 :× 2) :× (4 :× 6)) :⊢ Nothing :⊢ Nothing), Just (Top (1 :× 3) :⊢ Just 5))
+-- (Just (Top ((0 :× 2) :× (4 :× 6)) :⊢ Nothing :⊢ Nothing),Just (Top (1 :× 3) :⊢ Just 5))
 -- >>> partition0 @Int Left (Just (Top ((0 :× 1) :× (2 :× 3)) :⊢ Just (4 :× 5) :⊢ Just 6))
--- ((Just (Top ((0 :× 1) :× (2 :× 3)) :⊢ Just (4 :× 5) :⊢ Just 6)), Nothing)
+-- (Just (Top ((0 :× 1) :× (2 :× 3)) :⊢ Just (4 :× 5) :⊢ Just 6),Nothing)
 -- >>> partition0 @Int Right (Just (Top ((0 :× 1) :× (2 :× 3)) :⊢ Just (4 :× 5) :⊢ Just 6))
--- (Nothing, (Just (Top ((0 :× 1) :× (2 :× 3)) :⊢ Just (4 :× 5) :⊢ Just 6)))
+-- (Nothing,Just (Top ((0 :× 1) :× (2 :× 3)) :⊢ Just (4 :× 5) :⊢ Just 6))
 partition0 :: (a -> Either b c) -> Tree0 a -> (Tree0 b, Tree0 c)
 partition0 f = fromThose . fmap (partition f)
 
@@ -378,37 +412,6 @@ size =  \case
 size0 :: Tree0 a -> Natural
 size0 = maybe 0 (fromPositive . size)
 
--- | @head t@ is the first element of @t@
---
--- complexity: O(log |t|)
---
--- >>> head (Top 'a')
--- 'a'
--- >>> head (Top (('a' :× 'b') :× ('c' :× 'd')) :⊢ Just ('e' :× 'f') :⊢ Just 'g')
--- 'a'
-head :: Tree a -> a
-head = loop id where
-  loop :: (b -> a) -> Tree b -> a
-  loop k = \case
-    Top b -> k b
-    ta² :⊢ _ -> loop (k . fst) ta²
-
--- | @last t@ is the last element of @t@
---
--- complexity: O(log |t|)
---
--- >>> last (Top 'a')
--- 'a'
--- >>> last (Top (('a' :× 'b') :× ('c' :× 'd')) :⊢ Just ('e' :× 'f') :⊢ Just 'g')
--- 'g'
-last :: Tree a -> a
-last = loop id where
-  loop :: (b -> a) -> Tree b -> a
-  loop k = \case
-    Top b -> k b
-    ta² :⊢ Nothing -> loop (k . snd) ta²
-    _ :⊢ Just a -> k a
-
 -- | @t ?? i@ is the i'th element of @t@, if i < size t.
 --
 -- complexity: O(log |t|)
@@ -417,7 +420,7 @@ last = loop id where
 -- Just 'a'
 -- >>> (Top (('a' :× 'b') :× ('c' :× 'd')) :⊢ Just ('e' :× 'f') :⊢ Just 'g') ?? 3
 -- Just 'd'
--- >>> (Top (('a' :× 'b') :× ('c' :× 'd')) :⊢ Just ('e' :× 'f') :⊢ Just 'g') ?? 7
+-- >>> (Top (('a' :× 'b') :× ('c' :× 'd')) :⊢ Just ('e' :× 'f') :⊢ Just 'g') ?? 6
 -- Just 'g'
 -- >>> (Top (('a' :× 'b') :× ('c' :× 'd')) :⊢ Just ('e' :× 'f') :⊢ Just 'g') ?? 10
 -- Nothing
@@ -443,13 +446,16 @@ infix 9 ??
 put :: Natural -> a -> Tree a -> Maybe (Tree a)
 put i = modify i . const
 
+-- $
+
 -- | modify the i'th value of 't', if i < size t
 --
 -- complexity: O(log |t|)
 --
+-- >>> import Data.Char (toUpper)
 -- >>> modify 2 toUpper  (Top (('a' :× 'b') :× ('c' :× 'd')) :⊢ Nothing :⊢ Nothing)
 -- Just (Top (('a' :× 'b') :× ('C' :× 'd')) :⊢ Nothing :⊢ Nothing)
--- >>> modify 2 toUpper (Top (('a' :× 'b') :× ('c' :× 'd')) :⊢ Nothing :⊢ Nothing)
+-- >>> modify 4 toUpper (Top (('a' :× 'b') :× ('c' :× 'd')) :⊢ Nothing :⊢ Nothing)
 -- Nothing
 modify :: Natural -> (a -> a) -> Tree a -> Maybe (Tree a)
 modify i f = fmap runIdentity . at i (Identity . f)
@@ -503,9 +509,9 @@ push0 = maybe Top push
 -- complexity: O(log |t|)
 --
 -- >>> pop (Top 'a')
--- (Nothing, 'a')
+-- (Nothing,'a')
 -- >>> pop (Top ('a' :× 'b') :⊢ Nothing)
--- (Just (Top 'a'), 'b')
+-- (Just (Top 'a'),'b')
 pop :: Tree a -> (Tree0 a, a)
 pop = \case 
   Top a -> (Nothing, a)
@@ -518,9 +524,9 @@ pop = \case
 -- complexity: O(log |t|)
 --
 -- >>> pop2 (Top ('a' :× 'b'))
--- (Just (Top 'a'), 'b')
+-- (Top 'a','b')
 -- >>> pop2 (Top (('a' :× 'b') :× ('c' :× 'd')) :⊢ Nothing)
--- (Just (Top ('a' :× 'b') :⊢ Just 'c', 'd')
+-- (Top ('a' :× 'b') :⊢ Just 'c','d')
 pop2 :: Tree (Pair a) -> (Tree a, a)
 pop2 = \case
   Top (a₀ :× a₁) -> (Top a₀, a₁)
