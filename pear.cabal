@@ -14,8 +14,15 @@ homepage:            github.com/rampion/pear
 license:             CC0-1.0
 author:              Noah Luck Easterly
 maintainer:          noah.easterly@gmail.com
-build-type:          Simple
 extra-source-files:  CHANGELOG.md, README.md
+-- custom setup for cabal-doctest
+build-type:          Custom
+
+custom-setup
+  setup-depends:
+      base           < 5
+    , Cabal          < 4
+    , cabal-doctest  >=1.0.9 && <1.1
 
 flag Development
   description: Enable all warnings and upgrade warnings to errors
@@ -66,4 +73,12 @@ test-suite pear-spec
   other-modules:        Pear.Positive.Spec
                         Pear.Tree.Spec
   build-depends:        hspec
+                      , pear
+
+test-suite pear-doctest
+  import:               library-setup
+  type:                 exitcode-stdio-1.0
+  hs-source-dirs:       test
+  main-is:              doctest.hs
+  build-depends:        doctest >= 0.20.0
                       , pear

@@ -1,7 +1,8 @@
 {-# LANGUAGE BlockArguments #-}
 module Main (main) where
 
-import Test.DocTest
+import Build_doctests (flags, pkgs, module_sources)
+import Test.DocTest (doctest)
 
 main :: IO ()
-main = doctest $ words "-pgmL markdown-unlit -optL haskell+example src"
+main = doctest do flags <> pkgs <> module_sources

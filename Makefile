@@ -14,6 +14,10 @@ ghcid:
 	ghcid --target pear --run=":! ghcid --target pear-spec --run"
 .PHONY: ghcid
 
+ghcid-doctest:
+	ghcid --target pear --run=":! ghcid --target pear-doctest --run"
+.PHONY: ghcid
+
 doc/%.html: doc/%.md
 	pandoc --standalone $(addprefix --css ../,$(wildcard doc/css/*)) --from gfm --to html --metadata=title:$* $< -o $@
 
