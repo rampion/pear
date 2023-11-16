@@ -137,32 +137,39 @@ instance Zipperable Tree where
     ta² :⊢? Hole      -> \a -> ta² :⊢ Just a
     cta² :?⊢ (ca², ma) -> \a -> fillContext cta² (fillContext ca² a) :⊢ ma
 
-  mapWithContext f = \case
-    Top a -> Top (f AtTop a)
-    ta² :⊢ ma -> 
-      mapWithContext (\cta² -> mapWithContext \ca² -> f (cta² :?⊢ (ca², ma))) ta² 
-        :⊢ fmap (f (ta² :⊢? Hole)) ma
+  traverseWithContext f = \case
+    Top a -> Top <$> f AtTop a
+    ta² :⊢ ma -> liftA2 (:⊢)
+      do traverseWithContext (\cta² -> traverseWithContext \ca² -> f (cta² :?⊢ (ca², ma))) ta² 
+      do traverse (f (ta² :⊢? Hole)) ma
     
-  stepForward withTree withZipper = \case
-    AtTop -> withTree . Top
-    ta²  :⊢? Hole -> withTree . \a -> ta² :⊢ Just a
+  stepForward noZipper withZipper = \case
+    AtTop -> const noZipper
+    _a²  :⊢? Hole -> const noZipper
     cta² :?⊢ (ca², ma) -> 
-      ca² & stepForward
-        do cta² & stepForward
-            do \ta² -> maybe (withTree (ta² :⊢ Nothing)) (withZipper (ta² :⊢? Hole)) ma
+      ca² & stepForwardOrUp
+        do cta² & stepForwardOrUp
+            do \ta² -> maybe noZipper (withZipper (ta² :⊢? Hole)) ma
             do \cta² (a₂ :× a₃) -> withZipper (cta² :?⊢ (Hole :?× a₃, ma)) a₂
         do \ca² -> withZipper (cta² :?⊢ (ca², ma))
 
-  stepBackward = \withTree withZipper -> \case
-    AtTop -> withTree . Top
+    where 
+      stepForwardOrUp :: Zipperable t => (t a -> r) -> (Context t a -> a -> r) -> Context t a -> a -> r
+      stepForwardOrUp up forward cta a = stepForward (up (fillContext cta a)) forward cta a
+
+  stepBackward = \noZipper withZipper -> \case
+    AtTop -> const noZipper
     ta²  :⊢? Hole -> \a -> zipToLast (withZipper `onSnd` Just a) ta²
     cta² :?⊢ (ca², ma) -> 
-      ca² & stepBackward
+      ca² & stepBackwardOrUp
         do cta² & stepBackward
-            do \ta² -> withTree (ta² :⊢ ma)
+            do noZipper
             do withZipper `onSnd` ma
         do \ca² -> withZipper (cta² :?⊢ (ca², ma))
     where
+      stepBackwardOrUp :: Zipperable t => (t a -> r) -> (Context t a -> a -> r) -> Context t a -> a -> r
+      stepBackwardOrUp up backward cta a = stepBackward (up (fillContext cta a)) backward cta a
+
       onSnd :: (Context Tree a -> a -> r) -> Maybe a -> Context Tree (Pair a) -> Pair a -> r
       onSnd k ma cta² (a₀ :× a₁) = k (cta² :?⊢ (a₀ :×? Hole, ma)) a₁
       

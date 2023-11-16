@@ -34,15 +34,16 @@ instance Zipperable Pair where
     Hole :?× a₁ -> (:× a₁)
     a₀ :×? Hole -> (a₀ :×)
 
-  mapWithContext f (a₀ :× a₁) = 
-    f (Hole :?× a₁) a₀ :× f (a₀ :×? Hole) a₁
+  traverseWithContext f (a₀ :× a₁) = liftA2 (:×)
+    do f (Hole :?× a₁) a₀ 
+    do f (a₀ :×? Hole) a₁
 
-  stepForward withPair withZipper = \case
+  stepForward noZipper withZipper = \case
     Hole :?× a₁ -> \a₀ -> withZipper (a₀ :×? Hole) a₁
-    a₀ :×? Hole -> \a₁ -> withPair (a₀ :× a₁)
+    _₀ :×? Hole -> \_₁ -> noZipper
 
-  stepBackward withPair withZipper = \case
-    Hole :?× a₁ -> \a₀ -> withPair (a₀ :× a₁)
+  stepBackward noZipper withZipper = \case
+    Hole :?× _₁ -> \_₀ -> noZipper
     a₀ :×? Hole -> \a₁ -> withZipper (Hole :?× a₁) a₀
 
 pattern (:?><) :: Hole -> a -> Context Pair a

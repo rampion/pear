@@ -1,5 +1,7 @@
 -- | Useful Van Laarhoven-style optics
 module Pear.Lens where
+-- XXX Is this necessary? Only `Lens` is used in Zipper.hs and only there
+--     Should be inlined instead?
 
 import Data.Functor.Const (pattern Const, getConst)
 import Data.Functor.Identity (pattern Identity, runIdentity)
