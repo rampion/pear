@@ -1,3 +1,4 @@
+-- | <https://wiki.haskell.org/Zipper Zippers> for use with Pear data structures.
 module Pear.Zipper where
 
 import Control.Applicative (liftA3)
@@ -21,10 +22,6 @@ deriving instance Functor (Context t) => Functor (Zipper t)
 
 instance Zipperable t => Foldable (Zipper t) where
   foldMap = foldMapDefault
-
--- | A Van Laarhoven-style lens for the focused value of a zipper
-focus :: Functor f => (a -> f a) -> Zipper t a -> f (Zipper t a)
-focus f Zipper{context,value} = Zipper context <$> f value
 
 -- | Create a value from the zipper
 zipUp :: Zipperable t => Zipper t a -> t a
@@ -54,9 +51,9 @@ zipBackward Zipper{context,value} = stepBackward
 --
 -- = Laws:
 --
---  For any 
+--  For any @Zipperable t@, where
 --
---  * @ta :: t a@ with @Zipperable t@, where
+--  * @ta :: t a@,
 --  * @aᵢ :: a@ is the @i@'th element of @ta@, and
 --  * @ctaᵢ :: Context t a@ is the context for the @i@'th position in @ta@
 --
@@ -69,19 +66,20 @@ zipBackward Zipper{context,value} = stepBackward
 --  2. 'fillContext' reconstructs the original data structure from the context
 --      for a position and the original value for that position
 --
---      > fillContext ctaᵢ aᵢ = ta, 0 ≤ i < length ta
+--      > fillContext ctaᵢ aᵢ = ta, 0 ≤ i < ‖ta‖
 --
 --  4. 'stepForward' follows the traversal order of the underlying data structure.
 --
 --      > stepForward Nothing (curry Just) ctaᵢ aᵢ 
---      >   | i + 1 < length ta   = Just (ctaᵢ₊₁, aᵢ₊₁)
---      >   | otherwise           = Nothing otherwis
+--      >   | i + 1 < ‖ta‖  = Just (ctaᵢِ₊₁, aᵢ₊₁)
+--      >   | otherwise     = Nothing
 --
---  4. 'stepBackward' follows the traversal order of the underlying data structure.
+--  4. 'stepBackward' reverses the traversal order of the underlying data structure.
 --
---      > stepBackward Nothing (curry Just) ctaᵢ aᵢ
---      >   | i + 1 < length ta   = Just (ctaᵢ₋₁, aᵢ₋₁)
---      >   | otherwise           = Nothing otherwis
+--      > stepBackward Nothing (curry Just) ctaᵢ aᵢ 
+--      >   | 0 ≤ i - 1     = Just (ctaᵢ₋₁, aᵢ₋₁)
+--      >   | otherwise     = Nothing
+--
 type Zipperable :: (Type -> Type) -> Constraint
 class (Traversable t, Traversable (Zipper t), Functor (Context t)) => Zipperable t where
 
@@ -199,11 +197,11 @@ instance Zipperable [] where
 
   stepForward noZipper withZipper ListContext{before,after} = case after of
     next : after -> \here -> withZipper (ListContext (here:before) after) next
-    [] -> \_ -> noZipper
+    [] -> const noZipper
 
   stepBackward noZipper withZipper ListContext{before,after} = case before of
     prev : before -> \here -> withZipper (ListContext before (here:after)) prev
-    [] -> \_ -> noZipper
+    [] -> const noZipper
 
 instance Traversable (Zipper []) where
   traverse f (Zipper ListContext{before,after} a) = 
@@ -212,6 +210,10 @@ instance Traversable (Zipper []) where
       do forwards (traverse (Backwards . f) before) 
       do f a
       do traverse f after
+
+-- | A Van Laarhoven-style lens for the focused value of a zipper
+focus :: Functor f => (a -> f a) -> Zipper t a -> f (Zipper t a)
+focus f Zipper{context,value} = Zipper context <$> f value
 
 -- | Stand in for misssing value in a context
 data Hole = Hole
