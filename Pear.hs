@@ -14,7 +14,6 @@ import Control.Category (Category(..)) -- We don't actually need this for
                                        -- anything we're doing here, but it 
                                        -- pains me to not implement Category 
                                        -- when the type so clearly supports it
-import Data.Function (fix)
 import Data.Functor ((<&>))
 import Data.Kind (Type, Constraint)
 import Data.Maybe (fromMaybe)
@@ -22,6 +21,10 @@ import Data.List.NonEmpty (NonEmpty((:|)))
 import Prelude hiding ((.), id)
 
 -- * Bits
+-- $
+-- We'll need a number of ways to represent bits at the value, type, and constraint level.
+
+-- ** @Bit@
 -- $
 
 -- | The binary equivalent of digits.
@@ -31,6 +34,9 @@ type Bit :: Type
 data Bit = O | I -- using O and I for 0 and 1 might be a little cutsy, but I 
                  -- think it helps with legibility
   deriving (Show, Eq, Enum, Ord, Bounded)
+
+-- ** @SBit@
+-- $
 
 -- | A singleton type for bits.
 --
@@ -43,6 +49,9 @@ data SBit b where
 deriving instance Show (SBit b)
 deriving instance Eq (SBit b)
 
+-- ** The @KnownBit@ class
+-- $
+
 -- | A constraint that lets us specify a bit value to a function implicitly.
 type KnownBit :: Bit -> Constraint
 class KnownBit b where
@@ -51,7 +60,9 @@ class KnownBit b where
 instance KnownBit O where knownBit = SO
 instance KnownBit I where knownBit = SI
 
+-- ** The missing "@FBit@"
 -- $FBit
+--
 -- We could also make an type to represent "the finite values less than the 
 -- given bit", 
 --
@@ -64,7 +75,11 @@ instance KnownBit I where knownBit = SI
 --
 -- but it's just as convenient to do without.
 
--- * Positive
+-- * Positive numbers
+-- $
+-- We'll need a number of ways to represent positive numbers at the value, type, and constraint level.
+
+-- ** @Positive@
 -- $
 
 -- | Positive binary natural numbers, encoded as a sequence of bits
@@ -77,9 +92,16 @@ instance KnownBit I where knownBit = SI
 --    ObI :. O :. I :. O :. O
 type Positive :: Type
 data Positive = ObI | Positive :. Bit
-  deriving (Eq, Ord) -- it's worth noting that the derived Ord instance 
-                     -- automatically does the right thing because the 
-                     -- constructors are listed in least-to-most order
+  deriving (Eq)
+
+-- | The derived Ord instance works because the constructors were listed in 
+-- least-to-most order
+--
+--    >>> ObI < (ObI :. O)
+--    True
+--    >>> maximum [ObI :. O, ObI, ObI :. I :. I, ObI :. O :. I]
+--    ObI :. I :. I
+deriving instance Ord (Positive)
 
 infixl 4 :.
 
@@ -87,14 +109,21 @@ infixl 4 :.
 -- operators defined below) would wrap _every_ recursive constructor call in 
 -- parentheses, which makes them harder to read.
 --
--- This custom instance just removes these parentheses
+-- This custom instance just removes these parentheses, only keeping any
+-- parentheses around the entire Positive value (if necessary)
+--
+--    >>> Just ObI
+--    Just ObI
+--    >>> Just (ObI :. I :. O :. I)
+--    Just (ObI :. I :. O :. I)
+--
 instance Show Positive where
-  showsPrec p = showParen (p >= 4) . fix \loop -> \case
-    n :. b -> loop n . showString " :. " . shows b
+  showsPrec p = \case
+    n :. b -> showParen (p >= 4) do
+      shows n . showString " :. " . shows b
     ObI -> showString "ObI"
 
--- |
--- Let's make sure I didn't mess up 'succ'
+-- | Let's make sure I didn't mess up 'succ'
 --
 --    >>> succ (ObI :. O :. O :. I :. O)
 --    ObI :. O :. O :. I :. I
@@ -127,10 +156,9 @@ instance Enum Positive where
     ObI -> 1
     n :. b -> 2 * fromEnum n + fromEnum b
 
-
 instance Bounded Positive where
   minBound = ObI
-  maxBound = fix (:. I) -- infinity!
+  maxBound = maxBound :. I -- infinity!
 
 -- | A non-partial alternative to 'pred'.
 --
@@ -174,6 +202,9 @@ toPositive = \case
         let (q, r) = n `quotRem` 2
         in loop q :. toEnum r
 
+-- ** @SPositive@
+-- $
+
 -- | A singleton type for positive integers
 type SPositive :: Positive -> Type
 data SPositive n where
@@ -193,8 +224,9 @@ deriving instance Eq (SPositive n)
 --    >>> :t SObI :! SO :! SO :! SO
 --    SObI :! SO :! SO :! SO :: SPositive (((ObI :. O) :. O) :. O)
 instance Show (SPositive n) where
-  showsPrec p = showParen (p >= 4) . fix1 \loop -> \case
-    sn :! sb -> loop sn . showString " :! " . shows sb
+  showsPrec p = \case
+    sn :! sb -> showParen (p >= 4) do
+      shows sn . showString " :! " . shows sb
     SObI -> showString "SObI"
 
 -- | Convert a 'SPositive' into its equivalent integer value
@@ -227,6 +259,9 @@ withSPositive k = \case
   bs :. O -> withSPositive (k . (:! SO)) bs
   bs :. I -> withSPositive (k . (:! SI)) bs
 
+-- ** @KnownPositive@
+-- $
+
 -- | A constraint that lets us specify a positive value to a function 
 -- implicitly
 type KnownPositive :: Positive -> Constraint
@@ -245,6 +280,9 @@ withKnownPositive r = \case
   SObI -> r
   sn :! SO -> withKnownPositive r sn
   sn :! SI -> withKnownPositive r sn
+
+-- ** @FPositive@
+-- $
 
 -- | The finite set of naturals strictly less than the specified index.
 --
@@ -348,39 +386,103 @@ withKnownPositive r = \case
 -- in order to be able to know its integer value.
 type FPositive :: Positive -> Type
 data FPositive n where
-  (:?) :: FPositive n -> Bit -> FPositive (n :. b)
   FCanopy :: FPositive ObI
+  (:?) :: FPositive n -> Bit -> FPositive (n :. b)
   FBranch :: FPositive (n :. I)
 
 deriving instance Eq (FPositive n)
+-- | The derived Ord instance works because the constructors were listed in 
+-- least-to-most order
+--
+--    >>> (FCanopy :? O :? I :? I) `min` (FCanopy :? O :? I :? O)
+--    FCanopy :? O :? I :? O
+--    >>> (FCanopy :? O :? I :? I) `min` (FBranch :? O)
+--    FCanopy :? O :? I :? I
+--    >>> (FBranch :? I) `min` (FBranch :? O)
+--    FBranch :? O
 deriving instance Ord (FPositive n)
 
 instance Show (FPositive n) where
-  showsPrec p = showParen (p >= 4) . fix1 \loop -> \case
-    fn :? b -> loop fn . showString " :? " . shows b
+  showsPrec p = \case
+    fn :? b -> showParen (p >= 4) do
+      shows fn . showString " :? " . shows b
     FCanopy -> showString "FCanopy"
     FBranch -> showString "FBranch"
 
-minBound' :: SPositive n -> FPositive n
-minBound' = \case
-  SObI -> FCanopy
-  sn :! _ -> minBound' sn :? O
+instance KnownPositive n => Bounded (FPositive n) where
+  minBound = minBoundFPositive' knownPositive
+  maxBound = maxBoundFPositive' knownPositive
 
-maxBound' :: SPositive n -> FPositive n
-maxBound' = \case
+-- | Alternative to 'minBound', where the value of @n@ is given explicitly.
+--
+-- This gives the encoding for 0 in FPositive n.
+--
+--    >>> minBoundFPositive' $ SObI
+--    FCanopy
+--    >>> minBoundFPositive' $ SObI :! SO :! SI :! SO
+--    FCanopy :? O :? O :? O
+minBoundFPositive' :: SPositive n -> FPositive n
+minBoundFPositive' = \case
   SObI -> FCanopy
-  sn :! SO -> maxBound' sn :? I
+  sn :! _ -> minBoundFPositive' sn :? O
+
+-- | Alternative to 'maxBound', where the value of @n@ is given explicitly.
+--
+-- This gives the encoding for n - 1 in FPositive n.
+--
+--    >>> maxBoundFPositive' $ SObI
+--    FCanopy
+--    >>> maxBoundFPositive' $ SObI :! SO :! SI :! SO
+--    FBranch :? I
+--    >>> maxBoundFPositive' $ SObI :! SO :! SI :! SI
+--    FBranch
+maxBoundFPositive' :: SPositive n -> FPositive n
+maxBoundFPositive' = \case
+  SObI -> FCanopy
+  sn :! SO -> maxBoundFPositive' sn :? I
   _ :! SI -> FBranch
 
-instance KnownPositive n => Bounded (FPositive n) where
-  minBound = minBound' knownPositive
-  maxBound = maxBound' knownPositive
+instance KnownPositive n => Enum (FPositive n) where
+  succ =
+    fromMaybe (error "FPositive.succ :: Invalid input") .
+    succFPositive
 
-safeSucc :: KnownPositive n => FPositive n -> Maybe (FPositive n)
-safeSucc = safeSucc' knownPositive
+  pred =
+    fromMaybe (error "FPositive.pred :: Invalid input") .
+    predFPositive
+  
+  toEnum = 
+    fromMaybe (error "FPositive.toEnum :: Invalid input") .
+    toFPositive
 
-safeSucc' :: SPositive n -> FPositive n -> Maybe (FPositive n)
-safeSucc' = loop Nothing Just where
+  fromEnum = fromFPositive' knownPositive
+
+-- | A non-partial alternative to 'succ'
+--
+--    >>> succFPositive @(ObI :. I) $ FCanopy :? O
+--    Just (FCanopy :? I)
+--    >>> succFPositive @(ObI :. I) $ FCanopy :? I
+--    Just FBranch
+--
+-- Not all 'FPositive n' numbers have a successor less than n (that is, 
+-- 'maxBound' does not).
+--
+--    >>> succFPositive @(ObI :. I) $ FBranch
+--    Nothing
+succFPositive :: KnownPositive n => FPositive n -> Maybe (FPositive n)
+succFPositive = succFPositive' knownPositive
+
+-- | Alternative to 'succFPositive', where the value of @n@ is given 
+-- explicilty.
+--
+--    >>> succFPositive' (SObI :! SI) (FCanopy :? O)
+--    Just (FCanopy :? I)
+--    >>> succFPositive' (SObI :! SI) (FCanopy :? I)
+--    Just FBranch
+--    >>> succFPositive' (SObI :! SI) FBranch
+--    Nothing
+succFPositive' :: SPositive n -> FPositive n -> Maybe (FPositive n)
+succFPositive' = loop Nothing Just where
   loop :: r -> (FPositive n -> r) -> SPositive n -> FPositive n -> r
   loop failure success = flip \case
     FCanopy -> \SObI -> failure
@@ -393,37 +495,95 @@ safeSucc' = loop Nothing Just where
       in
       loop failure' (success . (:? O)) sn fn
 
-safePred :: KnownPositive n => FPositive n -> Maybe (FPositive n)
-safePred = safePred' knownPositive
+-- | A non-partial alternative to 'pred'
+--
+--    >>> predFPositive @(ObI :. O :. O :. I :. I) FBranch
+--    Just (FBranch :? I)
+--    >>> predFPositive @(ObI :. O :. O :. I :. I) (FBranch :? I)
+--    Just (FBranch :? O)
+--    >>> predFPositive @(ObI :. O :. O :. I :. I) (FBranch :? O)
+--    Just (FCanopy :? I :? I :? I :? I)
+predFPositive :: KnownPositive n => FPositive n -> Maybe (FPositive n)
+predFPositive = predFPositive' knownPositive
 
-safePred' :: SPositive n -> FPositive n -> Maybe (FPositive n)
-safePred' = loop id where
+-- | Alternative to 'predFPositive', where the value of @n@ is given
+--
+--    >>> predFPositive' (SObI :! SO :! SO :! SI :! SI) FBranch
+--    Just (FBranch :? I)
+--    >>> predFPositive' (SObI :! SO :! SO :! SI :! SI) (FBranch :? I)
+--    Just (FBranch :? O)
+--    >>> predFPositive' (SObI :! SO :! SO :! SI :! SI) (FBranch :? O)
+--    Just (FCanopy :? I :? I :? I :? I)
+predFPositive' :: SPositive n -> FPositive n -> Maybe (FPositive n)
+predFPositive' = loop id where
   loop :: (FPositive n -> r) -> SPositive n -> FPositive n -> Maybe r
   loop k = flip \cases
     FCanopy -> \SObI -> Nothing
-    FBranch -> \(sn :! SI) -> Just $ k $ maxBound' sn :? I 
+    FBranch -> \(sn :! SI) -> Just $ k $ maxBoundFPositive' sn :? I 
     (fn :? I) -> \_ -> Just $ k (fn :? O) 
     (fn :? O) -> \(sn :! _) -> loop (k . (:? I)) sn fn
 
-safeToFPositive :: KnownPositive n => Int -> Maybe (FPositive n)
-safeToFPositive 0 = Just minBound
-safeToFPositive i = positiveToFPositive =<< toPositive i
+-- | A non-partial alternative to 'toEnum'
+--
+--    >>> toFPositive @(ObI :. O :. O :. O) 5
+--    Just (FCanopy :? I :? O :? I)
+--    >>> toFPositive @(ObI :. O :. O :. O) 0
+--    Just (FCanopy :? O :? O :? O)
+--
+--  Not all integers are positive numbers less than n
+--
+--    >>> toFPositive @(ObI :. O :. O :. O) 10
+--    Nothing
+--    >>> toFPositive @(ObI :. O :. O :. O) (-5)
+--    Nothing
+toFPositive :: KnownPositive n => Int -> Maybe (FPositive n)
+toFPositive 0 = Just minBound
+toFPositive i = positiveToFPositive =<< toPositive i
   
+-- | Convert a given 'Positive' value to an @'FPositive' n@ for some known @n@.
+--
+--    >>> positiveToFPositive @(ObI :. O :. O :. O) (ObI :. O :. I)
+--    Just (FCanopy :? I :? O :? I)
+--    >>> positiveToFPositive @(ObI :. I :. O) (ObI :. O :. I)
+--    Just (FBranch :? I)
+--
+--  Not all positive integers are less than @n@.
+--
+--    >>> positiveToFPositive @(ObI :. O) (ObI :. O :. I)
+--    Nothing
 positiveToFPositive :: KnownPositive n => Positive -> Maybe (FPositive n)
 positiveToFPositive = positiveToFPositive' knownPositive
 
+-- | Alternative to 'positiveToFPositive', where the value of @n@ is given 
+-- explicilty.
+--
+--    >>> positiveToFPositive' (SObI :! SO :! SO :! SO) (ObI :. O :. I)
+--    Just (FCanopy :? I :? O :? I)
+--    >>> positiveToFPositive' (SObI :! SI :! SO) (ObI :. O :. I)
+--    Just (FBranch :? I)
+--
+--  Not all positive integers are less than @n@.
+--
+--    >>> positiveToFPositive' (SObI :! SO) (ObI :. O :. I)
+--    Nothing
 positiveToFPositive' :: SPositive n -> Positive -> Maybe (FPositive n)
 positiveToFPositive' = loop Nothing id where
   loop :: Maybe r -> (FPositive n -> r) -> SPositive n -> Positive -> Maybe r
   loop eq lt = \cases
     SObI ObI -> eq
     SObI _   -> Nothing
-    (sn :! _) ObI -> Just $ lt $ minBound' sn :? I
+    (sn :! _) ObI -> Just $ lt $ minBoundFPositive' sn :? I
     (sn :! SO) (m :. O) -> loop eq (lt . (:? O)) sn m
     (sn :! SO) (m :. I) -> loop Nothing (lt . (:? I)) sn m
     (sn :! SI) (m :. O) -> loop (Just $ lt FBranch) (lt . (:? O)) sn m
     (sn :! SI) (m :. I) -> loop eq (lt . (:? I)) sn m
 
+-- | Alternative to 'fromEnum', where the value of @n@ is given explicitly.
+--
+--    >>> fromFPositive' (SObI :! SO :! SO :! SO) (FCanopy :? I :? O :? I)
+--    5
+--    >>> fromFPositive' (SObI :! SI :! SO) (FBranch :? I)
+--    5
 fromFPositive' :: SPositive n -> FPositive n -> Int
 fromFPositive' = loop 1 0 where
   loop :: Int -> Int -> SPositive n -> FPositive n -> Int
@@ -432,21 +592,14 @@ fromFPositive' = loop 1 0 where
     (sn :! _) FBranch -> fromSPositive sn * 2 * p + t
     (sn :! _) (fn :? b) -> loop (2*p) (t + p * fromEnum b) sn fn
 
-instance KnownPositive n => Enum (FPositive n) where
-  succ =
-    fromMaybe (error "FPositive.succ :: Invalid input") .
-    safeSucc
+-- * Containers
+-- $
+-- Using indexes to track how many elements are in a container
 
-  pred =
-    fromMaybe (error "FPositive.pred :: Invalid input") .
-    safePred
-  
-  toEnum = 
-    fromMaybe (error "FPositive.toEnum :: Invalid input") .
-    safeToFPositive
+-- ** @Opt@
+-- $
 
-  fromEnum = fromFPositive' knownPositive
-
+-- | An indexed variant of 'Maybe', exposing whether a value of type @a@ is contained.
 type Opt :: Bit -> Type -> Type
 data Opt b a where
   None :: Opt O a
@@ -465,16 +618,22 @@ instance KnownBit b => Applicative (Opt b) where
     SO -> None
     SI -> Some a
 
+-- | Alternative to 'liftA2' without the 'KnownBit' constraint.
 liftO2 :: (u -> v -> w) -> Opt b u -> Opt b v -> Opt b w
 liftO2 f = \cases
   None None -> None 
   (Some u) (Some v) -> Some (f u v)
 
+-- | Count the number of elements in an 'Opt' as a 'SBit'.
 optSize :: Opt b a -> SBit b
 optSize = \case
   None -> SO
   Some _ -> SI
 
+-- ** @Pair@
+-- $
+
+-- | A variant of '(,)' where both elements have the same type.
 type Pair :: Type -> Type
 data Pair a = a :* a
   deriving (Functor, Foldable, Traversable, Eq, Show)
@@ -484,6 +643,9 @@ infix 8 :*
 instance Applicative Pair where
   (f0 :* f1) <*> (a0 :* a1) = f0 a0 :* f1 a1
   pure a = a :* a
+
+-- ** @Tree@
+-- $
 
 type Tree :: Positive -> Type -> Type
 data Tree n a where
@@ -498,14 +660,16 @@ deriving instance Traversable (Tree n)
 deriving instance Eq a => Eq (Tree n a)
 
 instance Show a => Show (Tree n a) where
-  showsPrec p = showParen (p >= 4) . fix2 @Show \loop -> \case
-    taa :\ oa -> loop taa . showString " :\\ " . shows oa
+  showsPrec p = \case
+    taa :\ oa -> showParen (p >= 4) do
+      shows taa . showString " :\\ " . shows oa
     Canopy a -> showString "Canopy " . showsPrec 10 a
 
 instance KnownPositive n => Applicative (Tree n) where
   liftA2 = liftT2
   pure a = generate (const a)
 
+-- | Alternative to 'liftA2' without the 'KnownPositive' constraint.
 liftT2 :: (a -> b -> c) -> Tree m a -> Tree m b -> Tree m c
 liftT2 f = \cases
   (taa :\ oa) (tbb :\ ob) -> liftT2 (liftA2 f) taa tbb :\ liftO2 f oa ob
@@ -532,45 +696,6 @@ fromNonEmpty f = \(a :| as) -> loop (Canopy a) as where
   loop t = \case
     [] -> f t
     a : as -> loop (push t a) as
-
-_0 :: Lens' (Pair a) a
-_0 f (a0 :* a1) = f a0 <&> (:* a1)
-
-_1 :: Lens' (Pair a) a
-_1 f (a0 :* a1) = (a0 :*) <$> f a1
-
-atPair :: Bit -> Lens' (Pair a) a
-atPair = \case
-  O -> _0
-  I -> _1
-
-_Some :: Lens' (Opt I a) a
-_Some f (Some a) = Some <$> f a
-
-_Canopy :: Lens' (Tree ObI a) a
-_Canopy f (Canopy a) = Canopy <$> f a
-
-_Up :: Lens' (Tree (n :. b) a) (Tree n (Pair a))
-_Up f (taa :\ oa) = f taa <&> (:\ oa)
-
-_Off :: Lens' (Tree (n :. b) a) (Opt b a)
-_Off f (taa :\ oa) = (taa :\) <$> f oa
-
-_Branch :: Lens' (Tree (n :. I) a) a
-_Branch = _Off . _Some
-
-atTree :: FPositive n -> Lens' (Tree n a) a
-atTree = \case
-  FCanopy -> _Canopy
-  FBranch -> _Branch
-  fn :? b -> _Up . atTree fn . atPair b
-
-type Iso :: Type -> Type -> Type
-data Iso a b = Iso { forwards :: a -> b, backwards :: b -> a }
-
-instance Category Iso where
-  id = Iso id id
-  Iso f0 b0 . Iso f1 b1 = Iso (f0 . f1) (b1 . b0)
 
 type Succ :: Positive -> Positive
 type Succ n = Add n ObI
@@ -837,46 +962,147 @@ fizzC = \cases
     let (taa0, taa1, Some (a0 :* a1)) = fizzC sn sm SI taa
     in (taa0 :\ Some a0, taa1 :\ Some a1, oa)
 
--- * Miscellaneous Utilities
+-- * Lenses
 -- $
-
--- ** 'fix1' and 'fix2'
---
--- $
--- 'fix1' and 'fix2' are really just the normal 'Data.Function.fix' but with 
--- more specific types.
---
---  * @fix1 = fix \@(forall i. f i -> a)@
---  * @fix2 = fix \@(forall i x. c x => f i x -> a)@
---
--- However you'll need to enable @ImpredicativeTypes@ for that, and I'm not 
--- cosy with that particular language extension yet.
---
--- Also I thought the long type applications would be a little distracting, 
--- didactically.
---
--- So I made some helpers.  I'm still not 100% on them, so I might just switch 
--- back to defining local helpers instead.
-
--- | Like 'fix', but allowing for a changing final type parameter
-fix1 :: forall f a. ((forall i. f i -> a) -> (forall i. f i -> a)) -> (forall i. f i -> a)
-fix1 f = g where
-  g :: forall i. f i -> a
-  g = f g
-
--- | Like 'fix', but allowing for two changing type parameters
-fix2 :: forall c f a . ((forall i x. c x => f i x -> a) -> (forall i x. c x => f i x -> a)) -> (forall i x. c x => f i x -> a)
-fix2 f = g where
-  g :: forall i x. c x => f i x -> a
-  g = f g
-
--- ** Lens
--- $lens
--- The great thing about van Laarhoven lenses is that you don't need to import 
+-- It's convenient to have lenses for the 'Tree', 'Opt', and 'Pair' data 
+-- structures in order to look up and modify values.
+-- 
+-- The great thing about [van Laarhoven lenses](https://hackage.haskell.org/package/lens-tutorial/docs/Control-Lens-Tutorial.html)  is that you don't need to import 
 -- a library to define them.
 --
 -- But an appropriately named type synonym certainly cuts down on the noise.
 
--- | [van Laarhoven lenses](https://hackage.haskell.org/package/lens-tutorial/docs/Control-Lens-Tutorial.html) 
--- that don't allow updates to change the type
-type Lens' s a = forall f. Functor f => (a -> f a) -> s -> f s
+-- | A classic van Laarhoven lens
+type Lens s t a b = forall f. Functor f => (a -> f b) -> s -> f t
+
+-- | A van Laarhoven lens that doesn't allow updates to change the type
+type Lens' s a = Lens s s a a
+
+-- $setup
+-- Since we're not using a lens library, we'll need some tools for the 
+-- examples.
+--
+--    >>> :set -XDataKinds
+--    >>> import Data.Functor.Identity
+--    >>> import Data.Functor.Const
+--    >>> import Data.Function ((&))
+--    >>> :{
+--      view :: Lens' s a -> s -> a
+--      view l = getConst . l Const
+--    :}
+--
+--    >>> :{
+--      over :: Lens s t a b -> (a -> b) -> s -> t
+--      over l f = runIdentity . l (Identity . f)
+--    :}
+--
+--    >>> :{
+--      set :: Lens s t a b -> b -> s -> t
+--      set l = over l . const
+--    :}
+
+-- | A lens for accessing the first element of a 'Pair'.
+--
+--    >>> ('a' :* 'b') & view _O
+--    'a'
+--    >>> ('a' :* 'b') & set _O 'A'
+--    'A' :* 'b'
+_O :: Lens' (Pair a) a
+_O f (a0 :* a1) = f a0 <&> (:* a1)
+
+-- | A lens for accessing the second element of a 'Pair'.
+--
+--    >>> ('a' :* 'b') & view _I
+--    'b'
+--    >>> ('a' :* 'b') & set _I 'B'
+--    'a' :* 'B'
+_I :: Lens' (Pair a) a
+_I f (a0 :* a1) = (a0 :*) <$> f a1
+
+-- | A lens for accessing an arbitrary element of a 'Pair', using a 'Bit' as an 
+-- index
+--
+--    >>> (100 :* 100) & over (atPair O) succ
+--    101 :* 100
+--    >>> (100 :* 100) & over (atPair I) succ
+--    100 :* 101
+atPair :: Bit -> Lens' (Pair a) a
+atPair = \case
+  O -> _O
+  I -> _I
+
+-- | A lens for accessing the value held by an @'Opt' 'I'@
+--
+--    >>> (Some 'a') & view _Some
+--    'a'
+--    >>> (Some 'a') & set _Some "hello"
+--    Some "hello"
+_Some :: Lens (Opt I a) (Opt I b) a b
+_Some f (Some a) = Some <$> f a
+
+-- | A lens for accessing the value held by a @'Tree' 'ObI'@
+--
+--    >>> (Canopy 'a') & view _Canopy
+--    'a'
+_Canopy :: Lens (Tree ObI a) (Tree ObI b) a b
+_Canopy f (Canopy a) = Canopy <$> f a
+
+-- | A lens for accessing the first argument of ':\' in a 'Tree'.
+--
+--    >>> let t = Canopy (('a' :* 'b') :* ('c' :* 'd')) :\ None :\ None 
+--    >>> t & view (_Up . _Up . _Canopy . _I . _O)
+--    'c'
+--    >>> t & set (_Up . _Up . _Canopy . _I . _O) 'C'
+--    Canopy (('a' :* 'b') :* ('C' :* 'd')) :\ None :\ None 
+_Up :: Lens (Tree (n :. b) a) (Tree (m :. b) a) (Tree n (Pair a)) (Tree m (Pair a))
+_Up f (taa :\ oa) = f taa <&> (:\ oa)
+
+-- | A lens for accessing the second argument of ':\' in a 'Tree'
+--
+--    >>> let t = Canopy (('a' :* 'b') :* ('c' :* 'd')) :\ None :\ None 
+--    >>> t & view (_Up . _Off)
+--    None
+--    >>> let t' = t & set (_Up . _Off) (Some ('e' :* 'f'))
+--    >>> t'
+--    Canopy (('a' :* 'b') :* ('c' :* 'd')) :\ Some ('e' :* 'f') :\ None 
+--    >>> t' & view (_Up . _Off . _Some . _O)
+--    'e'
+_Off :: Lens (Tree (n :. b) a) (Tree (n :. c) a) (Opt b a) (Opt c a)
+_Off f (taa :\ oa) = (taa :\) <$> f oa
+
+-- | A lens for accessing the last element of a @'Tree' (n :. I)@
+--
+--    >>> let t = Canopy (('a' :* 'b') :* ('c' :* 'd')) :\ None :\ Some 'e'
+--    >>> t & view _Branch
+--    'e'
+--    >>> t & set _Branch 'E'
+--    Canopy (('a' :* 'b') :* ('c' :* 'd')) :\ None :\ Some 'E'
+_Branch :: Lens' (Tree (n :. I) a) a
+_Branch = _Off . _Some
+
+-- | A lens for accessing an arbitrary element of a 'Tree', using 'FPositive' as an index.
+--
+--    >>> let t = Canopy (('a' :* 'b') :* ('c' :* 'd')) :\ None :\ Some 'e'
+--    >>> t & view (atTree (FCanopy :? O :? O))
+--    'a'
+--    >>> t & view (atTree (FCanopy :? I :? O))
+--    'c'
+--    >>> t & view (atTree FBranch)
+--    'e'
+--    >>> t & set (atTree (FCanopy :? O :? I)) 'B'
+--    Canopy (('a' :* 'B') :* ('c' :* 'd')) :\ None :\ Some 'e'
+atTree :: FPositive n -> Lens' (Tree n a) a
+atTree = \case
+  FCanopy -> _Canopy
+  FBranch -> _Branch
+  fn :? b -> _Up . atTree fn . atPair b
+
+-- * Misc
+-- $
+
+type Iso :: Type -> Type -> Type
+data Iso a b = Iso { forwards :: a -> b, backwards :: b -> a }
+
+instance Category Iso where
+  id = Iso id id
+  Iso f0 b0 . Iso f1 b1 = Iso (f0 . f1) (b1 . b0)
