@@ -7,11 +7,13 @@
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE TypeFamilies #-}
 
+-- | Indexed types using type-level binary numbers
 module Pear where
--- TODO: Article, then document
--- tests would be nice too
 
-import Control.Category (Category(..)) -- we don't actually use this, but it pains me to not implement Category when the type so clearly supports it
+import Control.Category (Category(..)) -- We don't actually need this for 
+                                       -- anything we're doing here, but it 
+                                       -- pains me to not implement Category 
+                                       -- when the type so clearly supports it
 import Data.Function (fix)
 import Data.Functor ((<&>))
 import Data.Kind (Type, Constraint)
@@ -19,10 +21,20 @@ import Data.Maybe (fromMaybe)
 import Data.List.NonEmpty (NonEmpty((:|)))
 import Prelude hiding ((.), id)
 
+-- * Bits
+-- $
+
+-- | The binary equivalent of digits.
+--
+-- We'll mainly be using these as types (via DataKinds).
 type Bit :: Type
-data Bit = O | I
+data Bit = O | I -- using O and I for 0 and 1 might be a little cutsy, but I 
+                 -- think it helps with legibility
   deriving (Show, Eq, Enum, Ord, Bounded)
 
+-- | A singleton type for bits.
+--
+-- These give us a way of manipulating type-level bits using value-level logic.
 type SBit :: Bit -> Type
 data SBit b where
   SO :: SBit O
@@ -31,6 +43,7 @@ data SBit b where
 deriving instance Show (SBit b)
 deriving instance Eq (SBit b)
 
+-- | A constraint that lets us specify a bit value to a function implicitly.
 type KnownBit :: Bit -> Constraint
 class KnownBit b where
   knownBit :: SBit b
@@ -38,39 +51,120 @@ class KnownBit b where
 instance KnownBit O where knownBit = SO
 instance KnownBit I where knownBit = SI
 
--- we could also make an FBit type, but it's just as convenient to do without
+-- $FBit
+-- We could also make an type to represent "the finite values less than the 
+-- given bit", 
+--
+-- @
+--    type FBit :: Bit -> Type
+--    data FBit b where
+--      FO :: FBit I -- O is the only bit value less than I
+--      -- FBit O is unpopulated, there are no bit values less than O
+-- @
+--
+-- but it's just as convenient to do without.
 
+-- * Positive
+-- $
+
+-- | Positive binary natural numbers, encoded as a sequence of bits
+--
+--    >>> toEnum @Positive 18
+--    ObI :. O :. O :. I :. O
+--    >>> toEnum @Positive 19
+--    ObI :. O :. O :. I :. I
+--    >>> toEnum @Positive 20
+--    ObI :. O :. I :. O :. O
 type Positive :: Type
 data Positive = ObI | Positive :. Bit
-  deriving (Eq, Ord)
+  deriving (Eq, Ord) -- it's worth noting that the derived Ord instance 
+                     -- automatically does the right thing because the 
+                     -- constructors are listed in least-to-most order
 
 infixl 4 :.
 
+-- The derived Show instance for Positive (and the reset of the @infixl@ 
+-- operators defined below) would wrap _every_ recursive constructor call in 
+-- parentheses, which makes them harder to read.
+--
+-- This custom instance just removes these parentheses
 instance Show Positive where
   showsPrec p = showParen (p >= 4) . fix \loop -> \case
     n :. b -> loop n . showString " :. " . shows b
     ObI -> showString "ObI"
 
+-- |
+-- Let's make sure I didn't mess up 'succ'
+--
+--    >>> succ (ObI :. O :. O :. I :. O)
+--    ObI :. O :. O :. I :. I
+--    >>> succ (ObI :. O :. O :. I :. I)
+--    ObI :. O :. I :. O :. O
+--
+-- or 'fromEnum'
+--
+--    >>> fromEnum (ObI :. O :. O :. I :. O)
+--    18
+--    >>> fromEnum (ObI :. O :. O :. I :. I)
+--    19
+--    >>> fromEnum (ObI :. O :. I :. O :. O)
+--    20
 instance Enum Positive where
   succ = \case
     n :. I -> succ n :. O
     n :. O -> n :. I
     ObI -> ObI :. O
 
+  pred =
+    fromMaybe (error "Positive.pred :: Invalid input") .
+    predPositive
+
   toEnum = 
     fromMaybe (error "Positive.toEnum :: Invalid input") .
-    safeToPositive
+    toPositive
 
   fromEnum = \case
     ObI -> 1
     n :. b -> 2 * fromEnum n + fromEnum b
 
+
 instance Bounded Positive where
   minBound = ObI
-  maxBound = fix (:. I)
+  maxBound = fix (:. I) -- infinity!
 
-safeToPositive :: Int -> Maybe Positive
-safeToPositive = \case
+-- | A non-partial alternative to 'pred'.
+--
+--    >>> predPositive $ ObI :. O :. O :. I
+--    Just (ObI :. O :. O :. O)
+--    >>> predPositive $ ObI :. O :. O :. O
+--    Just (ObI :. I :. I)
+--
+-- Not all Positive numbers have a Positive predecessor (looking at you 'ObI').
+--
+--    >>> predPositive ObI
+--    Nothing
+predPositive :: Positive -> Maybe Positive
+predPositive = loop Nothing Just where
+  loop fail done  = \case
+    n :. O -> loop (done ObI) (done . (:. I)) n
+    n :. I -> done (n :. O)
+    ObI -> fail
+
+-- | A non-partial alternative to 'toEnum'.
+--
+--    >>> toPositive 11
+--    Just (ObI :. O :. I :. I)
+--    >>> toPositive 87
+--    Just (ObI :. O :. I :. O :. I :. I :. I)
+--
+-- Not all integers are positive numbers.
+--
+--    >>> toPositive 0
+--    Nothing
+--    >>> toPositive (-99)
+--    Nothing
+toPositive :: Int -> Maybe Positive
+toPositive = \case
   n | n <= 0 -> Nothing
     | otherwise -> Just $ loop n
   where
@@ -80,11 +174,7 @@ safeToPositive = \case
         let (q, r) = n `quotRem` 2
         in loop q :. toEnum r
 
-fix1 :: forall f a. ((forall i. f i -> a) -> (forall i. f i -> a)) -> (forall i. f i -> a)
-fix1 f = g where
-  g :: forall i. f i -> a
-  g = f g
-
+-- | A singleton type for positive integers
 type SPositive :: Positive -> Type
 data SPositive n where
   SObI :: SPositive ObI
@@ -94,24 +184,51 @@ infixl 4 :!
 
 deriving instance Eq (SPositive n)
 
+-- same song-and-dance for avoiding parens when 'show'ing
+-- 'SPositive' numbers. 
+--
+-- However, I'm very disappointed to say, doesn't apply when asking @ghci@ to 
+-- print a type
+--
+--    >>> :t SObI :! SO :! SO :! SO
+--    SObI :! SO :! SO :! SO :: SPositive (((ObI :. O) :. O) :. O)
 instance Show (SPositive n) where
   showsPrec p = showParen (p >= 4) . fix1 \loop -> \case
     sn :! sb -> loop sn . showString " :! " . shows sb
     SObI -> showString "SObI"
 
+-- | Convert a 'SPositive' into its equivalent integer value
+--
+--    >>> fromSPositive $ SObI :! SO :! SO :! SO
+--    8
 fromSPositive :: SPositive n -> Int
 fromSPositive = loop 1 0 where
   loop :: Int -> Int -> SPositive n -> Int
   loop !p !t = \case
     SObI -> p + t
-    sn :! sb -> loop (2*p) (t + case sb of SO -> 0 ; SI -> 1) sn
+    sn :! sb -> loop (2*p) (t + case sb of SO -> 0 ; SI -> p) sn
 
+-- | Convert an 'Positive' value into an 'SPositive' and pass it to a 
+-- continuation
+--
+--    >>> withSPositive show (ObI :. O :. O :. I :. I)
+--    "SObI :! SO :! SO :! SI :! SI"
+--    >>> withSPositive fromSPositive (ObI :. O :. O :. I :. I)
+--    19
+--
+-- This will be a needed tool if we ever want to do something like build a tree 
+-- of a runtime-specified size.
 withSPositive :: (forall n. SPositive n -> r) -> Positive -> r
+-- the continuation trick is necessary because @Positive -> SPositive n@ would 
+-- mean that the caller gets to specify the type @n@ at compile time, while we 
+-- actually want to be able to have the input determine the type at runtime.
 withSPositive k = \case
   ObI -> k SObI
   bs :. O -> withSPositive (k . (:! SO)) bs
   bs :. I -> withSPositive (k . (:! SI)) bs
 
+-- | A constraint that lets us specify a positive value to a function 
+-- implicitly
 type KnownPositive :: Positive -> Constraint
 class KnownPositive n where
   knownPositive :: SPositive n
@@ -122,12 +239,113 @@ instance KnownPositive ObI where
 instance (KnownPositive n, KnownBit b) => KnownPositive (n :. b) where
   knownPositive = knownPositive @n :! knownBit @b
 
+-- | Specify what value of n should be inferred for the given block.
 withKnownPositive :: ((KnownPositive n) => r) -> SPositive n -> r
 withKnownPositive r = \case
   SObI -> r
   sn :! SO -> withKnownPositive r sn
   sn :! SI -> withKnownPositive r sn
 
+-- | The finite set of naturals strictly less than the specified index.
+--
+-- Consider the binary expansion of a positive number:
+--
+-- @
+--    0b  1  0  1  1  0  1      
+--
+--       32 16  8  4  2  1  each bit position corresponds to a power of 2
+--
+--       32  0  8  4  0  1  but only the nonzero bits contribute to the value
+-- @
+--
+-- In particular, all the natural numbers *less* than a positive number share
+-- some prefix of the positive number's binary expansion up to some bit 
+-- position, where the natural number has a 0 but the positive number has a 1.
+--
+-- @
+--    0b    1    0    1    1    0    1  = 45
+--
+--          1    0    1    1    0   [0] = 44
+--
+--          1    0    1   [0]   1    0  = 42
+--
+--          1    0   [0]   1    0    1  = 39
+--
+--         [0]   0    1    1    1    1  = 15
+--
+--         [0]   0    0    0    0    0  = 0
+-- @
+--
+-- 'FPositive' partitions the naturals less than its index into groups by
+-- their maximum shared prefix with the index. Within those groups, each
+-- natural is associated with its unique suffix.
+--
+-- @
+--    0b    1    0    1    1    0    1  = 45
+--
+--    0b    1    0    1    1    0   [0]
+--                                      = 44
+--
+--    0b    1    0    1   [0]   _    _
+--                              1    1  = 43
+--                              1    0  = 42
+--                              0    1  = 41
+--                              0    0  = 40
+--
+--    0b    1    0   [0]   _    _    _
+--                         1    1    1  = 39
+--                         1    1    0  = 38
+--                         1    0    1  = 37
+--                         ...  
+--                         0    0    0  = 32
+--
+--    0b   [0]   _    _    _    _    _
+--               1    1    1    1    1  = 31
+--               1    1    1    1    0  = 30
+--               1    1    1    0    1  = 29
+--               ...  
+--               0    0    0    0    1  = 1
+--               0    0    0    0    0  = 0
+-- @
+--
+-- If the prefix is empty (the most significant set bit of the index is unset 
+-- in the natural), then the suffix is attached to the 'FCanopy' constructor.
+--
+-- If the prefix is non-empty, then the suffix is attached to the 'FBranch' 
+-- constructor.
+--
+-- (The names are derived from their use as offsets in 'Tree')
+--
+-- @
+--    0b    1    0    1    1    0    1  = 45
+--
+--    0b    1    0    1    1    0   [0]
+--                             FBranch  = 44
+--
+--    0b    1    0    1   [0]   _    _
+--                   FBranch :? I :? I  = 43
+--                   FBranch :? I :? O  = 42
+--                   FBranch :? O :? I  = 41
+--                   FBranch :? O :? O  = 40
+--
+--    0b    1    0   [0]   _    _    _
+--              FBranch :? I :? I :? I  = 39
+--              FBranch :? I :? I :? O  = 38
+--              FBranch :? I :? O :? I  = 37
+--                         ...
+--              FBranch :? O :? O :? O  = 32
+--
+--    0b   [0]   _    _    _    _    _
+--    FCanopy :? I :? I :? I :? I :? I  = 31
+--    FCanopy :? I :? I :? I :? I :? O  = 30
+--    FCanopy :? I :? I :? I :? O :? I  = 29
+--               ...
+--    FCanopy :? O :? O :? O :? O :? I  = 1
+--    FCanopy :? O :? O :? O :? O :? O  = 0
+-- @
+--
+-- Note that this means that we need to know the type of an 'FPositive' value 
+-- in order to be able to know its integer value.
 type FPositive :: Positive -> Type
 data FPositive n where
   (:?) :: FPositive n -> Bit -> FPositive (n :. b)
@@ -189,7 +407,7 @@ safePred' = loop id where
 
 safeToFPositive :: KnownPositive n => Int -> Maybe (FPositive n)
 safeToFPositive 0 = Just minBound
-safeToFPositive i = positiveToFPositive =<< safeToPositive i
+safeToFPositive i = positiveToFPositive =<< toPositive i
   
 positiveToFPositive :: KnownPositive n => Positive -> Maybe (FPositive n)
 positiveToFPositive = positiveToFPositive' knownPositive
@@ -267,11 +485,6 @@ instance Applicative Pair where
   (f0 :* f1) <*> (a0 :* a1) = f0 a0 :* f1 a1
   pure a = a :* a
 
-fix2 :: forall c f a . ((forall i x. c x => f i x -> a) -> (forall i x. c x => f i x -> a)) -> (forall i x. c x => f i x -> a)
-fix2 f = g where
-  g :: forall i x. c x => f i x -> a
-  g = f g
-
 type Tree :: Positive -> Type -> Type
 data Tree n a where
   Canopy :: a -> Tree ObI a
@@ -287,7 +500,7 @@ deriving instance Eq a => Eq (Tree n a)
 instance Show a => Show (Tree n a) where
   showsPrec p = showParen (p >= 4) . fix2 @Show \loop -> \case
     taa :\ oa -> loop taa . showString " :\\ " . shows oa
-    Canopy a -> showString "Canopy " . shows a
+    Canopy a -> showString "Canopy " . showsPrec 10 a
 
 instance KnownPositive n => Applicative (Tree n) where
   liftA2 = liftT2
@@ -319,8 +532,6 @@ fromNonEmpty f = \(a :| as) -> loop (Canopy a) as where
   loop t = \case
     [] -> f t
     a : as -> loop (push t a) as
-
-type Lens' s a = forall f. Functor f => (a -> f a) -> s -> f s
 
 _0 :: Lens' (Pair a) a
 _0 f (a0 :* a1) = f a0 <&> (:* a1)
@@ -625,3 +836,47 @@ fizzC = \cases
   (sn :! SI) (sm :! SI) _ (taa :\ oa) ->
     let (taa0, taa1, Some (a0 :* a1)) = fizzC sn sm SI taa
     in (taa0 :\ Some a0, taa1 :\ Some a1, oa)
+
+-- * Miscellaneous Utilities
+-- $
+
+-- ** 'fix1' and 'fix2'
+--
+-- $
+-- 'fix1' and 'fix2' are really just the normal 'Data.Function.fix' but with 
+-- more specific types.
+--
+--  * @fix1 = fix \@(forall i. f i -> a)@
+--  * @fix2 = fix \@(forall i x. c x => f i x -> a)@
+--
+-- However you'll need to enable @ImpredicativeTypes@ for that, and I'm not 
+-- cosy with that particular language extension yet.
+--
+-- Also I thought the long type applications would be a little distracting, 
+-- didactically.
+--
+-- So I made some helpers.  I'm still not 100% on them, so I might just switch 
+-- back to defining local helpers instead.
+
+-- | Like 'fix', but allowing for a changing final type parameter
+fix1 :: forall f a. ((forall i. f i -> a) -> (forall i. f i -> a)) -> (forall i. f i -> a)
+fix1 f = g where
+  g :: forall i. f i -> a
+  g = f g
+
+-- | Like 'fix', but allowing for two changing type parameters
+fix2 :: forall c f a . ((forall i x. c x => f i x -> a) -> (forall i x. c x => f i x -> a)) -> (forall i x. c x => f i x -> a)
+fix2 f = g where
+  g :: forall i x. c x => f i x -> a
+  g = f g
+
+-- ** Lens
+-- $lens
+-- The great thing about van Laarhoven lenses is that you don't need to import 
+-- a library to define them.
+--
+-- But an appropriately named type synonym certainly cuts down on the noise.
+
+-- | [van Laarhoven lenses](https://hackage.haskell.org/package/lens-tutorial/docs/Control-Lens-Tutorial.html) 
+-- that don't allow updates to change the type
+type Lens' s a = forall f. Functor f => (a -> f a) -> s -> f s
