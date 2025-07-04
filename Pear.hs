@@ -35,8 +35,8 @@ import Prelude hiding ((.), id, lookup)
 --  - the @S@ prefix is used for singleton types and constructors ('SBit', 
 --    'SO', 'SI', 'SPositive')
 --
---  - the @F@ prefix for finite types and constructors ('FPositive', 'FCanopy', 
---    'FBranch', 'FSucc', 'FAdd', 'FAddC', 'FL', 'FR', 'FC').
+--  - the @F@ prefix for finite types and constructors ('FPositive', 'FObO', 
+--    'FPrefixO', 'FSucc', 'FAdd', 'FAddC', 'FL', 'FR', 'FC').
 --
 --  - the @C@ suffix is used when a type or function handles carry bits 
 --    ('AddC', 'fuseC', 'fizzC', etc.)
@@ -386,67 +386,65 @@ withKnownPositive r = \case
 -- @
 --
 -- If the prefix is empty (the most significant set bit of @n@ is unset 
--- in the natural), then the suffix is attached to the 'FCanopy' constructor.
+-- in the natural), then the suffix is attached to the 'FObO' constructor.
 --
--- If the prefix is non-empty, then the suffix is attached to the 'FBranch' 
+-- If the prefix is non-empty, then the suffix is attached to the 'FPrefixO' 
 -- constructor.
---
--- (The names are derived from their use as offsets in 'Tree')
 --
 -- @
 -- 0b    1    0    1    1    0    1  = 45
 --
 -- 0b    1    0    1    1    0   [0]
---                          FBranch  = 44
+--                         FPrefixO  = 44
 --
 -- 0b    1    0    1   [0]   _    _
---                FBranch :? I :? I  = 43
---                FBranch :? I :? O  = 42
---                FBranch :? O :? I  = 41
---                FBranch :? O :? O  = 40
+--               FPrefixO :? I :? I  = 43
+--               FPrefixO :? I :? O  = 42
+--               FPrefixO :? O :? I  = 41
+--               FPrefixO :? O :? O  = 40
 --
 -- 0b    1    0   [0]   _    _    _
---           FBranch :? I :? I :? I  = 39
---           FBranch :? I :? I :? O  = 38
---           FBranch :? I :? O :? I  = 37
+--          FPrefixO :? I :? I :? I  = 39
+--          FPrefixO :? I :? I :? O  = 38
+--          FPrefixO :? I :? O :? I  = 37
 --                      ...
---           FBranch :? O :? O :? O  = 32
+--          FPrefixO :? O :? O :? O  = 32
 --
 -- 0b   [0]   _    _    _    _    _
--- FCanopy :? I :? I :? I :? I :? I  = 31
--- FCanopy :? I :? I :? I :? I :? O  = 30
--- FCanopy :? I :? I :? I :? O :? I  = 29
+--    FObO :? I :? I :? I :? I :? I  = 31
+--    FObO :? I :? I :? I :? I :? O  = 30
+--    FObO :? I :? I :? I :? O :? I  = 29
 --            ...
--- FCanopy :? O :? O :? O :? O :? I  = 1
--- FCanopy :? O :? O :? O :? O :? O  = 0
+--    FObO :? O :? O :? O :? O :? I  =  1
+--    FObO :? O :? O :? O :? O :? O  =  0
 -- @
 --
 -- Note that this means that we need to know the type of an 'FPositive' value 
 -- in order to be able to know its integer value.
 type FPositive :: Positive -> Type
 data FPositive n where
-  FCanopy :: FPositive ObI
+  FObO :: FPositive ObI
   (:?) :: FPositive n -> Bit -> FPositive (n :. b)
-  FBranch :: FPositive (n :. I)
+  FPrefixO :: FPositive (n :. I)
 
 deriving instance Eq (FPositive n)
 -- | The derived Ord instance works because the constructors were listed in 
 -- least-to-most order
 --
---    >>> (FCanopy :? O :? I :? I) `min` (FCanopy :? O :? I :? O)
---    FCanopy :? O :? I :? O
---    >>> (FCanopy :? O :? I :? I) `min` (FBranch :? O)
---    FCanopy :? O :? I :? I
---    >>> (FBranch :? I) `min` (FBranch :? O)
---    FBranch :? O
+--    >>> (FObO :? O :? I :? I) `min` (FObO :? O :? I :? O)
+--    FObO :? O :? I :? O
+--    >>> (FObO :? O :? I :? I) `min` (FPrefixO :? O)
+--    FObO :? O :? I :? I
+--    >>> (FPrefixO :? I) `min` (FPrefixO :? O)
+--    FPrefixO :? O
 deriving instance Ord (FPositive n)
 
 instance Show (FPositive n) where
   showsPrec p = \case
     fn :? b -> showParen (p >= 4) do
       shows fn . showString " :? " . shows b
-    FCanopy -> showString "FCanopy"
-    FBranch -> showString "FBranch"
+    FObO -> showString "FObO"
+    FPrefixO -> showString "FPrefixO"
 
 instance KnownPositive n => Bounded (FPositive n) where
   minBound = minBoundFPositive' knownPositive
@@ -457,12 +455,12 @@ instance KnownPositive n => Bounded (FPositive n) where
 -- This gives the encoding for 0 in FPositive n.
 --
 --    >>> minBoundFPositive' $ SObI
---    FCanopy
+--    FObO
 --    >>> minBoundFPositive' $ SObI :! SO :! SI :! SO
---    FCanopy :? O :? O :? O
+--    FObO :? O :? O :? O
 minBoundFPositive' :: SPositive n -> FPositive n
 minBoundFPositive' = \case
-  SObI -> FCanopy
+  SObI -> FObO
   sn :! _ -> minBoundFPositive' sn :? O
 
 -- | Alternative to 'maxBound', where the value of @n@ is given explicitly.
@@ -470,16 +468,16 @@ minBoundFPositive' = \case
 -- This gives the encoding for n - 1 in FPositive n.
 --
 --    >>> maxBoundFPositive' $ SObI
---    FCanopy
+--    FObO
 --    >>> maxBoundFPositive' $ SObI :! SO :! SI :! SO
---    FBranch :? I
+--    FPrefixO :? I
 --    >>> maxBoundFPositive' $ SObI :! SO :! SI :! SI
---    FBranch
+--    FPrefixO
 maxBoundFPositive' :: SPositive n -> FPositive n
 maxBoundFPositive' = \case
-  SObI -> FCanopy
+  SObI -> FObO
   sn :! SO -> maxBoundFPositive' sn :? I
-  _ :! SI -> FBranch
+  _ :! SI -> FPrefixO
 
 instance KnownPositive n => Enum (FPositive n) where
   succ =
@@ -498,15 +496,15 @@ instance KnownPositive n => Enum (FPositive n) where
 
 -- | A non-partial alternative to 'succ'
 --
---    >>> succFPositive @(ObI :. I) $ FCanopy :? O
---    Just (FCanopy :? I)
---    >>> succFPositive @(ObI :. I) $ FCanopy :? I
---    Just FBranch
+--    >>> succFPositive @(ObI :. I) $ FObO :? O
+--    Just (FObO :? I)
+--    >>> succFPositive @(ObI :. I) $ FObO :? I
+--    Just FPrefixO
 --
 -- Not all 'FPositive n' numbers have a successor less than n (that is, 
 -- 'maxBound' does not).
 --
---    >>> succFPositive @(ObI :. I) $ FBranch
+--    >>> succFPositive @(ObI :. I) $ FPrefixO
 --    Nothing
 succFPositive :: KnownPositive n => FPositive n -> Maybe (FPositive n)
 succFPositive = succFPositive' knownPositive
@@ -514,60 +512,60 @@ succFPositive = succFPositive' knownPositive
 -- | Alternative to 'succFPositive', where the value of @n@ is given 
 -- explicilty.
 --
---    >>> succFPositive' (SObI :! SI) (FCanopy :? O)
---    Just (FCanopy :? I)
---    >>> succFPositive' (SObI :! SI) (FCanopy :? I)
---    Just FBranch
---    >>> succFPositive' (SObI :! SI) FBranch
+--    >>> succFPositive' (SObI :! SI) (FObO :? O)
+--    Just (FObO :? I)
+--    >>> succFPositive' (SObI :! SI) (FObO :? I)
+--    Just FPrefixO
+--    >>> succFPositive' (SObI :! SI) FPrefixO
 --    Nothing
 succFPositive' :: SPositive n -> FPositive n -> Maybe (FPositive n)
 succFPositive' = loop Nothing Just where
   loop :: r -> (FPositive n -> r) -> SPositive n -> FPositive n -> r
   loop failure success = flip \case
-    FCanopy -> \SObI -> failure
-    FBranch -> \(_ :! SI) -> failure
+    FObO -> \SObI -> failure
+    FPrefixO -> \(_ :! SI) -> failure
     fn :? O -> \_ -> success (fn :? I)
     fn :? I -> \(sn :! sb) ->
       let failure' = case sb of
             SO -> failure
-            SI -> success FBranch
+            SI -> success FPrefixO
       in
       loop failure' (success . (:? O)) sn fn
 
 -- | A non-partial alternative to 'pred'
 --
---    >>> predFPositive @(ObI :. O :. O :. I :. I) FBranch
---    Just (FBranch :? I)
---    >>> predFPositive @(ObI :. O :. O :. I :. I) (FBranch :? I)
---    Just (FBranch :? O)
---    >>> predFPositive @(ObI :. O :. O :. I :. I) (FBranch :? O)
---    Just (FCanopy :? I :? I :? I :? I)
+--    >>> predFPositive @(ObI :. O :. O :. I :. I) FPrefixO
+--    Just (FPrefixO :? I)
+--    >>> predFPositive @(ObI :. O :. O :. I :. I) (FPrefixO :? I)
+--    Just (FPrefixO :? O)
+--    >>> predFPositive @(ObI :. O :. O :. I :. I) (FPrefixO :? O)
+--    Just (FObO :? I :? I :? I :? I)
 predFPositive :: KnownPositive n => FPositive n -> Maybe (FPositive n)
 predFPositive = predFPositive' knownPositive
 
 -- | Alternative to 'predFPositive', where the value of @n@ is given
 --
---    >>> predFPositive' (SObI :! SO :! SO :! SI :! SI) FBranch
---    Just (FBranch :? I)
---    >>> predFPositive' (SObI :! SO :! SO :! SI :! SI) (FBranch :? I)
---    Just (FBranch :? O)
---    >>> predFPositive' (SObI :! SO :! SO :! SI :! SI) (FBranch :? O)
---    Just (FCanopy :? I :? I :? I :? I)
+--    >>> predFPositive' (SObI :! SO :! SO :! SI :! SI) FPrefixO
+--    Just (FPrefixO :? I)
+--    >>> predFPositive' (SObI :! SO :! SO :! SI :! SI) (FPrefixO :? I)
+--    Just (FPrefixO :? O)
+--    >>> predFPositive' (SObI :! SO :! SO :! SI :! SI) (FPrefixO :? O)
+--    Just (FObO :? I :? I :? I :? I)
 predFPositive' :: SPositive n -> FPositive n -> Maybe (FPositive n)
 predFPositive' = loop id where
   loop :: (FPositive n -> r) -> SPositive n -> FPositive n -> Maybe r
   loop k = flip \cases
-    FCanopy -> \SObI -> Nothing
-    FBranch -> \(sn :! SI) -> Just $ k $ maxBoundFPositive' sn :? I 
+    FObO -> \SObI -> Nothing
+    FPrefixO -> \(sn :! SI) -> Just $ k $ maxBoundFPositive' sn :? I 
     (fn :? I) -> \_ -> Just $ k (fn :? O) 
     (fn :? O) -> \(sn :! _) -> loop (k . (:? I)) sn fn
 
 -- | A non-partial alternative to 'toEnum'
 --
 --    >>> toFPositive @(ObI :. O :. O :. O) 5
---    Just (FCanopy :? I :? O :? I)
+--    Just (FObO :? I :? O :? I)
 --    >>> toFPositive @(ObI :. O :. O :. O) 0
---    Just (FCanopy :? O :? O :? O)
+--    Just (FObO :? O :? O :? O)
 --
 --  Not all integers are positive numbers less than n
 --
@@ -582,9 +580,9 @@ toFPositive i = positiveToFPositive =<< toPositive i
 -- | Convert a given 'Positive' value to an @'FPositive' n@ for some known @n@.
 --
 --    >>> positiveToFPositive @(ObI :. O :. O :. O) (ObI :. O :. I)
---    Just (FCanopy :? I :? O :? I)
+--    Just (FObO :? I :? O :? I)
 --    >>> positiveToFPositive @(ObI :. I :. O) (ObI :. O :. I)
---    Just (FBranch :? I)
+--    Just (FPrefixO :? I)
 --
 --  Not all positive integers are less than @n@.
 --
@@ -597,9 +595,9 @@ positiveToFPositive = positiveToFPositive' knownPositive
 -- explicilty.
 --
 --    >>> positiveToFPositive' (SObI :! SO :! SO :! SO) (ObI :. O :. I)
---    Just (FCanopy :? I :? O :? I)
+--    Just (FObO :? I :? O :? I)
 --    >>> positiveToFPositive' (SObI :! SI :! SO) (ObI :. O :. I)
---    Just (FBranch :? I)
+--    Just (FPrefixO :? I)
 --
 --  Not all positive integers are less than @n@.
 --
@@ -614,21 +612,21 @@ positiveToFPositive' = loop Nothing id where
     (sn :! _) ObI -> Just $ lt $ minBoundFPositive' sn :? I
     (sn :! SO) (m :. O) -> loop eq (lt . (:? O)) sn m
     (sn :! SO) (m :. I) -> loop Nothing (lt . (:? I)) sn m
-    (sn :! SI) (m :. O) -> loop (Just $ lt FBranch) (lt . (:? O)) sn m
+    (sn :! SI) (m :. O) -> loop (Just $ lt FPrefixO) (lt . (:? O)) sn m
     (sn :! SI) (m :. I) -> loop eq (lt . (:? I)) sn m
 
 -- | Alternative to 'fromEnum', where the value of @n@ is given explicitly.
 --
---    >>> fromFPositive' (SObI :! SO :! SO :! SO) (FCanopy :? I :? O :? I)
+--    >>> fromFPositive' (SObI :! SO :! SO :! SO) (FObO :? I :? O :? I)
 --    5
---    >>> fromFPositive' (SObI :! SI :! SO) (FBranch :? I)
+--    >>> fromFPositive' (SObI :! SI :! SO) (FPrefixO :? I)
 --    5
 fromFPositive' :: SPositive n -> FPositive n -> Int
 fromFPositive' = loop 1 0 where
   loop :: Int -> Int -> SPositive n -> FPositive n -> Int
   loop !p !t = \cases
-    SObI FCanopy -> t
-    (sn :! _) FBranch -> fromSPositive sn * 2 * p + t
+    SObI FObO -> t
+    (sn :! _) FPrefixO -> fromSPositive sn * 2 * p + t
     (sn :! _) (fn :? b) -> loop (2*p) (t + p * fromEnum b) sn fn
 
 -- * Containers
@@ -791,11 +789,11 @@ instance KnownPositive n => Applicative (Tree n) where
 -- | Get the element at a particular offset in a tree.
 --
 --    >>> let t = Canopy ((('a' :* 'b') :* ('c' :* 'd')) :* (('e' :* 'f') :* ('g' :* 'h'))) :\ None :\ Some ('i' :* 'j') :\ None
---    >>> lookup (FCanopy :? O :? O :? O) t
+--    >>> lookup (FObO :? O :? O :? O) t
 --    'a'
---    >>> lookup (FCanopy :? I :? O :? I) t
+--    >>> lookup (FObO :? I :? O :? I) t
 --    'f'
---    >>> lookup (FBranch :? O) t
+--    >>> lookup (FPrefixO :? O) t
 --    'i'
 --
 -- To modify the element at an offset, see 'atTree'.
@@ -825,10 +823,10 @@ generate = flip generate' knownPositive
 --    Canopy ((0 :* 1) :* (2 :* 3)) :\ Some (4 :* 5) :\ Some 6
 generate' :: (FPositive n -> a) -> SPositive n -> Tree n a
 generate' f = \case
-  SObI -> Canopy (f FCanopy)
+  SObI -> Canopy (f FObO)
   sn :! sb -> generate' (\fn -> f (fn :? O) :* f (fn :? I)) sn :\ case sb of
     SO -> None
-    SI -> Some (f FBranch)
+    SI -> Some (f FPrefixO)
 
 -- | Count the number of elements in a 'Tree' as a 'SPositive'.
 --
@@ -918,25 +916,25 @@ type FSucc n = FAdd n ObI
 --
 -- Any valid offset before the push can be converted into a post-push outset.
 --
---    >>> forwards rx $ FL (FCanopy :? O :? O)
---    FCanopy :? O :? O :? O
---    >>> forwards rx $ FL (FBranch :? I)
---    FCanopy :? I :? O :? I
---    >>> forwards rx $ FL FBranch
---    FCanopy :? I :? I :? O
+--    >>> forwards rx $ FL (FObO :? O :? O)
+--    FObO :? O :? O :? O
+--    >>> forwards rx $ FL (FPrefixO :? I)
+--    FObO :? I :? O :? I
+--    >>> forwards rx $ FL FPrefixO
+--    FObO :? I :? I :? O
 --
 -- And vice versa
 --
---    >>> backwards rx $ FCanopy :? O :? O :? O
---    FL (FCanopy :? O :? O)
---    >>> backwards rx $ FCanopy :? I :? I :? O
---    FL FBranch
+--    >>> backwards rx $ FObO :? O :? O :? O
+--    FL (FObO :? O :? O)
+--    >>> backwards rx $ FObO :? I :? I :? O
+--    FL FPrefixO
 --
--- @'FR' 'FCanopy'@ indicates that the new offset corresponds to the pushed 
+-- @'FR' 'FObO'@ indicates that the new offset corresponds to the pushed 
 -- element.
 --
---    >>> backwards rx $ FCanopy :? I :? I :? I
---    FR FCanopy
+--    >>> backwards rx $ FObO :? I :? I :? I
+--    FR FObO
 --
 -- See 'offsetAdd' for more details.
 offsetSucc :: SPositive n -> (FSucc n <-> FPositive (Succ n))
@@ -1017,7 +1015,7 @@ type FAdd n m = FAddC n m O
 --      >>> let bij = offsetAdd (treeSize t0) (treeSize t1)
 --      >>> t
 --      Canopy (('a' :* 'b') :* ('D' :* 'E')) :\ Some ('c' :* 'F') :\ None
---      >>> let off = FCanopy :? O
+--      >>> let off = FObO :? O
 --      >>> lookup off t0
 --      'a'
 --      >>> lookup (forwards bij $ FL off) t
@@ -1163,7 +1161,7 @@ deriving instance Show (FAddC n m b)
 --      >>> let bij = offsetAddC (treeSize t0) (treeSize t1) SI
 --      >>> t
 --      Canopy (('a' :* 'b') :* ('D' :* 'E')) :\ Some ('c' :* 'F') :\ Some '-'
---      >>> let off = FCanopy :? O
+--      >>> let off = FObO :? O
 --      >>> lookup off t0
 --      'a'
 --      >>> lookup (forwards bij $ FL off) t
@@ -1180,147 +1178,147 @@ offsetAddC :: SPositive n -> SPositive m -> SBit b -> (FAddC n m b <-> FPositive
 offsetAddC = \cases
   SObI SObI _ -> Bijection
     { forwards = \case
-        FL FCanopy -> FCanopy :? O
-        FR FCanopy -> FCanopy :? I
-        FC -> FBranch
+        FL FObO -> FObO :? O
+        FR FObO -> FObO :? I
+        FC -> FPrefixO
     , backwards = \case
-        FCanopy :? O -> FL FCanopy
-        FCanopy :? I -> FR FCanopy
-        FBranch -> FC
+        FObO :? O -> FL FObO
+        FObO :? I -> FR FObO
+        FPrefixO -> FC
     }
   (_ :! SO) SObI SO -> Bijection
     { forwards = \case
         FL (fn :? b) -> fn :? b
-        FR FCanopy -> FBranch
+        FR FObO -> FPrefixO
     , backwards = \case
         fn :? b -> FL (fn :? b)
-        FBranch -> FR FCanopy
+        FPrefixO -> FR FObO
     }
   (sn :! SO) SObI SI -> let bij = offsetSucc sn in Bijection
     { forwards = \case
         FL (fn :? b) -> forwards bij (FL fn) :? b
-        FR FCanopy -> forwards bij (FR FCanopy) :? O
-        FC -> forwards bij (FR FCanopy) :? I
+        FR FObO -> forwards bij (FR FObO) :? O
+        FC -> forwards bij (FR FObO) :? I
     , backwards = \(fx :? b) -> case (backwards bij fx, b) of
         (FL fn, b) -> FL (fn :? b)
-        (FR FCanopy, O) -> FR FCanopy
-        (FR FCanopy, I) -> FC
+        (FR FObO, O) -> FR FObO
+        (FR FObO, I) -> FC
     }
   (sn :! SI) SObI _ -> let bij = offsetSucc sn in Bijection
     { forwards = \case
         FL (fn :? b) -> forwards bij (FL fn) :? b
-        FL FBranch -> forwards bij (FR FCanopy) :? O
-        FR FCanopy -> forwards bij (FR FCanopy) :? I
-        FC -> FBranch
+        FL FPrefixO -> forwards bij (FR FObO) :? O
+        FR FObO -> forwards bij (FR FObO) :? I
+        FC -> FPrefixO
     , backwards = \case
         fx :? b -> case (backwards bij fx, b) of
           (FL fn, b) -> FL (fn :? b)
-          (FR FCanopy, O) -> FL FBranch
-          (FR FCanopy, I) -> FR FCanopy
-        FBranch -> FC
+          (FR FObO, O) -> FL FPrefixO
+          (FR FObO, I) -> FR FObO
+        FPrefixO -> FC
     }
   SObI (_ :! SO) SO -> Bijection
     { forwards = \case
-        FL FCanopy -> FBranch
+        FL FObO -> FPrefixO
         FR (fn :? b) -> fn :? b
     , backwards = \case
-        FBranch -> FL FCanopy
+        FPrefixO -> FL FObO
         fn :? b -> FR (fn :? b)
     }
   SObI (sm :! SO) SI -> let bij = offsetSucc sm in Bijection
     { forwards = \case
-        FL FCanopy -> forwards bij (FR FCanopy) :? O
+        FL FObO -> forwards bij (FR FObO) :? O
         FR (fn :? b) -> forwards bij (FL fn) :? b
-        FC -> forwards bij (FR FCanopy) :? I
+        FC -> forwards bij (FR FObO) :? I
     , backwards = \(fx :? b) -> case (backwards bij fx, b) of
-        (FR FCanopy, O) -> FL FCanopy
+        (FR FObO, O) -> FL FObO
         (FL fn, b) -> FR (fn :? b)
-        (FR FCanopy, I) -> FC
+        (FR FObO, I) -> FC
     }
   SObI (sm :! SI) _ -> let bij = offsetSucc sm in Bijection
     { forwards = \case
-        FL FCanopy -> forwards bij (FR FCanopy) :? O
+        FL FObO -> forwards bij (FR FObO) :? O
         FR (fm :? b) -> forwards bij (FL fm) :? b
-        FR FBranch -> forwards bij (FR FCanopy) :? O
-        FC -> FBranch
+        FR FPrefixO -> forwards bij (FR FObO) :? O
+        FC -> FPrefixO
     , backwards = \case
         fx :? b -> case (backwards bij fx, b) of
           (FL fn, b) -> FR (fn :? b)
-          (FR FCanopy, O) -> FR FBranch
-          (FR FCanopy, I) -> FL FCanopy
-        FBranch -> FC
+          (FR FObO, O) -> FR FPrefixO
+          (FR FObO, I) -> FL FObO
+        FPrefixO -> FC
     }
   (sn :! SO) (sm :! SO) _ -> let bij = offsetAdd sn sm in Bijection
     { forwards = \case
         FL (fn :? b) -> forwards bij (FL fn) :? b
         FR (fm :? b) -> forwards bij (FR fm) :? b
-        FC -> FBranch
+        FC -> FPrefixO
     , backwards = \case
         fx :? b -> case backwards bij fx of
           FL fn -> FL (fn :? b)
           FR fm -> FR (fm :? b)
-        FBranch -> FC
+        FPrefixO -> FC
     }
   (sn :! SO) (sm :! SI) SO -> let bij = offsetAdd sn sm in Bijection
     { forwards = \case
         FL (fn :? b) -> forwards bij (FL fn) :? b
         FR (fm :? b) -> forwards bij (FR fm) :? b
-        FR FBranch -> FBranch
+        FR FPrefixO -> FPrefixO
     , backwards = \case
         fx :? b -> case backwards bij fx of
           FL fn -> FL (fn :? b)
           FR fm -> FR (fm :? b)
-        FBranch -> FR FBranch
+        FPrefixO -> FR FPrefixO
     }
   (sn :! SO) (sm :! SI) SI -> let bij = offsetAddC sn sm SI in Bijection
     { forwards = \case
         FL (fn :? b) -> forwards bij (FL fn) :? b
         FR (fm :? b) -> forwards bij (FR fm) :? b
-        FR FBranch -> forwards bij FC :? O
+        FR FPrefixO -> forwards bij FC :? O
         FC -> forwards bij FC :? I
     , backwards = \(fx :? b) -> case (backwards bij fx, b) of
         (FL fn, b) -> FL (fn :? b)
         (FR fm, b) -> FR (fm :? b)
-        (FC, O) -> FR FBranch
+        (FC, O) -> FR FPrefixO
         (FC, I) -> FC
     }
   (sn :! SI) (sm :! SO) SO -> let bij = offsetAdd sn sm in Bijection
     { forwards = \case
         FL (fn :? b) -> forwards bij (FL fn) :? b
-        FL FBranch -> FBranch
+        FL FPrefixO -> FPrefixO
         FR (fm :? b) -> forwards bij (FR fm) :? b
     , backwards = \case
         fx :? b -> case backwards bij fx of
           FL fn -> FL (fn :? b)
           FR fm -> FR (fm :? b)
-        FBranch -> FL FBranch
+        FPrefixO -> FL FPrefixO
     }
   (sn :! SI) (sm :! SO) SI -> let bij = offsetAddC sn sm SI in Bijection
     { forwards = \case
         FL (fn :? b) -> forwards bij (FL fn) :? b
-        FL FBranch -> forwards bij FC :? O
+        FL FPrefixO -> forwards bij FC :? O
         FR (fm :? b) -> forwards bij (FR fm) :? b
         FC -> forwards bij FC :? I
     , backwards = \(fx :? b) -> case (backwards bij fx, b) of
         (FL fn, b) -> FL (fn :? b)
         (FR fm, b) -> FR (fm :? b)
-        (FC, O) -> FL FBranch
+        (FC, O) -> FL FPrefixO
         (FC, I) -> FC
     }
   (sn :! SI) (sm :! SI) _ -> let bij = offsetAddC sn sm SI in Bijection
     { forwards = \case
         FL (fn :? b) -> forwards bij (FL fn) :? b
-        FL FBranch -> forwards bij FC :? O
+        FL FPrefixO -> forwards bij FC :? O
         FR (fm :? b) -> forwards bij (FR fm) :? b
-        FR FBranch -> forwards bij FC :? I
-        FC -> FBranch
+        FR FPrefixO -> forwards bij FC :? I
+        FC -> FPrefixO
     , backwards = \case
         fx :? b -> case (backwards bij fx, b) of
           (FL fn, b) -> FL (fn :? b)
-          (FC, O) -> FL FBranch
+          (FC, O) -> FL FPrefixO
           (FR fm, b) -> FR (fm :? b)
-          (FC, I) -> FR FBranch
-        FBranch -> FC
+          (FC, I) -> FR FPrefixO
+        FPrefixO -> FC
     }
 
 -- * Lenses
@@ -1444,18 +1442,18 @@ _Branch = _Off . _Some
 -- | A lens for accessing an arbitrary element of a 'Tree', using 'FPositive' as an offset.
 --
 --    >>> let t = Canopy (('a' :* 'b') :* ('c' :* 'd')) :\ None :\ Some 'e'
---    >>> t & view (atTree (FCanopy :? O :? O))
+--    >>> t & view (atTree (FObO :? O :? O))
 --    'a'
---    >>> t & view (atTree (FCanopy :? I :? O))
+--    >>> t & view (atTree (FObO :? I :? O))
 --    'c'
---    >>> t & view (atTree FBranch)
+--    >>> t & view (atTree FPrefixO)
 --    'e'
---    >>> t & set (atTree (FCanopy :? O :? I)) 'B'
+--    >>> t & set (atTree (FObO :? O :? I)) 'B'
 --    Canopy (('a' :* 'B') :* ('c' :* 'd')) :\ None :\ Some 'e'
 atTree :: FPositive n -> Lens' (Tree n a) a
 atTree = \case
-  FCanopy -> _Canopy
-  FBranch -> _Branch
+  FObO -> _Canopy
+  FPrefixO -> _Branch
   fn :? b -> _Up . atTree fn . atPair b
 
 -- * Misc
