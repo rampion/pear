@@ -70,7 +70,7 @@ import Prelude hiding ((.), id, lookup)
 --
 -- We'll mainly be using these as types (via DataKinds).
 type Bit :: Type
-data Bit = O | I -- using O and I for 0 and 1 might be a little cutsy, but I 
+data Bit = O | I -- using O and I for 0 and 1 might be a little cutesy, but I 
                  -- think it helps with legibility
   deriving (Show, Eq, Enum, Ord, Bounded)
 
