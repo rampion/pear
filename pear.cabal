@@ -34,9 +34,11 @@ test-suite pear-doctest
   main-is: doctest.hs
   build-depends: doctest >= 0.20.0, pear
 
-library markdown-examples
+test-suite markdown-examples
   import: setup
+  type: exitcode-stdio-1.0
   build-tool-depends: markdown-unlit:markdown-unlit ^>= 0.6.0
   ghc-options: -pgmL markdown-unlit
   hs-source-dirs: test
-  exposed-modules: ANNOUNCE 
+  main-is: markdown-examples.hs
+  other-modules: ANNOUNCE 

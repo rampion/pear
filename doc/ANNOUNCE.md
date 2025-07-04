@@ -656,7 +656,8 @@ to compile all the code here thusly:
 ```
 $ cabal build markdown-examples
 ...
-[1 of 1] Compiling ANNOUNCE         ( test/ANNOUNCE.lhs, ...)
+[1 of 2] Compiling ANNOUNCE         ( test/ANNOUNCE.lhs, ...)
+...
 ```
 <!-- }}} -->
 <!-- vim: set fo=walt wm=1 -->
