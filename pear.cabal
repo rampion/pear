@@ -1,6 +1,6 @@
 cabal-version: 3.4
 name: pear
-version: 1.0.0.0
+version: 1.0.0.1
 synopsis: Pear Trees: An indexed type using type-level binary numbers
 homepage: https://github.com/rampion/pear
 license: MIT
@@ -19,7 +19,7 @@ flag Development
 common setup
   if flag(development)
     ghc-options: -Wall -Wextra -Werror -Wno-name-shadowing
-  build-depends: base ^>=4.18.2.1
+  build-depends: base >=4.18.2.1 && <4.22.0.0
   default-language: GHC2021
 
 library
