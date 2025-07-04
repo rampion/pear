@@ -1,4 +1,3 @@
-{-# OPTIONS_GHC -Wall -Wextra -Werror -Wno-name-shadowing #-}
 {-# LANGUAGE BlockArguments #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE DeriveTraversable #-}

@@ -1,0 +1,5 @@
+packages: *.cabal
+tests: True
+
+package pear
+  flags: +Development
