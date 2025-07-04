@@ -3,12 +3,11 @@ This is a literate Haskell document! More on that towards the end. For now, I ne
 imports so the code examples below compile.
 
 ```haskell
-{-# OPTIONS_GHC -Wall -Wextra -Werror -Wno-name-shadowing #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE TypeFamilies #-}
-module Pear.Article where
+module ANNOUNCE where
 
 import Data.Kind (Type)
 import Prelude hiding (zip, length, head, tail, (++), lookup)
@@ -655,12 +654,9 @@ to compile all the code here thusly:
   [markdown-unlit]: https://github.com/sol/markdown-unlit
 
 ```
-# install markdown-unlit using the package manager of your choice, I'm using nix.
-$ nix-shell -p haskellPackages.markdown-unlit
-$ mkdir Pear
-$ ln -s $PWD/Article.md Pear/Article.lhs
-$ ghc -pgmL markdown-unlit Pear/Article.lhs
-[1 of 1] Compiling Pear.Article     ( Pear/Article.lhs, Pear/Article.o )
+$ cabal build markdown-examples
+...
+[1 of 1] Compiling ANNOUNCE         ( test/ANNOUNCE.lhs, ...)
 ```
 <!-- }}} -->
 <!-- vim: set fo=walt wm=1 -->
