@@ -849,50 +849,68 @@ type Succ n = Add n ObI
 push :: Tree n a -> a -> Tree (Succ n) a
 push t = fuse t . Canopy
 
--- | Remove the last element from a tree
+-- | type level 'pred' for positive numbers
+type Pred :: Positive -> Positive
+-- this is necessarily partial, as ObI has no predecessor.
+--
+-- 'push' and 'pop' are good motivations for supporting, at least in part
+-- nonnegative numbers, as `Pred :: Positive -> Nonnegative` would be total.
+type family Pred n where
+  Pred (ObI :. O) = ObI
+  Pred (n :. I) = n :. O
+  Pred (bs :. b :. O) = Pred (bs :. b) :. I
+
+-- | Remove the last element from a tree with multiple elements
 --
 --    >>> pop (Canopy (('a' :* 'b') :* ('c' :* 'd')) :\ None :\ None)
---    (Popped (Canopy ('a' :* 'b') :\ Some 'c'),'d')
+--    (Canopy ('a' :* 'b') :\ Some 'c','d')
 --    >>> pop (Canopy ('a' :* 'b') :\ Some 'c')
---    (Popped (Canopy ('a' :* 'b') :\ None),'c')
+--    (Canopy ('a' :* 'b') :\ None,'c')
 --    >>> pop (Canopy ('a' :* 'b') :\ None)
---    (Popped (Canopy 'a'),'b')
---    >>> pop (Canopy 'a')
---    (Empty,'a')
-pop :: Tree n a -> (PoppedTree n a, a)
+--    (Canopy 'a','b')
+--
+-- Note that this cannot be called on a @'Tree' ObI a@
+pop :: n ~ (bs :. b) => Tree n a -> (Tree (Pred n) a, a)
 pop = \case
-  Canopy a0 -> (Empty, a0)
-  taa :\ Some a0 -> (Popped (taa :\ None),  a0)
-  taa :\ None -> case pop taa of
-    (Empty, a0 :* a1) -> (Popped (Canopy a0),  a1)
-    (Popped taa, a0 :* a1) -> (Popped (taa :\ Some a0), a1)
+  Canopy (a0 :* a1) :\ None -> (Canopy a0, a1)
+  taa :\ Some a1 -> (taa :\ None, a1)
+  taa@(_ :\ _) :\ None -> case pop taa of
+    (taa', a0 :* a1) -> (taa' :\ Some a0, a1)
 
--- | 
+-- | Offsets for tree elements after a 'push' according to their positions from before the 'push'
 type FSucc :: Positive -> Type
 type FSucc n = FAdd n ObI
 
+-- | Transform between offsets before a 'push' and after (or from after a 'pop' 
+-- and before).
+--
+--    >>> let rx = reindexSucc (SObI :! SI :! SI)
+--
+-- Any valid offset before the push can be converted into a post-push outset.
+--
+--    >>> forwards rx $ FL (FCanopy :? O :? O)
+--    FCanopy :? O :? O :? O
+--    >>> forwards rx $ FL (FBranch :? I)
+--    FCanopy :? I :? O :? I
+--    >>> forwards rx $ FL FBranch
+--    FCanopy :? I :? I :? O
+--
+-- And vice versa
+--
+--    >>> backwards rx $ FCanopy :? O :? O :? O
+--    FL (FCanopy :? O :? O)
+--    >>> backwards rx $ FCanopy :? I :? I :? O
+--    FL FBranch
+--
+-- @'FR' 'FCanopy'@ indicates that the new offset corresponds to the pushed 
+-- element.
+--
+--    >>> backwards rx $ FCanopy :? I :? I :? I
+--    FR FCanopy
+--
+-- See 'reindexAdd' for more details.
 reindexSucc :: SPositive n -> (FSucc n <-> FPositive (Succ n))
 reindexSucc sn = reindexAdd sn SObI
-
-type PoppedTree :: Positive -> Type -> Type
-data PoppedTree n a where
-  Popped :: (Succ n ~ (bs :. b)) => Tree n a -> PoppedTree (Succ n) a
-  Empty :: PoppedTree ObI a
-
-instance Eq a => Eq (PoppedTree n a) where
-  Empty == Empty = True
-  Popped t == Popped t' = loop t t' where
-    loop :: forall i j x. Eq x => Tree i x -> Tree j x -> Bool
-    loop = \cases
-      (Canopy a) (Canopy a') -> a == a'
-      (taa :\ Some a) (taa' :\ Some a') -> a == a' && loop taa taa'
-      (taa :\ None) (taa' :\ None) -> loop taa taa'
-      _ _ -> False
-
-deriving instance Show a => Show (PoppedTree n a)
-deriving instance Functor (PoppedTree n)
-deriving instance Foldable (PoppedTree n)
-deriving instance Traversable (PoppedTree n)
 
 -- *** 'fuse' and 'fizz': combining two lists or dividing one in two
 -- $ 
@@ -935,6 +953,9 @@ data FAddC n m b where
   FL :: FPositive n -> FAddC n m b
   FR :: FPositive m -> FAddC n m b
   FC :: FAddC n m I -- if we had an FBit type, here's the only place we'd actually use it
+
+deriving instance Eq (FAddC n m b)
+deriving instance Show (FAddC n m b)
 
 reindexAddC :: SPositive n -> SPositive m -> SBit b -> (FAddC n m b <-> FPositive (AddC n m b))
 reindexAddC = \cases
