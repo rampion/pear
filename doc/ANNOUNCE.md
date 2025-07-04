@@ -66,7 +66,7 @@ zipList = \cases
 
 We can reuse the type-level naturals as an index for other parameterized types as well.
 
-To jump right and and get very meta, consider the type `SNatural`.
+To jump right in and get very meta, consider the type `SNatural`.
 
 ```haskell
 type SNatural :: Natural -> Type
