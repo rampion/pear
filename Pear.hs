@@ -9,6 +9,11 @@
 
 -- | Indexed types using type-level binary numbers
 module Pear where
+-- The examples in the documentation were written to be checked via doctest 
+-- <https://github.com/sol/doctest>
+--
+-- Simply run @doctest Pear.hs@ to make sure they all compile and run as 
+-- expected.
 
 import Control.Category (Category(..)) -- We don't actually need this for 
                                        -- anything we're doing here, but it 
@@ -1073,7 +1078,7 @@ fuseC = \cases
 -- Note that in @'fizzC' s0 s1 t = (t0,t1,o)@, not all the elements of @t0@ 
 -- occur before all the elements of @t1@ in @t@.
 --
--- The name \"fizzC\" is short for \"fission\".
+-- The name \"fizz\" is short for \"fission\".
 --
 -- 'fizzC' has an inverse operation, 'fizzC'.  Updated offsets can be computed 
 -- using 'offsetAddC'.
