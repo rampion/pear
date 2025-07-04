@@ -7,9 +7,6 @@
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE TypeFamilies #-}
 
-{-# LANGUAGE FunctionalDependencies #-}
-{-# LANGUAGE UndecidableInstances  #-}
-{-# LANGUAGE TypeFamilyDependencies  #-}
 -- | Indexed types using type-level binary numbers
 module Pear where
 
@@ -17,11 +14,13 @@ import Control.Category (Category(..)) -- We don't actually need this for
                                        -- anything we're doing here, but it 
                                        -- pains me to not implement Category 
                                        -- when the type so clearly supports it
+import Data.Foldable1 (Foldable1(foldMap1))
 import Data.Functor ((<&>))
+import Data.Functor.Const (Const(..))
 import Data.Kind (Type, Constraint)
 import Data.Maybe (fromMaybe)
 import Data.List.NonEmpty (NonEmpty((:|)))
-import Prelude hiding ((.), id)
+import Prelude hiding ((.), id, lookup)
 
 -- * Notation
 -- $
@@ -102,10 +101,10 @@ instance KnownBit I where knownBit = SI
 -- given bit", 
 --
 -- @
---    type FBit :: Bit -> Type
---    data FBit b where
---      FO :: FBit I -- O is the only bit value less than I
---      -- FBit O is unpopulated, there are no bit values less than O
+-- type FBit :: Bit -> Type
+-- data FBit b where
+--   FO :: FBit I -- O is the only bit value less than I
+--   -- FBit O is unpopulated, there are no bit values less than O
 -- @
 --
 -- but it's just as convenient to do without.
@@ -319,16 +318,16 @@ withKnownPositive r = \case
 -- ** @FPositive@
 -- $
 
--- | The finite set of naturals strictly less than the specified index.
+-- | The finite set of naturals strictly less than a specified value.
 --
 -- Consider the binary expansion of a positive number:
 --
 -- @
---    0b  1  0  1  1  0  1      
+-- 0b  1  0  1  1  0  1      
 --
---       32 16  8  4  2  1  each bit position corresponds to a power of 2
+--    32 16  8  4  2  1  each bit position corresponds to a power of 2
 --
---       32  0  8  4  0  1  but only the nonzero bits contribute to the value
+--    32  0  8  4  0  1  but only the nonzero bits contribute to the value
 -- @
 --
 -- In particular, all the natural numbers *less* than a positive number share
@@ -336,52 +335,52 @@ withKnownPositive r = \case
 -- position, where the natural number has a 0 but the positive number has a 1.
 --
 -- @
---    0b    1    0    1    1    0    1  = 45
+-- 0b    1    0    1    1    0    1  = 45
 --
---          1    0    1    1    0   [0] = 44
+--       1    0    1    1    0   [0] = 44
 --
---          1    0    1   [0]   1    0  = 42
+--       1    0    1   [0]   1    0  = 42
 --
---          1    0   [0]   1    0    1  = 39
+--       1    0   [0]   1    0    1  = 39
 --
---         [0]   0    1    1    1    1  = 15
+--      [0]   0    1    1    1    1  = 15
 --
---         [0]   0    0    0    0    0  = 0
+--      [0]   0    0    0    0    0  = 0
 -- @
 --
--- 'FPositive' partitions the naturals less than its index into groups by
--- their maximum shared prefix with the index. Within those groups, each
+-- @'FPositive' n@ partitions the naturals less than @n@ into groups by
+-- their maximum shared prefix with @n@. Within those groups, each
 -- natural is associated with its unique suffix.
 --
 -- @
---    0b    1    0    1    1    0    1  = 45
+-- 0b    1    0    1    1    0    1  = 45
 --
---    0b    1    0    1    1    0   [0]
---                                      = 44
+-- 0b    1    0    1    1    0   [0]
+--                                   = 44
 --
---    0b    1    0    1   [0]   _    _
---                              1    1  = 43
---                              1    0  = 42
---                              0    1  = 41
---                              0    0  = 40
+-- 0b    1    0    1   [0]   _    _
+--                           1    1  = 43
+--                           1    0  = 42
+--                           0    1  = 41
+--                           0    0  = 40
 --
---    0b    1    0   [0]   _    _    _
---                         1    1    1  = 39
---                         1    1    0  = 38
---                         1    0    1  = 37
---                         ...  
---                         0    0    0  = 32
+-- 0b    1    0   [0]   _    _    _
+--                      1    1    1  = 39
+--                      1    1    0  = 38
+--                      1    0    1  = 37
+--                      ...  
+--                      0    0    0  = 32
 --
---    0b   [0]   _    _    _    _    _
---               1    1    1    1    1  = 31
---               1    1    1    1    0  = 30
---               1    1    1    0    1  = 29
---               ...  
---               0    0    0    0    1  = 1
---               0    0    0    0    0  = 0
+-- 0b   [0]   _    _    _    _    _
+--            1    1    1    1    1  = 31
+--            1    1    1    1    0  = 30
+--            1    1    1    0    1  = 29
+--            ...  
+--            0    0    0    0    1  = 1
+--            0    0    0    0    0  = 0
 -- @
 --
--- If the prefix is empty (the most significant set bit of the index is unset 
+-- If the prefix is empty (the most significant set bit of @n@ is unset 
 -- in the natural), then the suffix is attached to the 'FCanopy' constructor.
 --
 -- If the prefix is non-empty, then the suffix is attached to the 'FBranch' 
@@ -390,31 +389,31 @@ withKnownPositive r = \case
 -- (The names are derived from their use as offsets in 'Tree')
 --
 -- @
---    0b    1    0    1    1    0    1  = 45
+-- 0b    1    0    1    1    0    1  = 45
 --
---    0b    1    0    1    1    0   [0]
---                             FBranch  = 44
+-- 0b    1    0    1    1    0   [0]
+--                          FBranch  = 44
 --
---    0b    1    0    1   [0]   _    _
---                   FBranch :? I :? I  = 43
---                   FBranch :? I :? O  = 42
---                   FBranch :? O :? I  = 41
---                   FBranch :? O :? O  = 40
+-- 0b    1    0    1   [0]   _    _
+--                FBranch :? I :? I  = 43
+--                FBranch :? I :? O  = 42
+--                FBranch :? O :? I  = 41
+--                FBranch :? O :? O  = 40
 --
---    0b    1    0   [0]   _    _    _
---              FBranch :? I :? I :? I  = 39
---              FBranch :? I :? I :? O  = 38
---              FBranch :? I :? O :? I  = 37
---                         ...
---              FBranch :? O :? O :? O  = 32
+-- 0b    1    0   [0]   _    _    _
+--           FBranch :? I :? I :? I  = 39
+--           FBranch :? I :? I :? O  = 38
+--           FBranch :? I :? O :? I  = 37
+--                      ...
+--           FBranch :? O :? O :? O  = 32
 --
---    0b   [0]   _    _    _    _    _
---    FCanopy :? I :? I :? I :? I :? I  = 31
---    FCanopy :? I :? I :? I :? I :? O  = 30
---    FCanopy :? I :? I :? I :? O :? I  = 29
---               ...
---    FCanopy :? O :? O :? O :? O :? I  = 1
---    FCanopy :? O :? O :? O :? O :? O  = 0
+-- 0b   [0]   _    _    _    _    _
+-- FCanopy :? I :? I :? I :? I :? I  = 31
+-- FCanopy :? I :? I :? I :? I :? O  = 30
+-- FCanopy :? I :? I :? I :? O :? I  = 29
+--            ...
+-- FCanopy :? O :? O :? O :? O :? I  = 1
+-- FCanopy :? O :? O :? O :? O :? O  = 0
 -- @
 --
 -- Note that this means that we need to know the type of an 'FPositive' value 
@@ -629,7 +628,7 @@ fromFPositive' = loop 1 0 where
 
 -- * Containers
 -- $
--- Using indexes to track how many elements are in a container
+-- Using indexed types to track how many elements are in a container
 
 -- ** @Opt@
 -- $
@@ -645,6 +644,9 @@ deriving instance Foldable (Opt b)
 deriving instance Traversable (Opt b)
 deriving instance Eq a => Eq (Opt b a)
 deriving instance Show a => Show (Opt b a)
+
+instance Foldable1 (Opt 'I) where
+  foldMap1 f (Some a) = f a
 
 instance KnownBit b => Applicative (Opt b) where
   liftA2 = liftO2
@@ -668,12 +670,15 @@ optSize = \case
 -- ** @Pair@
 -- $
 
--- | A variant of '(,)' where both elements have the same type.
+-- | A variant of 'GHC.Tuple.(,)' where both elements have the same type.
 type Pair :: Type -> Type
 data Pair a = a :* a
   deriving (Functor, Foldable, Traversable, Eq, Show)
 
 infix 8 :*
+
+instance Foldable1 Pair where
+  foldMap1 f (a0 :* a1) = f a0 <> f a1
 
 instance Applicative Pair where
   (f0 :* f1) <*> (a0 :* a1) = f0 a0 :* f1 a1
@@ -695,58 +700,58 @@ instance Applicative Pair where
 -- The simplest pear tree holds one element:
 --
 -- @
---    Canopy a
+-- Canopy a
 --
---      ╽
---      a 
+--   ╽
+--   a 
 -- @
 --
 -- Without forking off any smaller trees, extending the spine to increase the 
 -- canopy depth doubles the number of elements in the canopy.
 --
 -- @
---    Canopy (a :* b) :\\ None
+-- Canopy (a :* b) :\\ None
 --
---        :
---        ╽
---        :*
---      a    b 
+--     :
+--     ╽
+--     :*
+--   a    b 
 --
---    Canopy ((a :* b) :* (c :* d)) :\\ None :\\ None
+-- Canopy ((a :* b) :* (c :* d)) :\\ None :\\ None
 --
---             :
---             :
---             ╽
---             :*
---        :*        :*
---      a    b    c    d 
+--          :
+--          :
+--          ╽
+--          :*
+--     :*        :*
+--   a    b    c    d 
 --
---    Canopy (((a :* b) :* (c :* d)) :* ((e :* f) :* (g :* h))) :\\ None :\\ None :\\ None
+-- Canopy (((a :* b) :* (c :* d)) :* ((e :* f) :* (g :* h))) :\\ None :\\ None :\\ None
 --
---                       :
---                       :
---                       :
---                       ╽
---                       :*
---             :*                  :*         
---        :*        :*        :*        :*    
---      a    b    c    d    e    f    g    h   
+--                    :
+--                    :
+--                    :
+--                    ╽
+--                    :*
+--          :*                  :*         
+--     :*        :*        :*        :*    
+--   a    b    c    d    e    f    g    h   
 -- @
 --
 -- The smaller trees come into play when trying to store a non-power of 2 number 
 -- of elements.
 --
 -- @
---    Canopy (((a :* b) :* (c :* d)) :* ((e :* f) :* (g :* h))) :\\ None :\\ Some (i :* j) :\\ Some k
+-- Canopy (((a :* b) :* (c :* d)) :* ((e :* f) :* (g :* h))) :\\ None :\\ Some (i :* j) :\\ Some k
 --
---                       :\\_____________________________.
---                       :\\______________________.      k
---                       :                       :*
---                       ╽                     i    j
---                       :*
---             :*                  :*         
---        :*        :*        :*        :*     
---      a    b    c    d    e    f    g    h   
+--                    :\\_____________________________.
+--                    :\\______________________.      k
+--                    :                       :*
+--                    ╽                     i    j
+--                    :*
+--          :*                  :*         
+--     :*        :*        :*        :*     
+--   a    b    c    d    e    f    g    h   
 -- @
 --
 type Tree :: Positive -> Type -> Type
@@ -761,6 +766,12 @@ deriving instance Foldable (Tree n)
 deriving instance Traversable (Tree n)
 deriving instance Eq a => Eq (Tree n a)
 
+instance Foldable1 (Tree n) where
+  foldMap1 f = \case
+    Canopy a -> f a
+    taa :\ None -> foldMap1 (foldMap1 f) taa
+    taa :\ Some a -> foldMap1 (foldMap1 f) taa <> f a
+
 instance Show a => Show (Tree n a) where
   showsPrec p = \case
     taa :\ oa -> showParen (p >= 4) do
@@ -771,6 +782,20 @@ instance Show a => Show (Tree n a) where
 instance KnownPositive n => Applicative (Tree n) where
   liftA2 = liftT2
   pure a = generate (const a)
+
+-- | Get the element at a particular offset in a tree.
+--
+--    >>> let t = Canopy ((('a' :* 'b') :* ('c' :* 'd')) :* (('e' :* 'f') :* ('g' :* 'h'))) :\ None :\ Some ('i' :* 'j') :\ None
+--    >>> lookup (FCanopy :? O :? O :? O) t
+--    'a'
+--    >>> lookup (FCanopy :? I :? O :? I) t
+--    'f'
+--    >>> lookup (FBranch :? O) t
+--    'i'
+--
+-- To modify the element at an offset, see 'atTree'.
+lookup :: FPositive n -> Tree n a -> a
+lookup fn = getConst . atTree fn Const where
 
 -- | Alternative to 'liftA2' without the 'KnownPositive' constraint.
 --
@@ -884,7 +909,7 @@ type FSucc n = FAdd n ObI
 -- | Transform between offsets before a 'push' and after (or from after a 'pop' 
 -- and before).
 --
---    >>> let rx = reindexSucc (SObI :! SI :! SI)
+--    >>> let rx = offsetSucc (SObI :! SI :! SI)
 --
 -- Any valid offset before the push can be converted into a post-push outset.
 --
@@ -908,31 +933,194 @@ type FSucc n = FAdd n ObI
 --    >>> backwards rx $ FCanopy :? I :? I :? I
 --    FR FCanopy
 --
--- See 'reindexAdd' for more details.
-reindexSucc :: SPositive n -> (FSucc n <-> FPositive (Succ n))
-reindexSucc sn = reindexAdd sn SObI
+-- See 'offsetAdd' for more details.
+offsetSucc :: SPositive n -> (FSucc n <-> FPositive (Succ n))
+offsetSucc sn = offsetAdd sn SObI
 
 -- *** 'fuse' and 'fizz': combining two lists or dividing one in two
 -- $ 
 
+-- | type-level (+) for positive numbers
 type Add :: Positive -> Positive -> Positive
 type Add i j = AddC i j O
 
-type FAdd :: Positive -> Positive -> Type
-type FAdd n m = FAddC n m O
-
-reindexAdd :: SPositive n -> SPositive m -> (FAdd n m <-> FPositive (Add n m))
-reindexAdd sn sm = reindexAddC sn sm SO
-
+-- | Combine two trees into one in O(log n) time.
+--
+--      >>> fuse (Canopy (('a' :* 'b') :* ('c' :* 'd')) :\ None :\ None) (Canopy ('E' :* 'F') :\ Some 'G')
+--      Canopy (('a' :* 'b') :* ('c' :* 'd')) :\ Some ('E' :* 'F') :\ Some 'G'
+--      >>> fuse (Canopy ('E' :* 'F') :\ Some 'G') (Canopy (('a' :* 'b') :* ('c' :* 'd')) :\ None :\ None)
+--      Canopy (('a' :* 'b') :* ('c' :* 'd')) :\ Some ('E' :* 'F') :\ Some 'G'
+--      >>> fuse (Canopy ('a' :* 'b') :\ Some 'c') (Canopy ('D' :* 'E') :\ Some 'F')
+--      Canopy (('a' :* 'b') :* ('D' :* 'E')) :\ Some ('c' :* 'F') :\ None
+--
+-- Note that @'fuse' t0 t1@ does not place all the elements of @t0@ before all the elements of @t1@. That is
+-- @'Data.Foldable1.fold1' ('fuse' t0 t1) /= 'Data.Foldable1.fold1' t0 <> 
+-- 'Data.Foldable1.fold1' t1@.  In general 'fuse' is not associative.
+--
+-- Though this means that the element at offset @i@ of some tree @t0@ is not at offset @i@ in @'fuse' t0 t1@,
+-- its new offset is not random and can be computed exactly using @'offsetAdd' (treeSize t0) (treeSize t1)@.
+--
+-- 'fuse' has an inverse operation, 'fizz'.
 fuse :: Tree n a -> Tree m a -> Tree (Add n m) a
 fuse t0 t1 = fuseC t0 t1 None
 
+-- | Split one tree into two in O(log n) time.
+--
+--      >>> let s3 = SObI :! SI
+--      >>> let s4 = SObI :! SO :! SO
+--      >>> fizz s4 s3 (Canopy (('a' :* 'b') :* ('c' :* 'd')) :\ Some ('E' :* 'F') :\ Some 'G')
+--      (Canopy (('a' :* 'b') :* ('c' :* 'd')) :\ None :\ None,Canopy ('E' :* 'F') :\ Some 'G')
+--      >>> fizz s3 s4 (Canopy (('a' :* 'b') :* ('c' :* 'd')) :\ Some ('E' :* 'F') :\ Some 'G')
+--      (Canopy ('E' :* 'F') :\ Some 'G',Canopy (('a' :* 'b') :* ('c' :* 'd')) :\ None :\ None)
+--      >>> fizz s3 s3 (Canopy (('a' :* 'b') :* ('D' :* 'E')) :\ Some ('c' :* 'F') :\ None)
+--      (Canopy ('a' :* 'b') :\ Some 'c',Canopy ('D' :* 'E') :\ Some 'F')
+-- 
+-- The name \"fizz\" is short for \"fission\".
+--
+-- Note that in @'fizz' t = (t0, t1)@ not all elements of @t0@ had lower 
+-- offsets in @t@ than all elements of @t1@.  Though this means that the 
+-- element at offset @i@ of @t@ is not at offset @i@ of @t0@ or @i - |t0|@ of 
+-- @t1@, its new location is not random and can be computed exactly using 
+-- @'offsetAdd' (treeSize t0) (treeSize t1)@.
+--
+-- 'fizz' has an inverse operation, 'fuse'.
 fizz :: SPositive n -> SPositive m -> Tree (Add n m) a -> (Tree n a, Tree m a)
 fizz sn sm t = (tn, tm)
   where (tn, tm, None) = fizzC sn sm SO t
 
--- *** 'fuseC' and 'fizzC': where the sausage gets made
+-- | A variant of @'Either' ('FPositive' n) ('FPositive' m) for representing 
+-- offsets of elements from two trees of the specified sizes.
+--
+-- These can be converted to offsets in a single combined tree using 'offsetAdd'.
+--
+-- 'FAdd' has two constructors
+--
+-- @
+-- 'FL' :: 'FPositive' n -> 'FAdd' n m
+-- 'FR' :: 'FPositive' m -> 'FAdd' n m
+-- @
+type FAdd :: Positive -> Positive -> Type
+type FAdd n m = FAddC n m O
+
+-- | Bijections for converting offsets in two unfused trees (e.g. the input 
+-- to 'fuse' or the output of 'fizz') into offsets in a single combined tree 
+-- (e.g. the output of 'fuse' or the inputs of 'fizz').
+--
+--      >>> let t0 = Canopy ('a' :* 'b') :\ Some 'c'
+--      >>> let t1 = Canopy ('D' :* 'E') :\ Some 'F'
+--      >>> let t = fuse t0 t1
+--      >>> let bij = offsetAdd (treeSize t0) (treeSize t1)
+--      >>> t
+--      Canopy (('a' :* 'b') :* ('D' :* 'E')) :\ Some ('c' :* 'F') :\ None
+--      >>> let off = FCanopy :? O
+--      >>> lookup off t0
+--      'a'
+--      >>> lookup (forwards bij $ FL off) t
+--      'a'
+--      >>> lookup off t1
+--      'D'
+--      >>> lookup (forwards bij $ FR off) t
+--      'D'
+offsetAdd :: SPositive n -> SPositive m -> (FAdd n m <-> FPositive (Add n m))
+offsetAdd sn sm = offsetAddC sn sm SO
+
+-- *** 'fuseC' and 'fizzC': implementing addition with carry
+-- $
+-- 'fuse', 'fizz', and 'offsetAdd' above work by implementing the binary 
+-- addition algorithm, which in the recursive case, requires a carry bit.
+-- This additional logic is implemented for them by 'fuseC', 'fizzC', and 
+-- 'offsetAddC', respectively.
+
+-- | Combine two trees and an optional extra element into one tree in O(log n) time.
+-- This is a more general case of 'fuse'.
+--
+--      >>> fuseC (Canopy 'a') (Canopy ('c' :* 'd') :\ None) None
+--      Canopy ('c' :* 'd') :\ Some 'a'
+--      >>> fuseC (Canopy 'a') (Canopy ('c' :* 'd') :\ None) (Some 'e')
+--      Canopy (('c' :* 'd') :* ('a' :* 'e')) :\ None :\ None
+--
+-- Note that @'fuseC' t0 t1 o@ does not place all the elements of @t0@ before 
+-- all the elements of @t1@. In general 'fuseC' is not associative.
+--
+-- 'fuseC' has an inverse operation, 'fizzC'.  Updated offsets can be computed 
+-- using 'offsetAddC'.
+fuseC :: Tree n a -> Tree m a -> Opt b a -> Tree (AddC n m b) a
+fuseC = \cases
+  (Canopy a0) (Canopy a1) oa -> Canopy (a0 :* a1) :\ oa
+  (taa :\ None) (Canopy a1) None -> taa :\ Some a1
+  (taa :\ None) (Canopy a1) (Some a2) -> push taa (a1 :* a2) :\ None
+  (taa :\ Some a0) (Canopy a1) oa -> push taa (a0 :* a1) :\ oa
+  (Canopy a0) (taa :\ None) None -> taa :\ Some a0
+  (Canopy a0) (taa :\ None) (Some a2) -> push taa (a0 :* a2) :\ None
+  (Canopy a0) (taa :\ Some a1) oa -> push taa (a1 :* a0) :\ oa
+  (taa0 :\ None) (taa1 :\ None) oa -> fuse taa0 taa1 :\ oa
+  (taa0 :\ None) (taa1 :\ Some a1) None -> fuse taa0 taa1 :\ Some a1
+  (taa0 :\ None) (taa1 :\ Some a1) (Some a2) -> fuseC taa0 taa1 (Some (a1 :* a2)) :\ None
+  (taa0 :\ Some a0) (taa1 :\ None) None -> fuse taa0 taa1 :\ Some a0
+  (taa0 :\ Some a0) (taa1 :\ None) (Some a2) -> fuseC taa0 taa1 (Some (a0 :* a2)) :\ None
+  (taa0 :\ Some a0) (taa1 :\ Some a1) oa -> fuseC taa0 taa1 (Some (a0 :* a1)) :\ oa
+
+-- | Split one tree into two and a possible extra eleemnt in O(log n) time. 
+-- This is a more general case of 'fizzC'.
+--
+--      >>> let s1 = SObI
+--      >>> let s2 = SObI :! SO
+--      >>> fizzC s1 s2 SO (Canopy ('c' :* 'd') :\ Some 'a')
+--      (Canopy 'a',Canopy ('c' :* 'd') :\ None,None)
+--      >>> fizzC s1 s2 SI (Canopy (('c' :* 'd') :* ('a' :* 'e')) :\ None :\ None)
+--      (Canopy 'a',Canopy ('c' :* 'd') :\ None,Some 'e')
+--
+-- Note that in @'fizzC' s0 s1 t = (t0,t1,o)@, not all the elements of @t0@ 
+-- occur before all the elements of @t1@ in @t@.
+--
+-- The name \"fizzC\" is short for \"fission\".
+--
+-- 'fizzC' has an inverse operation, 'fizzC'.  Updated offsets can be computed 
+-- using 'offsetAddC'.
+fizzC :: SPositive n -> SPositive m -> SBit b -> Tree (AddC n m b) a -> (Tree n a, Tree m a, Opt b a)
+fizzC = \cases
+  SObI SObI _ (Canopy (a0 :* a1) :\ oa) ->
+    (Canopy a0, Canopy a1, oa)
+  (_ :! SO) SObI SO (taa :\ Some a1) ->
+    (taa :\ None, Canopy a1, None)
+  (sn :! SO) SObI SI (taa :\ None) ->
+    let ~(taa0, Canopy (a1 :* a2)) = fizz sn SObI taa
+    in (taa0 :\ None, Canopy a1, Some a2)
+  (sn :! SI) SObI _ (taa :\ oa) ->
+    let ~(taa0, Canopy (a0 :* a1)) = fizz sn SObI taa
+    in (taa0 :\ Some a0, Canopy a1, oa)
+  SObI (_ :! SO) SO (taa :\ Some a0) ->
+    (Canopy a0, taa :\ None, None)
+  SObI (sm :! SO) SI (taa :\ None) ->
+    let ~(taa1, Canopy (a0 :* a2)) = fizz sm SObI taa
+    in (Canopy a0,  taa1 :\ None, Some a2)
+  SObI (sm :! SI) _ (taa :\ oa) ->
+    let ~(taa1, Canopy (a0 :* a1)) = fizz sm SObI taa
+    in (Canopy a0, taa1 :\ Some a1, oa)
+  (sn :! SO) (sm :! SO) _ (taa :\ oa) ->
+    let ~(taa0, taa1) = fizz sn sm taa
+    in (taa0 :\ None, taa1 :\ None, oa)
+  (sn :! SO) (sm :! SI) SO (taa :\ oa) ->
+    let ~(taa0, taa1) = fizz sn sm taa
+    in (taa0 :\ None, taa1 :\ oa, None)
+  (sn :! SO) (sm :! SI) SI (taa :\ None) ->
+    let ~(taa0, taa1, Some (a1 :* a2)) = fizzC sn sm SI taa
+    in (taa0 :\ None, taa1 :\ Some a1, Some a2)
+  (sn :! SI) (sm :! SO) SO (taa :\ oa) ->
+    let ~(taa0, taa1) = fizz sn sm taa
+    in (taa0 :\ oa, taa1 :\ None, None)
+  (sn :! SI) (sm :! SO) SI (taa :\ None) ->
+    let ~(taa0, taa1, Some (a0 :* a2)) = fizzC sn sm SI taa
+    in (taa0 :\ Some a0, taa1 :\ None, Some a2)
+  (sn :! SI) (sm :! SI) _ (taa :\ oa) ->
+    let ~(taa0, taa1, Some (a0 :* a1)) = fizzC sn sm SI taa
+    in (taa0 :\ Some a0, taa1 :\ Some a1, oa)
+
+-- | type-level addition with a carry bit for positive numbers
 type AddC :: Positive -> Positive -> Bit -> Positive
+-- logically given any three of i,j,k, and b where AddC i j b = k, the fourth 
+-- is uniquely determined, but I don't know how to convince GHC of that, so 
+-- I'll have to settle for a normal typeclass.
 type family AddC i j b where
   AddC ObI ObI b = ObI :. b
   AddC (i :. O) ObI O = i :. I
@@ -948,6 +1136,10 @@ type family AddC i j b where
   AddC (i :. I) (j :. O) I = AddC i j I :. O
   AddC (i :. I) (j :. I) b = AddC i j I :. b
 
+-- | A sum type for representing offsets of elements from two trees and an opt of the 
+-- specified sizes.
+--
+-- These can be converted to offsets in a single combined tree using 'offsetAddC'.
 type FAddC :: Positive -> Positive -> Bit -> Type
 data FAddC n m b where
   FL :: FPositive n -> FAddC n m b
@@ -957,8 +1149,30 @@ data FAddC n m b where
 deriving instance Eq (FAddC n m b)
 deriving instance Show (FAddC n m b)
 
-reindexAddC :: SPositive n -> SPositive m -> SBit b -> (FAddC n m b <-> FPositive (AddC n m b))
-reindexAddC = \cases
+-- | Bijections for converting offsets in two unfused trees and an opt into 
+-- offsets in a single combined tree.
+--
+--      >>> let t0 = Canopy ('a' :* 'b') :\ Some 'c'
+--      >>> let t1 = Canopy ('D' :* 'E') :\ Some 'F'
+--      >>> let t = fuseC t0 t1 (Some '-')
+--      >>> let bij = offsetAddC (treeSize t0) (treeSize t1) SI
+--      >>> t
+--      Canopy (('a' :* 'b') :* ('D' :* 'E')) :\ Some ('c' :* 'F') :\ Some '-'
+--      >>> let off = FCanopy :? O
+--      >>> lookup off t0
+--      'a'
+--      >>> lookup (forwards bij $ FL off) t
+--      'a'
+--      >>> lookup off t1
+--      'D'
+--      >>> lookup (forwards bij $ FR off) t
+--      'D'
+--      >>> lookup (forwards bij $ FC) t
+--      '-'
+offsetAddC :: SPositive n -> SPositive m -> SBit b -> (FAddC n m b <-> FPositive (AddC n m b))
+-- we could have combined this with 'fuseC' and/or 'fizzC' to avoid doing the 
+-- same logic a third time, but that would make the logic very difficult to follow.
+offsetAddC = \cases
   SObI SObI _ -> Bijection
     { forwards = \case
         FL FCanopy -> FCanopy :? O
@@ -977,7 +1191,7 @@ reindexAddC = \cases
         fn :? b -> FL (fn :? b)
         FBranch -> FR FCanopy
     }
-  (sn :! SO) SObI SI -> let bij = reindexSucc sn in Bijection
+  (sn :! SO) SObI SI -> let bij = offsetSucc sn in Bijection
     { forwards = \case
         FL (fn :? b) -> forwards bij (FL fn) :? b
         FR FCanopy -> forwards bij (FR FCanopy) :? O
@@ -987,7 +1201,7 @@ reindexAddC = \cases
         (FR FCanopy, O) -> FR FCanopy
         (FR FCanopy, I) -> FC
     }
-  (sn :! SI) SObI _ -> let bij = reindexSucc sn in Bijection
+  (sn :! SI) SObI _ -> let bij = offsetSucc sn in Bijection
     { forwards = \case
         FL (fn :? b) -> forwards bij (FL fn) :? b
         FL FBranch -> forwards bij (FR FCanopy) :? O
@@ -1008,7 +1222,7 @@ reindexAddC = \cases
         FBranch -> FL FCanopy
         fn :? b -> FR (fn :? b)
     }
-  SObI (sm :! SO) SI -> let bij = reindexSucc sm in Bijection
+  SObI (sm :! SO) SI -> let bij = offsetSucc sm in Bijection
     { forwards = \case
         FL FCanopy -> forwards bij (FR FCanopy) :? O
         FR (fn :? b) -> forwards bij (FL fn) :? b
@@ -1018,7 +1232,7 @@ reindexAddC = \cases
         (FL fn, b) -> FR (fn :? b)
         (FR FCanopy, I) -> FC
     }
-  SObI (sm :! SI) _ -> let bij = reindexSucc sm in Bijection
+  SObI (sm :! SI) _ -> let bij = offsetSucc sm in Bijection
     { forwards = \case
         FL FCanopy -> forwards bij (FR FCanopy) :? O
         FR (fm :? b) -> forwards bij (FL fm) :? b
@@ -1031,7 +1245,7 @@ reindexAddC = \cases
           (FR FCanopy, I) -> FL FCanopy
         FBranch -> FC
     }
-  (sn :! SO) (sm :! SO) _ -> let bij = reindexAdd sn sm in Bijection
+  (sn :! SO) (sm :! SO) _ -> let bij = offsetAdd sn sm in Bijection
     { forwards = \case
         FL (fn :? b) -> forwards bij (FL fn) :? b
         FR (fm :? b) -> forwards bij (FR fm) :? b
@@ -1042,7 +1256,7 @@ reindexAddC = \cases
           FR fm -> FR (fm :? b)
         FBranch -> FC
     }
-  (sn :! SO) (sm :! SI) SO -> let bij = reindexAdd sn sm in Bijection
+  (sn :! SO) (sm :! SI) SO -> let bij = offsetAdd sn sm in Bijection
     { forwards = \case
         FL (fn :? b) -> forwards bij (FL fn) :? b
         FR (fm :? b) -> forwards bij (FR fm) :? b
@@ -1053,7 +1267,7 @@ reindexAddC = \cases
           FR fm -> FR (fm :? b)
         FBranch -> FR FBranch
     }
-  (sn :! SO) (sm :! SI) SI -> let bij = reindexAddC sn sm SI in Bijection
+  (sn :! SO) (sm :! SI) SI -> let bij = offsetAddC sn sm SI in Bijection
     { forwards = \case
         FL (fn :? b) -> forwards bij (FL fn) :? b
         FR (fm :? b) -> forwards bij (FR fm) :? b
@@ -1065,7 +1279,7 @@ reindexAddC = \cases
         (FC, O) -> FR FBranch
         (FC, I) -> FC
     }
-  (sn :! SI) (sm :! SO) SO -> let bij = reindexAdd sn sm in Bijection
+  (sn :! SI) (sm :! SO) SO -> let bij = offsetAdd sn sm in Bijection
     { forwards = \case
         FL (fn :? b) -> forwards bij (FL fn) :? b
         FL FBranch -> FBranch
@@ -1076,7 +1290,7 @@ reindexAddC = \cases
           FR fm -> FR (fm :? b)
         FBranch -> FL FBranch
     }
-  (sn :! SI) (sm :! SO) SI -> let bij = reindexAddC sn sm SI in Bijection
+  (sn :! SI) (sm :! SO) SI -> let bij = offsetAddC sn sm SI in Bijection
     { forwards = \case
         FL (fn :? b) -> forwards bij (FL fn) :? b
         FL FBranch -> forwards bij FC :? O
@@ -1088,7 +1302,7 @@ reindexAddC = \cases
         (FC, O) -> FL FBranch
         (FC, I) -> FC
     }
-  (sn :! SI) (sm :! SI) _ -> let bij = reindexAddC sn sm SI in Bijection
+  (sn :! SI) (sm :! SI) _ -> let bij = offsetAddC sn sm SI in Bijection
     { forwards = \case
         FL (fn :? b) -> forwards bij (FL fn) :? b
         FL FBranch -> forwards bij FC :? O
@@ -1103,61 +1317,6 @@ reindexAddC = \cases
           (FC, I) -> FR FBranch
         FBranch -> FC
     }
-
-fuseC :: Tree n a -> Tree m a -> Opt b a -> Tree (AddC n m b) a
-fuseC = \cases
-  (Canopy a0) (Canopy a1) oa -> Canopy (a0 :* a1) :\ oa
-  (taa :\ None) (Canopy a1) None -> taa :\ Some a1
-  (taa :\ None) (Canopy a1) (Some a2) -> push taa (a1 :* a2) :\ None
-  (taa :\ Some a0) (Canopy a1) oa -> push taa (a0 :* a1) :\ oa
-  (Canopy a0) (taa :\ None) None -> taa :\ Some a0
-  (Canopy a0) (taa :\ None) (Some a2) -> push taa (a0 :* a2) :\ None
-  (Canopy a0) (taa :\ Some a1) oa -> push taa (a1 :* a0) :\ oa
-  (taa0 :\ None) (taa1 :\ None) oa -> fuse taa0 taa1 :\ oa
-  (taa0 :\ None) (taa1 :\ Some a1) None -> fuse taa0 taa1 :\ Some a1
-  (taa0 :\ None) (taa1 :\ Some a1) (Some a2) -> fuseC taa0 taa1 (Some (a1 :* a2)) :\ None
-  (taa0 :\ Some a0) (taa1 :\ None) None -> fuse taa0 taa1 :\ Some a0
-  (taa0 :\ Some a0) (taa1 :\ None) (Some a2) -> fuseC taa0 taa1 (Some (a0 :* a2)) :\ None
-  (taa0 :\ Some a0) (taa1 :\ Some a1) oa -> fuseC taa0 taa1 (Some (a0 :* a1)) :\ oa
-
-fizzC :: SPositive n -> SPositive m -> SBit b -> Tree (AddC n m b) a -> (Tree n a, Tree m a, Opt b a)
-fizzC = \cases
-  SObI SObI _ (Canopy (a0 :* a1) :\ oa) ->
-    (Canopy a0, Canopy a1, oa)
-  (_ :! SO) SObI SO (taa :\ Some a1) ->
-    (taa :\ None, Canopy a1, None)
-  (sn :! SO) SObI SI (taa :\ None) ->
-    let (taa0, Canopy (a1 :* a2)) = fizz sn SObI taa
-    in (taa0 :\ None, Canopy a1, Some a2)
-  (sn :! SI) SObI _ (taa :\ oa) ->
-    let (taa0, Canopy (a0 :* a1)) = fizz sn SObI taa
-    in (taa0 :\ Some a0, Canopy a1, oa)
-  SObI (_ :! SO) SO (taa :\ Some a0) ->
-    (Canopy a0, taa :\ None, None)
-  SObI (sm :! SO) SI (taa :\ None) ->
-    let (taa1, Canopy (a0 :* a2)) = fizz sm SObI taa
-    in (Canopy a0,  taa1 :\ None, Some a2)
-  SObI (sm :! SI) _ (taa :\ oa) ->
-    let (taa1, Canopy (a0 :* a1)) = fizz sm SObI taa
-    in (Canopy a0, taa1 :\ Some a1, oa)
-  (sn :! SO) (sm :! SO) _ (taa :\ oa) ->
-    let (taa0, taa1) = fizz sn sm taa
-    in (taa0 :\ None, taa1 :\ None, oa)
-  (sn :! SO) (sm :! SI) SO (taa :\ oa) ->
-    let (taa0, taa1) = fizz sn sm taa
-    in (taa0 :\ None, taa1 :\ oa, None)
-  (sn :! SO) (sm :! SI) SI (taa :\ None) ->
-    let (taa0, taa1, Some (a1 :* a2)) = fizzC sn sm SI taa
-    in (taa0 :\ None, taa1 :\ Some a1, Some a2)
-  (sn :! SI) (sm :! SO) SO (taa :\ oa) ->
-    let (taa0, taa1) = fizz sn sm taa
-    in (taa0 :\ oa, taa1 :\ None, None)
-  (sn :! SI) (sm :! SO) SI (taa :\ None) ->
-    let (taa0, taa1, Some (a0 :* a2)) = fizzC sn sm SI taa
-    in (taa0 :\ Some a0, taa1 :\ None, Some a2)
-  (sn :! SI) (sm :! SI) _ (taa :\ oa) ->
-    let (taa0, taa1, Some (a0 :* a1)) = fizzC sn sm SI taa
-    in (taa0 :\ Some a0, taa1 :\ Some a1, oa)
 
 -- * Lenses
 -- $
@@ -1217,7 +1376,7 @@ _I :: Lens' (Pair a) a
 _I f (a0 :* a1) = (a0 :*) <$> f a1
 
 -- | A lens for accessing an arbitrary element of a 'Pair', using a 'Bit' as an 
--- index
+-- offset.
 --
 --    >>> (100 :* 100) & over (atPair O) succ
 --    101 :* 100
@@ -1277,7 +1436,7 @@ _Off f (taa :\ oa) = (taa :\) <$> f oa
 _Branch :: Lens' (Tree (n :. I) a) a
 _Branch = _Off . _Some
 
--- | A lens for accessing an arbitrary element of a 'Tree', using 'FPositive' as an index.
+-- | A lens for accessing an arbitrary element of a 'Tree', using 'FPositive' as an offset.
 --
 --    >>> let t = Canopy (('a' :* 'b') :* ('c' :* 'd')) :\ None :\ Some 'e'
 --    >>> t & view (atTree (FCanopy :? O :? O))
@@ -1297,12 +1456,14 @@ atTree = \case
 -- * Misc
 -- $
 
--- | A bijection is a function with an inverse
+-- | A bijection is a function with an inverse.
 --
 -- Proper values obey the following law:
 --
---    forwards bij . backwards bij = id :: b -> b
---    backwards bij . forwards bij = id :: a -> a
+-- @
+-- forwards bij . backwards bij = id :: b -> b
+-- backwards bij . forwards bij = id :: a -> a
+-- @
 type (<->) :: Type -> Type -> Type
 data a <-> b = Bijection { forwards :: a -> b, backwards :: b -> a }
 
