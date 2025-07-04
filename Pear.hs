@@ -7,6 +7,9 @@
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE TypeFamilies #-}
 
+{-# LANGUAGE FunctionalDependencies #-}
+{-# LANGUAGE UndecidableInstances  #-}
+{-# LANGUAGE TypeFamilyDependencies  #-}
 -- | Indexed types using type-level binary numbers
 module Pear where
 
@@ -20,9 +23,41 @@ import Data.Maybe (fromMaybe)
 import Data.List.NonEmpty (NonEmpty((:|)))
 import Prelude hiding ((.), id)
 
+-- * Notation
+-- $
+-- There's a lot of variants on bits and numbers in this module. To help keep 
+-- them all straight, I use hungarian notation.
+--
+--  - the @S@ prefix is used for singleton types and constructors ('SBit', 
+--    'SO', 'SI', 'SPositive')
+--
+--  - the @F@ prefix for finite types and constructors ('FPositive', 'FCanopy', 
+--    'FBranch', 'FSucc', 'FAdd', 'FAddC', 'FL', 'FR', 'FC').
+--
+--  - the @C@ suffix is used when a type or function handles carry bits 
+--    ('AddC', 'fuseC', 'fizzC', etc.)
+--
+-- There's a number of functions that have two variants - one that has a 
+-- `KnownPositive` constraint and another that instead has a 'SPositive' 
+-- argument.  The latter is always marked by a prime symbol (e.g. 'succFPositive' 
+-- vs 'succFPositive'', 'generate' vs 'generate'', etc).
+--
+-- There's also a lot of types that use operators. This is because I believe 
+-- they help keep the focus onto the more relevant things, like the bit 
+-- constructors or the values.
+--
+--  - 'Positive', 'SPositive', and 'FPositive' use ':.', ':!', and ':?' 
+--    respectively. As a mnemonic, note that all use punctuation that 
+--    terminates a sentence.
+--
+--  - 'Pair' uses ':*', since it's a product type.
+--
+--  - 'Tree' uses ':\' for branches coming off the main trunk of the tree. See 'Tree' for
+--    how this works as a visual metaphor.
+
 -- * Bits
 -- $
--- We'll need a number of ways to represent bits at the value, type, and constraint level.
+-- We'll need a few ways to represent bits at the value, type, and constraint level.
 
 -- ** @Bit@
 -- $
@@ -77,7 +112,7 @@ instance KnownBit I where knownBit = SI
 
 -- * Positive numbers
 -- $
--- We'll need a number of ways to represent positive numbers at the value, type, and constraint level.
+-- We'll need a few ways to represent positive numbers at the value, type, and constraint level.
 
 -- ** @Positive@
 -- $
@@ -647,6 +682,73 @@ instance Applicative Pair where
 -- ** @Tree@
 -- $
 
+-- | A pear tree is a linked list of balanced binary trees strictly increasing 
+-- in order of size.
+--
+-- The spine of the data structure is defined by the ':\' constructor, which 
+-- forks off larger and larger balanced binary trees until it reaches the 
+-- 'Canopy', which holds the largest.
+--
+-- This data structure is heavily influenced by [Edward Z. Yang's bootstrapped 
+-- binary tree](http://blog.ezyang.com/2012/08/statically-checked-perfect-binary-trees/#nested-data-types).
+--
+-- The simplest pear tree holds one element:
+--
+-- @
+--    Canopy a
+--
+--      ╽
+--      a 
+-- @
+--
+-- Without forking off any smaller trees, extending the spine to increase the 
+-- canopy depth doubles the number of elements in the canopy.
+--
+-- @
+--    Canopy (a :* b) :\\ None
+--
+--        :
+--        ╽
+--        :*
+--      a    b 
+--
+--    Canopy ((a :* b) :* (c :* d)) :\\ None :\\ None
+--
+--             :
+--             :
+--             ╽
+--             :*
+--        :*        :*
+--      a    b    c    d 
+--
+--    Canopy (((a :* b) :* (c :* d)) :* ((e :* f) :* (g :* h))) :\\ None :\\ None :\\ None
+--
+--                       :
+--                       :
+--                       :
+--                       ╽
+--                       :*
+--             :*                  :*         
+--        :*        :*        :*        :*    
+--      a    b    c    d    e    f    g    h   
+-- @
+--
+-- The smaller trees come into play when trying to store a non-power of 2 number 
+-- of elements.
+--
+-- @
+--    Canopy (((a :* b) :* (c :* d)) :* ((e :* f) :* (g :* h))) :\\ None :\\ Some (i :* j) :\\ Some k
+--
+--                       :\\_____________________________.
+--                       :\\______________________.      k
+--                       :                       :*
+--                       ╽                     i    j
+--                       :*
+--             :*                  :*         
+--        :*        :*        :*        :*     
+--      a    b    c    d    e    f    g    h   
+-- @
+--
 type Tree :: Positive -> Type -> Type
 data Tree n a where
   Canopy :: a -> Tree ObI a
@@ -663,21 +765,34 @@ instance Show a => Show (Tree n a) where
   showsPrec p = \case
     taa :\ oa -> showParen (p >= 4) do
       shows taa . showString " :\\ " . shows oa
-    Canopy a -> showString "Canopy " . showsPrec 10 a
+    Canopy a -> showParen (p >= 10) do
+      showString "Canopy " . showsPrec 10 a
 
 instance KnownPositive n => Applicative (Tree n) where
   liftA2 = liftT2
   pure a = generate (const a)
 
 -- | Alternative to 'liftA2' without the 'KnownPositive' constraint.
+--
+--    >>> let t = Canopy ((0 :* 1) :* (2 :* 3)) :\ Some (4 :* 5) :\ Some 6
+--    >>> liftT2 (+) t (fmap (10*) t)
+--    Canopy ((0 :* 11) :* (22 :* 33)) :\ Some (44 :* 55) :\ Some 66
 liftT2 :: (a -> b -> c) -> Tree m a -> Tree m b -> Tree m c
 liftT2 f = \cases
   (taa :\ oa) (tbb :\ ob) -> liftT2 (liftA2 f) taa tbb :\ liftO2 f oa ob
   (Canopy a) (Canopy b) -> Canopy (f a b)
 
+-- | Create a 'Tree' with a known number of elements. See also 'pure'.
+--
+--    >>> generate @(ObI :. I :. I) fromEnum
+--    Canopy ((0 :* 1) :* (2 :* 3)) :\ Some (4 :* 5) :\ Some 6
 generate :: KnownPositive n => (FPositive n -> a) -> Tree n a
 generate = flip generate' knownPositive
 
+-- | Alternative to 'generate' where the value of @n@ is given explicitly.
+--
+--    >>> generate' fromEnum (SObI :! SI :! SI)
+--    Canopy ((0 :* 1) :* (2 :* 3)) :\ Some (4 :* 5) :\ Some 6
 generate' :: (FPositive n -> a) -> SPositive n -> Tree n a
 generate' f = \case
   SObI -> Canopy (f FCanopy)
@@ -685,42 +800,102 @@ generate' f = \case
     SO -> None
     SI -> Some (f FBranch)
 
+-- | Count the number of elements in a 'Tree' as a 'SPositive'.
+--
+-- In some ways this is the inverse of 'generate''.
+--
+--    >>> treeSize $ Canopy 'a'
+--    SObI
+--    >>> treeSize $ Canopy (('a' :* 'b') :* ('c' :* 'd')) :\ Some ('e' :* 'f') :\ None
+--    SObI :! SI :! SO
 treeSize :: Tree n a -> SPositive n
 treeSize = \case
   Canopy _ -> SObI
   taa :\ oa -> treeSize taa :! optSize oa
 
+-- | Create a tree from a nonempty list and pass it to a continuation
+--
+--    >>> fromNonEmpty print $ 'a' :| "bcdefg"
+--    Canopy (('a' :* 'b') :* ('c' :* 'd')) :\ Some ('e' :* 'f') :\ Some 'g'
+--    >>> fromNonEmpty print $ 'a' :| "bcdefgh"
+--    Canopy ((('a' :* 'b') :* ('c' :* 'd')) :* (('e' :* 'f') :* ('g' :* 'h'))) :\ None :\ None :\ None
 fromNonEmpty :: forall r a. (forall n. Tree n a -> r) -> NonEmpty a -> r
+-- the continuation trick is necessary because @NonEmpty a -> Tree n a@ would 
+-- mean that the caller gets to specify the type @n@ at compile time, while we 
+-- actually want to be able to have the input determine the type at runtime.
 fromNonEmpty f = \(a :| as) -> loop (Canopy a) as where
   loop :: Tree n a -> [a] -> r
   loop t = \case
     [] -> f t
     a : as -> loop (push t a) as
 
+-- *** 'push' and 'pop': adding and removing a single element
+-- $
+
+-- | type-level 'succ' for positive numbers
 type Succ :: Positive -> Positive
+-- reusing 'Add' makes sense for compatibility, though I do wish I'd been able to 
+-- come up with an injective definition of Succ
 type Succ n = Add n ObI
 
-type FSucc :: Positive -> Type
-type FSucc n = FAdd n ObI
-
-reindexSucc :: SPositive n -> Iso (FSucc n) (FPositive (Succ n))
-reindexSucc sn = reindexAdd sn SObI
-
+-- | Add a new element to the end of a tree
+--
+--    >>> push (Canopy 'a') 'b'
+--    Canopy ('a' :* 'b') :\ None
+--    >>> push (Canopy ('a' :* 'b') :\ None) 'c'
+--    Canopy ('a' :* 'b') :\ Some 'c'
+--    >>> push (Canopy ('a' :* 'b') :\ Some 'c') 'd'
+--    Canopy (('a' :* 'b') :* ('c' :* 'd')) :\ None :\ None
 push :: Tree n a -> a -> Tree (Succ n) a
 push t = fuse t . Canopy
 
-type PoppedTree :: Positive -> Type -> Type
-data PoppedTree n a where
-  PoppedHas :: Tree n a -> PoppedTree (Succ n) a
-  PoppedOut :: PoppedTree ObI a
-
+-- | Remove the last element from a tree
+--
+--    >>> pop (Canopy (('a' :* 'b') :* ('c' :* 'd')) :\ None :\ None)
+--    (Popped (Canopy ('a' :* 'b') :\ Some 'c'),'d')
+--    >>> pop (Canopy ('a' :* 'b') :\ Some 'c')
+--    (Popped (Canopy ('a' :* 'b') :\ None),'c')
+--    >>> pop (Canopy ('a' :* 'b') :\ None)
+--    (Popped (Canopy 'a'),'b')
+--    >>> pop (Canopy 'a')
+--    (Empty,'a')
 pop :: Tree n a -> (PoppedTree n a, a)
 pop = \case
-  Canopy a0 -> (PoppedOut, a0)
-  taa :\ Some a0 -> (PoppedHas (taa :\ None),  a0)
+  Canopy a0 -> (Empty, a0)
+  taa :\ Some a0 -> (Popped (taa :\ None),  a0)
   taa :\ None -> case pop taa of
-    (PoppedOut, a0 :* a1) -> (PoppedHas (Canopy a0),  a1)
-    (PoppedHas taa, a0 :* a1) -> (PoppedHas (taa :\ Some a0), a1)
+    (Empty, a0 :* a1) -> (Popped (Canopy a0),  a1)
+    (Popped taa, a0 :* a1) -> (Popped (taa :\ Some a0), a1)
+
+-- | 
+type FSucc :: Positive -> Type
+type FSucc n = FAdd n ObI
+
+reindexSucc :: SPositive n -> (FSucc n <-> FPositive (Succ n))
+reindexSucc sn = reindexAdd sn SObI
+
+type PoppedTree :: Positive -> Type -> Type
+data PoppedTree n a where
+  Popped :: (Succ n ~ (bs :. b)) => Tree n a -> PoppedTree (Succ n) a
+  Empty :: PoppedTree ObI a
+
+instance Eq a => Eq (PoppedTree n a) where
+  Empty == Empty = True
+  Popped t == Popped t' = loop t t' where
+    loop :: forall i j x. Eq x => Tree i x -> Tree j x -> Bool
+    loop = \cases
+      (Canopy a) (Canopy a') -> a == a'
+      (taa :\ Some a) (taa' :\ Some a') -> a == a' && loop taa taa'
+      (taa :\ None) (taa' :\ None) -> loop taa taa'
+      _ _ -> False
+
+deriving instance Show a => Show (PoppedTree n a)
+deriving instance Functor (PoppedTree n)
+deriving instance Foldable (PoppedTree n)
+deriving instance Traversable (PoppedTree n)
+
+-- *** 'fuse' and 'fizz': combining two lists or dividing one in two
+-- $ 
 
 type Add :: Positive -> Positive -> Positive
 type Add i j = AddC i j O
@@ -728,7 +903,7 @@ type Add i j = AddC i j O
 type FAdd :: Positive -> Positive -> Type
 type FAdd n m = FAddC n m O
 
-reindexAdd :: SPositive n -> SPositive m -> Iso (FAdd n m) (FPositive (Add n m))
+reindexAdd :: SPositive n -> SPositive m -> (FAdd n m <-> FPositive (Add n m))
 reindexAdd sn sm = reindexAddC sn sm SO
 
 fuse :: Tree n a -> Tree m a -> Tree (Add n m) a
@@ -738,6 +913,7 @@ fizz :: SPositive n -> SPositive m -> Tree (Add n m) a -> (Tree n a, Tree m a)
 fizz sn sm t = (tn, tm)
   where (tn, tm, None) = fizzC sn sm SO t
 
+-- *** 'fuseC' and 'fizzC': where the sausage gets made
 type AddC :: Positive -> Positive -> Bit -> Positive
 type family AddC i j b where
   AddC ObI ObI b = ObI :. b
@@ -760,9 +936,9 @@ data FAddC n m b where
   FR :: FPositive m -> FAddC n m b
   FC :: FAddC n m I -- if we had an FBit type, here's the only place we'd actually use it
 
-reindexAddC :: SPositive n -> SPositive m -> SBit b -> Iso (FAddC n m b) (FPositive (AddC n m b))
+reindexAddC :: SPositive n -> SPositive m -> SBit b -> (FAddC n m b <-> FPositive (AddC n m b))
 reindexAddC = \cases
-  SObI SObI _ -> Iso
+  SObI SObI _ -> Bijection
     { forwards = \case
         FL FCanopy -> FCanopy :? O
         FR FCanopy -> FCanopy :? I
@@ -772,7 +948,7 @@ reindexAddC = \cases
         FCanopy :? I -> FR FCanopy
         FBranch -> FC
     }
-  (_ :! SO) SObI SO -> Iso
+  (_ :! SO) SObI SO -> Bijection
     { forwards = \case
         FL (fn :? b) -> fn :? b
         FR FCanopy -> FBranch
@@ -780,30 +956,30 @@ reindexAddC = \cases
         fn :? b -> FL (fn :? b)
         FBranch -> FR FCanopy
     }
-  (sn :! SO) SObI SI -> let iso = reindexSucc sn in Iso
+  (sn :! SO) SObI SI -> let bij = reindexSucc sn in Bijection
     { forwards = \case
-        FL (fn :? b) -> forwards iso (FL fn) :? b
-        FR FCanopy -> forwards iso (FR FCanopy) :? O
-        FC -> forwards iso (FR FCanopy) :? I
-    , backwards = \(fx :? b) -> case (backwards iso fx, b) of
+        FL (fn :? b) -> forwards bij (FL fn) :? b
+        FR FCanopy -> forwards bij (FR FCanopy) :? O
+        FC -> forwards bij (FR FCanopy) :? I
+    , backwards = \(fx :? b) -> case (backwards bij fx, b) of
         (FL fn, b) -> FL (fn :? b)
         (FR FCanopy, O) -> FR FCanopy
         (FR FCanopy, I) -> FC
     }
-  (sn :! SI) SObI _ -> let iso = reindexSucc sn in Iso
+  (sn :! SI) SObI _ -> let bij = reindexSucc sn in Bijection
     { forwards = \case
-        FL (fn :? b) -> forwards iso (FL fn) :? b
-        FL FBranch -> forwards iso (FR FCanopy) :? O
-        FR FCanopy -> forwards iso (FR FCanopy) :? I
+        FL (fn :? b) -> forwards bij (FL fn) :? b
+        FL FBranch -> forwards bij (FR FCanopy) :? O
+        FR FCanopy -> forwards bij (FR FCanopy) :? I
         FC -> FBranch
     , backwards = \case
-        fx :? b -> case (backwards iso fx, b) of
+        fx :? b -> case (backwards bij fx, b) of
           (FL fn, b) -> FL (fn :? b)
           (FR FCanopy, O) -> FL FBranch
           (FR FCanopy, I) -> FR FCanopy
         FBranch -> FC
     }
-  SObI (_ :! SO) SO -> Iso
+  SObI (_ :! SO) SO -> Bijection
     { forwards = \case
         FL FCanopy -> FBranch
         FR (fn :? b) -> fn :? b
@@ -811,95 +987,95 @@ reindexAddC = \cases
         FBranch -> FL FCanopy
         fn :? b -> FR (fn :? b)
     }
-  SObI (sm :! SO) SI -> let iso = reindexSucc sm in Iso
+  SObI (sm :! SO) SI -> let bij = reindexSucc sm in Bijection
     { forwards = \case
-        FL FCanopy -> forwards iso (FR FCanopy) :? O
-        FR (fn :? b) -> forwards iso (FL fn) :? b
-        FC -> forwards iso (FR FCanopy) :? I
-    , backwards = \(fx :? b) -> case (backwards iso fx, b) of
+        FL FCanopy -> forwards bij (FR FCanopy) :? O
+        FR (fn :? b) -> forwards bij (FL fn) :? b
+        FC -> forwards bij (FR FCanopy) :? I
+    , backwards = \(fx :? b) -> case (backwards bij fx, b) of
         (FR FCanopy, O) -> FL FCanopy
         (FL fn, b) -> FR (fn :? b)
         (FR FCanopy, I) -> FC
     }
-  SObI (sm :! SI) _ -> let iso = reindexSucc sm in Iso
+  SObI (sm :! SI) _ -> let bij = reindexSucc sm in Bijection
     { forwards = \case
-        FL FCanopy -> forwards iso (FR FCanopy) :? O
-        FR (fm :? b) -> forwards iso (FL fm) :? b
-        FR FBranch -> forwards iso (FR FCanopy) :? O
+        FL FCanopy -> forwards bij (FR FCanopy) :? O
+        FR (fm :? b) -> forwards bij (FL fm) :? b
+        FR FBranch -> forwards bij (FR FCanopy) :? O
         FC -> FBranch
     , backwards = \case
-        fx :? b -> case (backwards iso fx, b) of
+        fx :? b -> case (backwards bij fx, b) of
           (FL fn, b) -> FR (fn :? b)
           (FR FCanopy, O) -> FR FBranch
           (FR FCanopy, I) -> FL FCanopy
         FBranch -> FC
     }
-  (sn :! SO) (sm :! SO) _ -> let iso = reindexAdd sn sm in Iso
+  (sn :! SO) (sm :! SO) _ -> let bij = reindexAdd sn sm in Bijection
     { forwards = \case
-        FL (fn :? b) -> forwards iso (FL fn) :? b
-        FR (fm :? b) -> forwards iso (FR fm) :? b
+        FL (fn :? b) -> forwards bij (FL fn) :? b
+        FR (fm :? b) -> forwards bij (FR fm) :? b
         FC -> FBranch
     , backwards = \case
-        fx :? b -> case backwards iso fx of
+        fx :? b -> case backwards bij fx of
           FL fn -> FL (fn :? b)
           FR fm -> FR (fm :? b)
         FBranch -> FC
     }
-  (sn :! SO) (sm :! SI) SO -> let iso = reindexAdd sn sm in Iso
+  (sn :! SO) (sm :! SI) SO -> let bij = reindexAdd sn sm in Bijection
     { forwards = \case
-        FL (fn :? b) -> forwards iso (FL fn) :? b
-        FR (fm :? b) -> forwards iso (FR fm) :? b
+        FL (fn :? b) -> forwards bij (FL fn) :? b
+        FR (fm :? b) -> forwards bij (FR fm) :? b
         FR FBranch -> FBranch
     , backwards = \case
-        fx :? b -> case backwards iso fx of
+        fx :? b -> case backwards bij fx of
           FL fn -> FL (fn :? b)
           FR fm -> FR (fm :? b)
         FBranch -> FR FBranch
     }
-  (sn :! SO) (sm :! SI) SI -> let iso = reindexAddC sn sm SI in Iso
+  (sn :! SO) (sm :! SI) SI -> let bij = reindexAddC sn sm SI in Bijection
     { forwards = \case
-        FL (fn :? b) -> forwards iso (FL fn) :? b
-        FR (fm :? b) -> forwards iso (FR fm) :? b
-        FR FBranch -> forwards iso FC :? O
-        FC -> forwards iso FC :? I
-    , backwards = \(fx :? b) -> case (backwards iso fx, b) of
+        FL (fn :? b) -> forwards bij (FL fn) :? b
+        FR (fm :? b) -> forwards bij (FR fm) :? b
+        FR FBranch -> forwards bij FC :? O
+        FC -> forwards bij FC :? I
+    , backwards = \(fx :? b) -> case (backwards bij fx, b) of
         (FL fn, b) -> FL (fn :? b)
         (FR fm, b) -> FR (fm :? b)
         (FC, O) -> FR FBranch
         (FC, I) -> FC
     }
-  (sn :! SI) (sm :! SO) SO -> let iso = reindexAdd sn sm in Iso
+  (sn :! SI) (sm :! SO) SO -> let bij = reindexAdd sn sm in Bijection
     { forwards = \case
-        FL (fn :? b) -> forwards iso (FL fn) :? b
+        FL (fn :? b) -> forwards bij (FL fn) :? b
         FL FBranch -> FBranch
-        FR (fm :? b) -> forwards iso (FR fm) :? b
+        FR (fm :? b) -> forwards bij (FR fm) :? b
     , backwards = \case
-        fx :? b -> case backwards iso fx of
+        fx :? b -> case backwards bij fx of
           FL fn -> FL (fn :? b)
           FR fm -> FR (fm :? b)
         FBranch -> FL FBranch
     }
-  (sn :! SI) (sm :! SO) SI -> let iso = reindexAddC sn sm SI in Iso
+  (sn :! SI) (sm :! SO) SI -> let bij = reindexAddC sn sm SI in Bijection
     { forwards = \case
-        FL (fn :? b) -> forwards iso (FL fn) :? b
-        FL FBranch -> forwards iso FC :? O
-        FR (fm :? b) -> forwards iso (FR fm) :? b
-        FC -> forwards iso FC :? I
-    , backwards = \(fx :? b) -> case (backwards iso fx, b) of
+        FL (fn :? b) -> forwards bij (FL fn) :? b
+        FL FBranch -> forwards bij FC :? O
+        FR (fm :? b) -> forwards bij (FR fm) :? b
+        FC -> forwards bij FC :? I
+    , backwards = \(fx :? b) -> case (backwards bij fx, b) of
         (FL fn, b) -> FL (fn :? b)
         (FR fm, b) -> FR (fm :? b)
         (FC, O) -> FL FBranch
         (FC, I) -> FC
     }
-  (sn :! SI) (sm :! SI) _ -> let iso = reindexAddC sn sm SI in Iso
+  (sn :! SI) (sm :! SI) _ -> let bij = reindexAddC sn sm SI in Bijection
     { forwards = \case
-        FL (fn :? b) -> forwards iso (FL fn) :? b
-        FL FBranch -> forwards iso FC :? O
-        FR (fm :? b) -> forwards iso (FR fm) :? b
-        FR FBranch -> forwards iso FC :? I
+        FL (fn :? b) -> forwards bij (FL fn) :? b
+        FL FBranch -> forwards bij FC :? O
+        FR (fm :? b) -> forwards bij (FR fm) :? b
+        FR FBranch -> forwards bij FC :? I
         FC -> FBranch
     , backwards = \case
-        fx :? b -> case (backwards iso fx, b) of
+        fx :? b -> case (backwards bij fx, b) of
           (FL fn, b) -> FL (fn :? b)
           (FC, O) -> FL FBranch
           (FR fm, b) -> FR (fm :? b)
@@ -1100,9 +1276,16 @@ atTree = \case
 -- * Misc
 -- $
 
-type Iso :: Type -> Type -> Type
-data Iso a b = Iso { forwards :: a -> b, backwards :: b -> a }
+-- | A bijection is a function with an inverse
+--
+-- Proper values obey the following law:
+--
+--    forwards bij . backwards bij = id :: b -> b
+--    backwards bij . forwards bij = id :: a -> a
+type (<->) :: Type -> Type -> Type
+data a <-> b = Bijection { forwards :: a -> b, backwards :: b -> a }
 
-instance Category Iso where
-  id = Iso id id
-  Iso f0 b0 . Iso f1 b1 = Iso (f0 . f1) (b1 . b0)
+instance Category (<->) where
+  id = Bijection id id
+  Bijection f0 b0 . Bijection f1 b1 = Bijection (f0 . f1) (b1 . b0)
+
