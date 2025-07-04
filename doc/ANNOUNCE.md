@@ -501,10 +501,10 @@ instance KnownPositive n => Applicative (Tree n) where
   pure a = generateTree (const a) knownPositive
 ```
 <!-- }}} -->
-## Change is hard
+## Change is hard<!-- {{{ -->
 
 What starts to get tricky with pear trees is operations that change the size of the tree. To make these work, we also need to 
-define the change to the index parameter @n@ at the type level.
+define the change to the index parameter `n` at the type level.
 
 For instance, for `push`ing an element onto a pear tree, we need a type-level `succ` for `Positive` numbers. And since this 
 isn't Agda, we can't just reuse the value-level definition, we need to reimplement it as a type family.
@@ -586,8 +586,8 @@ fuseC = \cases
 ```
 
 Unlike list conatenation, fusing two pear treas is an O(log n) operation. However, also unlike list concatenation, since `fuse 
-t0 t1 = t` combines the two trees subtree-by-subtree, it's not true that all the elements of `t0` are before all the elements 
-of `t1` in `t`. That is `toList t0 ++ toList t1 /= toList (fuse t0 t1).  In general `fuse` is not associative.
+t0 t1 = t` combines the two trees subtree-by-subtree, it's not true that all the elements of `t0` are before all the elements of 
+`t1` in `t`. That is `toList t0 ++ toList t1 /= toList (fuse t0 t1)`.  In general `fuse` is not associative.
 
 ```
 >>> fuse (Canopy ('E' :* 'F') :\ Some 'G') (Canopy (('a' :* 'b') :* ('c' :* 'd')) :\ None :\ None)
@@ -624,9 +624,9 @@ Canopy (('a' :* 'b') :* ('D' :* 'E')) :\ Some ('c' :* 'F') :\ None
 
 `fuse` also has an inverse, `fizz` which runs the binary addition algorithm backwards to split one pear tree into two.
 
-All of these functions are implemented in full in the `pear` package, coming soon on hackage.
-
-## Oooh, what else does it have?
+All of these functions are implemented in full in the `pear` package, [now on hackage](https://hackage.haskell.org/package/pear).
+<!-- }}} -->
+## Oooh, what else does it have?<!-- {{{ -->
 
 That's going to be it for the first release. I've had versions of this code bouncing around my head for almost four years now 
 as it moved from the front to the back burner numerous times, and while there's a lot of partial work I'm leaving on the 
@@ -645,7 +645,7 @@ different package.
 
 As we all know, a mathematician is a complicated device that transforms calories into theorems, so all thanks go to my wife 
 Karlee, who kept me passing me plates of food while I was in quarantine in our guest room.
-
+<!-- }}} -->
 # Literate Haskell<!-- {{{ -->
 
 Because I don't trust myself not to have bugs in my examples, this is a literate haskell file. You can use [`markdown-unlit`][markdown-unlit] 
