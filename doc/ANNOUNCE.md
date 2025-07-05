@@ -338,9 +338,8 @@ Here's where `BalancedTree`'s `Trunk` constructor merits a closer look. Consider
 ```
 
 In all these cases, the `Trunk` constructors at the same depth all have the same type. For example, the careted third 
-constructor is of type `Trunk :: BalancedTree (ObI :. O :. O :. O) (((a,a),(a,a)),((a,a),(a,a)))`. So if we altered this 
-constructor to also take at most one tree of the indexed size, we'd have a way of melding these distinct binary trees into 
-one.
+constructor is of type `Trunk :: BalancedTree n (((a,a),(a,a)),((a,a),(a,a))) -> BalancedTree (n :. O) ((a,a),(a,a))`. So if we 
+altered `Branch` to also take at most one value of type `a`, we'd have a way of melding these distinct binary trees into one.
 
 ```haskell
 type MeldedTree :: Positive -> Type -> Type
