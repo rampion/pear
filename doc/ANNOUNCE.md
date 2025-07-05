@@ -353,7 +353,7 @@ left-most bits are the largest[^2].
 
 [^2]: This also turns out to have some nice advantages when it comes to looking up elements by offset.
 
-This still is quite right - we're not tracking the number of elements in the melded tree, we're tracking the size of the 
+This still isn't quite right - we're not tracking the number of elements in the melded tree, we're tracking the size of the 
 largest tree. But we can fix that with an indexed variant of `Maybe` - we use a `O` bit if there's no tree at this level and a 
 `I` bit if there is.
 
