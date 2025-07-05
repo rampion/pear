@@ -40,7 +40,9 @@ data List n a where
   Cons :: a -> List n a -> List (Succ n) a
 ```
 
-The length is just a unary-encoded natural number.
+The length is just a unary-encoded natural number, lifted from the value level to the type level via [`DataKinds`][DataKinds].
+
+  [datakinds]: https://ghc.gitlab.haskell.org/ghc/doc/users_guide/exts/data_kinds.html
 
 ```haskell
 type Natural :: Type
