@@ -649,8 +649,8 @@ Karlee, who kept me passing me plates of food while I was in quarantine in our g
 <!-- }}} -->
 # Literate Haskell<!-- {{{ -->
 
-Because I don't trust myself not to have bugs in my examples, this is a literate haskell file. You can use [`markdown-unlit`][markdown-unlit] 
-to compile all the code here thusly:
+Because I don't trust myself not to have bugs in my examples, [this](?plain=1) is a literate haskell file. You can use 
+[`markdown-unlit`][markdown-unlit] to compile all the code here thusly:
 
   [markdown-unlit]: https://github.com/sol/markdown-unlit
 
