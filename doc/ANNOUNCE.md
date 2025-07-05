@@ -258,7 +258,7 @@ data Pow2 n a where
   TwoTimes :: Pow2 n a -> Pow2 n a -> Pow2 (n :. O) a
 ```
 
-Edward Z. Yang describes a type isomorphic to `Pow2` in his post _Two ways of representing binary trees_
+Edward Z. Yang describes a type isomorphic to `Pow2'` in his post _Two ways of representing binary trees_
 ([Yang, 2012][yang]):
 
   [yang]: http://blog.ezyang.com/2012/08/statically-checked-perfect-binary-trees/#nested-data-types
