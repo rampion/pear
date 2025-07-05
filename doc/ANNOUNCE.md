@@ -156,7 +156,7 @@ We could encode all the natural numbers just as a list of bits, `[Bit]`, but I h
   - One is that it puts ease of reading at odds with ease of incrementing.
 
     We could use any arbitrary bit ordering when encoding binary numbers as `[Bit]`, but two of the most reasonable seem to be 
-    least-signficant-bit first order (LFO) or most-significant-bit first order (MFO).
+    least-significant-bit first order (LFO) or most-significant-bit first order (MFO).
 
     Consider the number 18, 19 and 20, with the binary expasions `0b10010`, `Ob10011`, and `0b10100` respectively. In LFO they're 
     `[O,I,O,O,I]`, `[I,I,O,O,I]`, and `[O,O,I,O,I]`. In BFO they're `[I,O,O,I,O]`, `[I,O,O,I,I]`, and `[I,O,I,O,O]`.
