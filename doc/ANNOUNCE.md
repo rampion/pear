@@ -384,9 +384,15 @@ data Opt b a where
 
 Hey look at that, we finally got to the thing the title mentioned.
 
-I call this a pear tree because it organizes a tree with pairs, pear is a homophone of pair in English, pears grow on trees, 
-and I'm a sucker for a pun. It's possible someone already invented this, but they probably didn't come up with nearly as good 
-a name.[^3]
+I call this a pear tree because it organizes a tree with pairs, pear is a homophone of pair in English, pears grow on trees, and 
+I'm a sucker for a pun. It's possible someone already invented this[^*], but they probably didn't come up with nearly as good a 
+name.[^3]
+
+[^*]: Someone did! It's in Chris Okasaki's seminal thesis, [_Purely Functional Data Structures_][okasaki] as "Binary Random 
+    Access Lists" in section 6.2.1.  Thanks to [/u/fire1299 on reddit][fire1299] for making the connection.
+
+  [okasaki]: https://www.cs.cmu.edu/~rwh/students/okasaki.pdf
+  [fire1299]: https://www.reddit.com/r/haskell/comments/1lrxa96/comment/n1i1mpz/
 
 [^3]: I do feel for our english as a second language community, which is why rights are available for naming localization in 
     German, French, Swedish, and Glaswegian, among others.
@@ -646,6 +652,12 @@ different package.
 
 As we all know, a mathematician is a complicated device that transforms calories into theorems, so all thanks go to my wife 
 Karlee, who kept me passing me plates of food while I was in quarantine in our guest room.
+
+Feel free to make requests on [the issues page][issues] or join [the discussion on reddit][reddit].
+
+  [reddit]: https://www.reddit.com/r/haskell/comments/1lrxa96/pear_trees_an_indexed_type_using_typelevel_binary/
+  [issues]: https://github.com/rampion/pear/issues
+
 <!-- }}} -->
 # Literate Haskell<!-- {{{ -->
 
