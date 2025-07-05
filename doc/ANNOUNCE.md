@@ -661,8 +661,8 @@ Feel free to make requests on [the issues page][issues] or join [the discussion 
 <!-- }}} -->
 # Literate Haskell<!-- {{{ -->
 
-Because I don't trust myself not to have bugs in my examples, [this](?plain=1) is a literate haskell file. You can use 
-[`markdown-unlit`][markdown-unlit] to compile all the code here thusly:
+Because I don't trust myself not to have bugs in my examples, [this](ANNOUNCE.md?plain=1) is a literate haskell file. You can 
+use [`markdown-unlit`][markdown-unlit] to compile all the code here thusly:
 
   [markdown-unlit]: https://github.com/sol/markdown-unlit
 
